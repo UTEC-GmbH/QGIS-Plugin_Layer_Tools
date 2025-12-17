@@ -27,15 +27,9 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from qgis.core import Qgis, QgsLayerTree, QgsMapLayer, QgsProject, QgsVectorLayer
+from qgis.core import Qgis, QgsProject
 from qgis.gui import QgisInterface
-from qgis.PyQt.QtCore import (
-    QCoreApplication,
-    QObject,
-    QSettings,
-    QTimer,
-    QTranslator,
-)
+from qgis.PyQt.QtCore import QCoreApplication, QObject, QSettings, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import (
     QAction,
@@ -47,14 +41,14 @@ from .modules import general as ge
 from .modules import logs_and_errors as lae
 from .modules.general import get_current_project
 from .modules.geopackage import move_layers_to_gpkg
-from .modules.layer_location import add_location_indicator
+from .modules.layer_location import LocationIndicatorManager
 from .modules.main_interface import set_iface
 from .modules.rename import rename_layers, undo_rename_layers
 from .modules.resource_utils import resources
 from .modules.shipping import prepare_layers_for_shipping
 
 if TYPE_CHECKING:
-    from qgis.gui import QgsLayerTreeView, QgsMessageBar
+    from qgis.gui import QgsMessageBar
 
 
 class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
@@ -77,8 +71,7 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         self.plugin_menu: QMenu | None = None
         self.plugin_icon = resources.icons.plugin_main_icon
         self.translator: QTranslator | None = None
-        self._model_reset_handler: Callable | None = None
-        self.location_indicators: dict = {}
+        self.indicator_manager: LocationIndicatorManager | None = None
 
         # Read metadata to get the plugin name for UI elements
         self.plugin_name: str = "UTEC Layer Tools (dev)"
@@ -267,19 +260,9 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         toolbar_action = self.iface.addToolBarWidget(toolbar_button)
         self.actions.append(toolbar_action)
 
-        # Create the location indicators for the location of the layer source data
-        self._update_all_location_indicators()
-        self.iface.initializationCompleted.connect(self._on_project_read)
-        self.project.layerWasAdded.connect(self._on_layer_added)
-        self.project.layerWillBeRemoved.connect(self._on_layer_removed)
-        # Connect to the layer tree model's reset signal to handle reordering
-        view: QgsLayerTreeView | None = self.iface.layerTreeView()
-        if view and (model := view.model()):
-            # Store the handler to ensure it can be disconnected correctly.
-            self._model_reset_handler = lambda: QTimer.singleShot(
-                0, self._on_layer_tree_model_reset
-            )
-            model.modelReset.connect(self._model_reset_handler)
+        # Initialize and connect the location indicator manager
+        self.indicator_manager = LocationIndicatorManager(self.project, self.iface)
+        self.indicator_manager.init_indicators()
 
     def unload(self) -> None:
         """Plugin unload method.
@@ -287,30 +270,9 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         Called when the plugin is unloaded according to the plugin QGIS metadata.
         """
         # Unregister the layer tree view indicator
-        view: QgsLayerTreeView | None = self.iface.layerTreeView()
-        root: QgsLayerTree | None = self.project.layerTreeRoot()
-        if view and root and self.location_indicators:
-            self._clear_all_location_indicators()
-
-        # Disconnect layer tree model signal
-        if (
-            (view := self.iface.layerTreeView())
-            and (model := view.model())
-            and self._model_reset_handler
-        ):
-            model.modelReset.disconnect(self._model_reset_handler)
-
-        # Disconnect all project-level signals
-        if self.project:
-            with contextlib.suppress(Exception):
-                self.iface.initializationCompleted.disconnect(self._on_project_read)
-            with contextlib.suppress(Exception):
-                self.project.layerWasAdded.disconnect()
-            with contextlib.suppress(Exception):
-                self.project.layerWillBeRemoved.disconnect(self._on_layer_removed)
-            # Disconnect signals from individual layers
-            for layer in self.project.mapLayers().values():
-                self._disconnect_layer_signals(layer)
+        if self.indicator_manager:
+            self.indicator_manager.unload()
+            self.indicator_manager = None
 
         # Remove toolbar icons for all actions
         for action in self.actions:
@@ -326,178 +288,6 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
 
         self.actions.clear()
         self.plugin_menu = None
-
-    # --- Location Indicators ---
-
-    def _clear_all_location_indicators(self) -> None:
-        """Remove all location indicators from the layer tree view."""
-        view: QgsLayerTreeView | None = self.iface.layerTreeView()
-        root: QgsLayerTree | None = self.project.layerTreeRoot()
-        if not view or not root or not self.location_indicators:
-            return
-
-        for layer, indicator in self.location_indicators.items():
-            if node := root.findLayer(layer.id()):
-                view.removeIndicator(node, indicator)
-
-        self.location_indicators.clear()
-        lae.log_debug("Location Indicators → Cleared all location indicators.")
-
-    def _update_all_location_indicators(self) -> None:
-        """Update location indicators for all layers in the project."""
-        self._clear_all_location_indicators()
-        root: QgsLayerTree | None = self.project.layerTreeRoot()
-        if not root:
-            return
-        for layer_node in root.findLayers():
-            if layer_node and (map_layer := layer_node.layer()):
-                self._add_indicator_for_layer(map_layer)
-
-    def _remove_indicator_for_layer(self, layer: QgsMapLayer) -> None:
-        """Remove the location indicator for a single layer.
-
-        Args:
-            layer: The layer to remove the indicator from.
-        """
-        view: QgsLayerTreeView | None = self.iface.layerTreeView()
-        root: QgsLayerTree | None = self.project.layerTreeRoot()
-        if not view or not root:
-            return
-
-        if layer in self.location_indicators:
-            indicator = self.location_indicators[layer]
-            if node := root.findLayer(layer.id()):
-                view.removeIndicator(node, indicator)
-            del self.location_indicators[layer]
-            lae.log_debug(
-                f"Location Indicators → '{layer.name()}' → indicator removed."
-            )
-
-    def _update_indicator_for_layer(self, layer_id: str) -> None:
-        """Add or update a location indicator for a single layer.
-
-        If an indicator already exists for the layer, it will be removed and
-        re-created to reflect any changes in the layer's state (e.g.,
-        becoming empty or non-empty).
-
-        Args:
-            layer_id: The ID of the layer to update the indicator for.
-        """
-        layer: QgsMapLayer | None = self.project.mapLayer(layer_id)
-        if not layer:
-            return
-
-        self._remove_indicator_for_layer(layer)
-        self._add_indicator_for_layer(layer)
-
-        # Force a targeted repaint of the specific layer tree node.
-        if (
-            (view := self.iface.layerTreeView())
-            and (model := view.layerTreeModel())
-            and (root := self.project.layerTreeRoot())
-            and (node := root.findLayer(layer.id()))
-        ):
-            model_index = model.node2index(node)
-            model.dataChanged.emit(model_index, model_index)
-
-    def _add_indicator_for_layer(self, layer: QgsMapLayer) -> None:
-        """Add a location indicator for a single layer if it doesn't exist.
-
-        Args:
-            layer: The layer to add an indicator for.
-        """
-        if layer in self.location_indicators:
-            # Indicator already exists, do nothing.
-            return
-
-        if indicator := add_location_indicator(self.project, self.iface, layer):
-            self.location_indicators[layer] = indicator
-            msg: str = f"Location Indicators → '{layer.name()}' → indicator added successfully."
-            lae.log_debug(msg)
-            self._connect_layer_signals(layer)
-
-    def _connect_layer_signals(self, layer: QgsMapLayer) -> None:
-        """Connect signals for a specific layer.
-
-        For vector layers, this connects the `editingStopped` signal to trigger
-        an indicator update when edits are saved.
-
-        Args:
-            layer: The layer to connect signals for.
-        """
-        if isinstance(layer, QgsVectorLayer):
-            with contextlib.suppress(TypeError):
-                layer.editingStopped.connect(
-                    lambda: self._on_layer_modified(layer.id())
-                )
-
-    def _on_layer_modified(self, layer_id: str) -> None:
-        """Handle modification of a layer (e.g., after saving edits).
-
-        This is intended to be connected to signals like `editingStopped`.
-
-        Args:
-            layer_id: The ID of the modified layer.
-        """
-        layer: QgsMapLayer | None = self.project.mapLayer(layer_id)
-        if not layer:
-            return
-
-        lae.log_debug(
-            f"'{layer.name()}' → Location Indicators → Layer modified, "
-            "queueing indicator update..."
-        )
-        # Use a single-shot timer to defer the update slightly.
-        QTimer.singleShot(0, lambda: self._update_indicator_for_layer(layer_id))
-
-    def _on_project_read(self) -> None:
-        """Handle the projectRead signal after a project is loaded."""
-        lae.log_debug("Project loaded, setting up all indicators and signals.")
-        self._update_all_location_indicators()
-
-    def _on_layer_tree_model_reset(self) -> None:
-        """Handle the layer tree model's reset signal, e.g., on reorder."""
-        # Avoid running this during project load, which is handled separately.
-        if self.project.isLoading():
-            return
-
-        lae.log_debug("Layer tree reset detected, updating all indicators.")
-        self._update_all_location_indicators()
-
-    def _on_layer_added(self, layer: QgsMapLayer) -> None:
-        """Handle the layerWasAdded signal.
-
-        Args:
-            layer: The layer that was added (may be invalid later).
-        """
-        # This now only handles layers added manually after a project is open.
-        # The initial load is handled by _on_project_read.
-        self._add_indicator_for_layer(layer)
-
-    def _on_layer_removed(self, layer_id: str) -> None:
-        """Handle the layerWillBeRemoved signal.
-
-        Args:
-            layer_id: The ID of the layer that will be removed.
-        """
-        if layer_to_remove := next(
-            (layer for layer in self.location_indicators if layer.id() == layer_id),
-            None,
-        ):
-            self._disconnect_layer_signals(layer_to_remove)
-            self._remove_indicator_for_layer(layer_to_remove)
-
-    def _disconnect_layer_signals(self, layer: QgsMapLayer) -> None:
-        """Disconnect signals from a specific layer.
-
-        This is crucial to prevent errors when the layer is removed.
-
-        Args:
-            layer: The layer to disconnect signals from.
-        """
-        if isinstance(layer, QgsVectorLayer):
-            with contextlib.suppress(TypeError, RuntimeError):
-                layer.editingStopped.disconnect()
 
     #
     #
