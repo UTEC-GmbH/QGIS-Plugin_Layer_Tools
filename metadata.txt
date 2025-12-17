@@ -3,6 +3,9 @@ name=UTEC Layer Tools (dev)
 
 version=0.8
 changelog=
+    Version 0.9:
+    - Aktualisierung der Symbole zur Datenquelle bei Änderungen am Layer (z.B. wenn Objekte zu einem leeren Layer hinzugefügt werden)
+    - bugfix: wenn ein Layer ineine Gruppe verschoben wird, verliert er nicht mehr seine Datenquellen-Symbole
 
     Version 0.8:
     - ✨ Neue Funktion: "Versand" 
@@ -11,7 +14,6 @@ changelog=
         - In dem Ordner wird eine Projektdatei erstellt, damit die Layer gleich aussehen wie im Projekt
         - Projektdatei und GeoPackage können zusammen versendet werden.
     - im Hintergrund werden Ressourcen anders verwendet (ohne Kompilieren)
-
 
     Version 0.7:
     - bugfix bei Erstellung eines neuen Projekt-GeoPackages 

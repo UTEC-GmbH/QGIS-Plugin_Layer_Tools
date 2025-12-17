@@ -27,7 +27,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from qgis.core import Qgis, QgsLayerTree, QgsMapLayer, QgsProject
+from qgis.core import Qgis, QgsLayerTree, QgsMapLayer, QgsProject, QgsVectorLayer
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import (
     QCoreApplication,
@@ -77,6 +77,7 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         self.plugin_menu: QMenu | None = None
         self.plugin_icon = resources.icons.plugin_main_icon
         self.translator: QTranslator | None = None
+        self._model_reset_handler: Callable | None = None
         self.location_indicators: dict = {}
 
         # Read metadata to get the plugin name for UI elements
@@ -131,8 +132,7 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
             add_to_menu: If True, adds the action to the plugin's menu.
             add_to_toolbar: If True, adds the action to a QGIS toolbar.
             tool_tip: Optional tooltip text for the action.
-            parent: The parent widget for the action, typically the QGIS main
-                window.
+            parent: The parent widget for the action, typically the QGIS main window.
 
         Returns:
             The configured QAction instance.
@@ -159,9 +159,6 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
 
     def initGui(self) -> None:  # noqa: N802
         """Create the menu entries and toolbar icons for the plugin."""
-
-        # Initialize the resources (icons, etc.)
-        # resources.qInitResources()
 
         # Create a menu for the plugin in the "Plugins" menu
         self.plugin_menu = QMenu(self.menu, self.iface.pluginMenu())
@@ -272,9 +269,17 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
 
         # Create the location indicators for the location of the layer source data
         self._update_all_location_indicators()
-        self.project.readProject.connect(self._update_all_location_indicators)
+        self.iface.initializationCompleted.connect(self._on_project_read)
         self.project.layerWasAdded.connect(self._on_layer_added)
         self.project.layerWillBeRemoved.connect(self._on_layer_removed)
+        # Connect to the layer tree model's reset signal to handle reordering
+        view: QgsLayerTreeView | None = self.iface.layerTreeView()
+        if view and (model := view.model()):
+            # Store the handler to ensure it can be disconnected correctly.
+            self._model_reset_handler = lambda: QTimer.singleShot(
+                0, self._on_layer_tree_model_reset
+            )
+            model.modelReset.connect(self._model_reset_handler)
 
     def unload(self) -> None:
         """Plugin unload method.
@@ -287,13 +292,25 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         if view and root and self.location_indicators:
             self._clear_all_location_indicators()
 
+        # Disconnect layer tree model signal
+        if (
+            (view := self.iface.layerTreeView())
+            and (model := view.model())
+            and self._model_reset_handler
+        ):
+            model.modelReset.disconnect(self._model_reset_handler)
+
+        # Disconnect all project-level signals
         if self.project:
             with contextlib.suppress(Exception):
-                self.project.readProject.disconnect()
+                self.iface.initializationCompleted.disconnect(self._on_project_read)
             with contextlib.suppress(Exception):
                 self.project.layerWasAdded.disconnect()
             with contextlib.suppress(Exception):
-                self.project.layerWillBeRemoved.disconnect()
+                self.project.layerWillBeRemoved.disconnect(self._on_layer_removed)
+            # Disconnect signals from individual layers
+            for layer in self.project.mapLayers().values():
+                self._disconnect_layer_signals(layer)
 
         # Remove toolbar icons for all actions
         for action in self.actions:
@@ -309,9 +326,6 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
 
         self.actions.clear()
         self.plugin_menu = None
-
-        # Unload resources to allow for reloading them
-        # resources.qCleanupResources()
 
     # --- Location Indicators ---
 
@@ -332,32 +346,123 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
     def _update_all_location_indicators(self) -> None:
         """Update location indicators for all layers in the project."""
         self._clear_all_location_indicators()
-        if root := self.project.layerTreeRoot():
-            for layer_node in root.findLayers():
-                if layer_node and (map_layer := layer_node.layer()):
-                    self._add_indicator_for_layer(map_layer.id())
+        root: QgsLayerTree | None = self.project.layerTreeRoot()
+        if not root:
+            return
+        for layer_node in root.findLayers():
+            if layer_node and (map_layer := layer_node.layer()):
+                self._add_indicator_for_layer(map_layer)
 
-    def _add_indicator_for_layer(self, layer_id: str) -> None:
-        """Add a location indicator for a single layer.
+    def _remove_indicator_for_layer(self, layer: QgsMapLayer) -> None:
+        """Remove the location indicator for a single layer.
 
         Args:
-            layer_id: The ID of the layer to add an indicator for.
+            layer: The layer to remove the indicator from.
         """
-        layer: QgsMapLayer | None = self.project.mapLayer(layer_id)
-        if not layer:
-            lae.log_debug(
-                f"Layer with ID '{layer_id}' not found. Cannot add indicator."
-            )
+        view: QgsLayerTreeView | None = self.iface.layerTreeView()
+        root: QgsLayerTree | None = self.project.layerTreeRoot()
+        if not view or not root:
             return
 
         if layer in self.location_indicators:
-            # Indicator already exists
+            indicator = self.location_indicators[layer]
+            if node := root.findLayer(layer.id()):
+                view.removeIndicator(node, indicator)
+            del self.location_indicators[layer]
+            lae.log_debug(
+                f"Location Indicators → '{layer.name()}' → indicator removed."
+            )
+
+    def _update_indicator_for_layer(self, layer_id: str) -> None:
+        """Add or update a location indicator for a single layer.
+
+        If an indicator already exists for the layer, it will be removed and
+        re-created to reflect any changes in the layer's state (e.g.,
+        becoming empty or non-empty).
+
+        Args:
+            layer_id: The ID of the layer to update the indicator for.
+        """
+        layer: QgsMapLayer | None = self.project.mapLayer(layer_id)
+        if not layer:
+            return
+
+        self._remove_indicator_for_layer(layer)
+        self._add_indicator_for_layer(layer)
+
+        # Force a targeted repaint of the specific layer tree node.
+        if (
+            (view := self.iface.layerTreeView())
+            and (model := view.layerTreeModel())
+            and (root := self.project.layerTreeRoot())
+            and (node := root.findLayer(layer.id()))
+        ):
+            model_index = model.node2index(node)
+            model.dataChanged.emit(model_index, model_index)
+
+    def _add_indicator_for_layer(self, layer: QgsMapLayer) -> None:
+        """Add a location indicator for a single layer if it doesn't exist.
+
+        Args:
+            layer: The layer to add an indicator for.
+        """
+        if layer in self.location_indicators:
+            # Indicator already exists, do nothing.
             return
 
         if indicator := add_location_indicator(self.project, self.iface, layer):
             self.location_indicators[layer] = indicator
             msg: str = f"Location Indicators → '{layer.name()}' → indicator added successfully."
             lae.log_debug(msg)
+            self._connect_layer_signals(layer)
+
+    def _connect_layer_signals(self, layer: QgsMapLayer) -> None:
+        """Connect signals for a specific layer.
+
+        For vector layers, this connects the `editingStopped` signal to trigger
+        an indicator update when edits are saved.
+
+        Args:
+            layer: The layer to connect signals for.
+        """
+        if isinstance(layer, QgsVectorLayer):
+            with contextlib.suppress(TypeError):
+                layer.editingStopped.connect(
+                    lambda: self._on_layer_modified(layer.id())
+                )
+
+    def _on_layer_modified(self, layer_id: str) -> None:
+        """Handle modification of a layer (e.g., after saving edits).
+
+        This is intended to be connected to signals like `editingStopped`.
+
+        Args:
+            layer_id: The ID of the modified layer.
+        """
+        layer: QgsMapLayer | None = self.project.mapLayer(layer_id)
+        if not layer:
+            return
+
+        lae.log_debug(
+            f"'{layer.name()}' → Location Indicators → Layer modified, "
+            "queueing indicator update..."
+        )
+        # Use a single-shot timer to defer the update slightly.
+        QTimer.singleShot(0, lambda: self._update_indicator_for_layer(layer_id))
+
+    def _on_project_read(self) -> None:
+        """Handle the projectRead signal after a project is loaded."""
+        lae.log_debug("Project loaded, setting up all indicators and signals.")
+        self._update_all_location_indicators()
+
+    def _on_layer_tree_model_reset(self) -> None:
+        """Handle the layer tree model's reset signal, e.g., on reorder."""
+        # Avoid running this during project load, which is handled separately.
+        if self.project.isLoading():
+            return
+
+        lae.log_debug("Layer tree reset detected, updating all indicators.")
+        self._update_all_location_indicators()
 
     def _on_layer_added(self, layer: QgsMapLayer) -> None:
         """Handle the layerWasAdded signal.
@@ -365,24 +470,9 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         Args:
             layer: The layer that was added (may be invalid later).
         """
-        try:
-            # Immediately capture the ID and name. If the layer is already
-            # deleted, this will raise a RuntimeError which we can catch.
-            layer_id: str = layer.id()
-            layer_name: str = layer.name()
-        except RuntimeError:
-            lae.log_debug(
-                "A layer was added and removed before its indicator could be processed."
-            )
-            return
-
-        lae.log_debug(
-            f"'{layer_name}' → Location Indicators → Layer added, queueing indicator update..."
-        )
-
-        # Use a single-shot timer to ensure the layer tree node exists before
-        # adding the indicator. Pass the captured ID, not the layer object.
-        QTimer.singleShot(0, lambda: self._add_indicator_for_layer(layer_id))
+        # This now only handles layers added manually after a project is open.
+        # The initial load is handled by _on_project_read.
+        self._add_indicator_for_layer(layer)
 
     def _on_layer_removed(self, layer_id: str) -> None:
         """Handle the layerWillBeRemoved signal.
@@ -394,11 +484,23 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
             (layer for layer in self.location_indicators if layer.id() == layer_id),
             None,
         ):
-            del self.location_indicators[layer_to_remove]
-            lae.log_debug(
-                f"'{layer_to_remove.name()}' → Location Indicators → : indicator removed."
-            )
+            self._disconnect_layer_signals(layer_to_remove)
+            self._remove_indicator_for_layer(layer_to_remove)
 
+    def _disconnect_layer_signals(self, layer: QgsMapLayer) -> None:
+        """Disconnect signals from a specific layer.
+
+        This is crucial to prevent errors when the layer is removed.
+
+        Args:
+            layer: The layer to disconnect signals from.
+        """
+        if isinstance(layer, QgsVectorLayer):
+            with contextlib.suppress(TypeError, RuntimeError):
+                layer.editingStopped.disconnect()
+
+    #
+    #
     # --- Plugin actions ---
 
     def rename_selected_layers(self) -> None:
@@ -406,44 +508,34 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         lae.log_debug(
             "... STARTING PLUGIN RUN ... (rename_selected_layers)", icon="✨✨✨"
         )
-        try:
+        with contextlib.suppress(lae.CustomUserError, lae.CustomRuntimeError):
             rename_layers()
-        except (lae.CustomUserError, lae.CustomRuntimeError):
-            return
 
     def move_selected_layers(self) -> None:
         """Call move function from 'functions_geopackage.py'."""
         lae.log_debug(
             "... STARTING PLUGIN RUN ... (move_selected_layers)", icon="✨✨✨"
         )
-        try:
+        with contextlib.suppress(lae.CustomUserError, lae.CustomRuntimeError):
             move_layers_to_gpkg()
-        except (lae.CustomUserError, lae.CustomRuntimeError):
-            return
 
     def undo_last_rename(self) -> None:
         """Call undo function from 'modules/rename.py'."""
         lae.log_debug("... STARTING PLUGIN RUN ... (undo_last_rename)", icon="✨✨✨")
-        try:
+        with contextlib.suppress(lae.CustomUserError, lae.CustomRuntimeError):
             undo_rename_layers()
-        except (lae.CustomUserError, lae.CustomRuntimeError):
-            return
 
     def rename_and_move_layers(self) -> None:
         """Combine the rename and move functions."""
         lae.log_debug(
             "... STARTING PLUGIN RUN ... (rename_and_move_layers)", icon="✨✨✨"
         )
-        try:
+        with contextlib.suppress(lae.CustomUserError, lae.CustomRuntimeError):
             rename_layers()
             move_layers_to_gpkg()
-        except (lae.CustomUserError, lae.CustomRuntimeError):
-            return
 
     def prepare_shipping(self) -> None:
         """Call shipping function from 'modules/shipping.py'."""
         lae.log_debug("... STARTING PLUGIN RUN ... (prepare_shipping)", icon="✨✨✨")
-        try:
+        with contextlib.suppress(lae.CustomUserError, lae.CustomRuntimeError):
             prepare_layers_for_shipping()
-        except (lae.CustomUserError, lae.CustomRuntimeError):
-            return
