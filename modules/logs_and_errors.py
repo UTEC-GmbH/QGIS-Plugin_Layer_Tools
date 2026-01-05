@@ -88,6 +88,7 @@ def show_message(
     :param duration: The duration of the message in seconds (default: 0 = until closed)
     :return: None
     """
+    # pylint: disable=import-outside-toplevel
     from .context import PluginContext  # noqa: PLC0415
 
     if msg_bar := PluginContext.message_bar():
