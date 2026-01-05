@@ -52,10 +52,7 @@ def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
     gpkg: str = os.path.normcase(str(gpkg_path))
     project_folder: str = os.path.normcase(str(gpkg_path.parent))
 
-    if isinstance(layer, QgsVectorLayer) and layer.featureCount() == 0:
-        location = LayerLocation.EMPTY
-        log_message = "Layer is empty."
-    elif layer_source.startswith("memory"):
+    if layer_source.startswith("memory"):
         # Memory layers get an indicator from QGIS itself, so we return None.
         location = None
         log_message = "memory layer (no indicator needed)"
@@ -80,27 +77,48 @@ def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
     return location
 
 
+def is_empty_layer(layer: QgsMapLayer) -> bool:
+    """Check if a vector layer is empty."""
+    return isinstance(layer, QgsVectorLayer) and layer.featureCount() == 0
+
+
 def add_location_indicator(
     project: QgsProject, iface: QgisInterface, layer: QgsMapLayer
-) -> QgsLayerTreeViewIndicator | None:
+) -> list[QgsLayerTreeViewIndicator] | None:
     """Add a location indicator for a single layer to the layer tree view."""
 
-    location: LayerLocation | None = get_layer_location(layer)
-    if location is None:
-        return None
+    indicators: list[QgsLayerTreeViewIndicator] = []
 
-    indicator = QgsLayerTreeViewIndicator()
-    indicator.setIcon(location.icon)
-    indicator.setToolTip(location.tooltip)
     if (
         project
         and (view := iface.layerTreeView())
         and (root := project.layerTreeRoot())
         and (node := root.findLayer(layer.id()))
     ):
-        view.addIndicator(node, indicator)
-        log_debug(f"Location Indicators → '{layer.name()}' → adding indicator...")
-        return indicator
+        # Add empty indicator if applicable
+        if is_empty_layer(layer):
+            empty_indicator = QgsLayerTreeViewIndicator()
+            empty_indicator.setIcon(LayerLocation.EMPTY.icon)
+            empty_indicator.setToolTip(LayerLocation.EMPTY.tooltip)
+            view.addIndicator(node, empty_indicator)
+            indicators.append(empty_indicator)
+            log_debug(
+                f"Location Indicators → '{layer.name()}' → adding empty indicator..."
+            )
+
+        # Add location indicator if it's not a memory layer
+        location: LayerLocation | None = get_layer_location(layer)
+        if location is not None:
+            location_indicator = QgsLayerTreeViewIndicator()
+            location_indicator.setIcon(location.icon)
+            location_indicator.setToolTip(location.tooltip)
+            view.addIndicator(node, location_indicator)
+            indicators.append(location_indicator)
+            log_debug(
+                f"Location Indicators → '{layer.name()}' → adding location indicator..."
+            )
+
+        return indicators or None
 
     return None
 
@@ -117,7 +135,7 @@ class LocationIndicatorManager:
         """
         self.project: QgsProject = project
         self.iface: QgisInterface = iface
-        self.location_indicators: dict[str, QgsLayerTreeViewIndicator] = {}
+        self.location_indicators: dict[str, list[QgsLayerTreeViewIndicator]] = {}
         # Cache stores (LocationType, TreeNodeObject) to detect node recreation
         self.layer_locations: dict[
             str, tuple[LayerLocation | None, QgsLayerTreeNode | None]
@@ -224,13 +242,14 @@ class LocationIndicatorManager:
         if not view or not root or not self.location_indicators:
             return
 
-        for layer_id, indicator in list(self.location_indicators.items()):
+        for layer_id, indicators in list(self.location_indicators.items()):
             if node := root.findLayer(layer_id):
-                view.removeIndicator(node, indicator)
+                for indicator in indicators:
+                    view.removeIndicator(node, indicator)
             # attempt to get layer name for logging
             layer: QgsMapLayer | None = self.project.mapLayer(layer_id)
             name: str = layer.name() if layer else layer_id
-            log_debug(f"Location Indicators → '{name}' → indicator removed.")
+            log_debug(f"Location Indicators → '{name}' → indicators removed.")
 
         self.location_indicators.clear()
         self.layer_locations.clear()
@@ -321,14 +340,15 @@ class LocationIndicatorManager:
         """Clean up indicator entry for a layer that was deleted."""
         if (view := self.iface.layerTreeView()) and (node := root.findLayer(lid)):
             with contextlib.suppress(KeyError):
-                view.removeIndicator(node, self.location_indicators[lid])
+                for indicator in self.location_indicators[lid]:
+                    view.removeIndicator(node, indicator)
 
         with contextlib.suppress(KeyError):
             del self.location_indicators[lid]
             del self.layer_locations[lid]
 
     def _remove_indicator_for_layer(self, layer: QgsMapLayer) -> None:
-        """Remove the location indicator for a single layer."""
+        """Remove the location indicators for a single layer."""
         view: QgsLayerTreeView | None = self.iface.layerTreeView()
         root: QgsLayerTree | None = self.project.layerTreeRoot()
         if not view or not root:
@@ -336,13 +356,14 @@ class LocationIndicatorManager:
 
         lid = layer.id()
         if lid in self.location_indicators:
-            indicator: QgsLayerTreeViewIndicator = self.location_indicators[lid]
+            indicators: list[QgsLayerTreeViewIndicator] = self.location_indicators[lid]
             if node := root.findLayer(lid):
-                view.removeIndicator(node, indicator)
+                for indicator in indicators:
+                    view.removeIndicator(node, indicator)
             del self.location_indicators[lid]
             if lid in self.layer_locations:
                 del self.layer_locations[lid]
-            log_debug(f"Location Indicators → '{layer.name()}' → indicator removed.")
+            log_debug(f"Location Indicators → '{layer.name()}' → indicators removed.")
 
     def _update_indicator_for_layer(self, layer_id: str) -> None:
         """Add or update a location indicator for a single layer."""
@@ -363,22 +384,11 @@ class LocationIndicatorManager:
             model_index = model.node2index(node)
             model.dataChanged.emit(model_index, model_index)
 
-    def _add_indicator_for_layer(self, layer: QgsMapLayer) -> None:
-        """Add a location indicator for a single layer if it doesn't exist."""
-        layer_id: str = layer.id()
-        if layer_id in self.location_indicators:
-            log_debug(
-                f"Location Indicators → '{layer.name()}' → indicator exists already."
-            )
-            return
-
-        if indicator := add_location_indicator(self.project, self.iface, layer):
-            self._layer_location_cache(indicator, layer_id, layer)
-
     def _layer_location_cache(
-        self, indicator: QgsLayerTreeViewIndicator, lid: str, layer: QgsMapLayer
+        self, indicators: list[QgsLayerTreeViewIndicator], lid: str, layer: QgsMapLayer
     ) -> None:
-        self.location_indicators[lid] = indicator
+        """Cache indicators and layer location state."""
+        self.location_indicators[lid] = indicators
 
         # Find the node to cache it
         root: QgsLayerTree | None = self.project.layerTreeRoot()
@@ -386,9 +396,21 @@ class LocationIndicatorManager:
 
         self.layer_locations[lid] = (get_layer_location(layer), node)
         log_debug(
-            f"Location Indicators → '{layer.name()}' → indicator added successfully."
+            f"Location Indicators → '{layer.name()}' → indicators added successfully."
         )
         self._connect_layer_signals(layer)
+
+    def _add_indicator_for_layer(self, layer: QgsMapLayer) -> None:
+        """Add location and empty indicators for a single layer if they don't exist."""
+        layer_id: str = layer.id()
+        if layer_id in self.location_indicators:
+            log_debug(
+                f"Location Indicators → '{layer.name()}' → indicators exist already."
+            )
+            return
+
+        if indicators := add_location_indicator(self.project, self.iface, layer):
+            self._layer_location_cache(indicators, layer_id, layer)
 
     def _connect_layer_signals(self, layer: QgsMapLayer) -> None:
         """Connect signals for a specific layer."""
