@@ -42,27 +42,27 @@
 <context>
     <name>Menu_Button</name>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="214"/>
+        <location filename="../UTEC_layer_tools.py" line="204"/>
         <source>Undo Last Rename</source>
         <translation>Letzte Umbenennung Rückgängig machen</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="197"/>
+        <location filename="../UTEC_layer_tools.py" line="187"/>
         <source>Rename Selected Layers by Group Name</source>
         <translation>Gewählte Layer nach Gruppenname umbenennen</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="180"/>
+        <location filename="../UTEC_layer_tools.py" line="170"/>
         <source>Copy Selected Layers to Project&apos;s GeoPackage</source>
         <translation>Gewählte Layer ins Projekt-GeoPackage kopieren</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="231"/>
+        <location filename="../UTEC_layer_tools.py" line="221"/>
         <source>Rename and Copy Selected Layers to Project&apos;s GeoPackage</source>
         <translation>Gewählte Layer Umbenennen und ins Projekt-GeoPackage kopieren</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="248"/>
+        <location filename="../UTEC_layer_tools.py" line="238"/>
         <source>Prepare Selected Layers for Sending</source>
         <translation>Gewählte Layer für den Versand vorbereiten</translation>
     </message>
@@ -70,27 +70,27 @@
 <context>
     <name>Menu_ToolTip</name>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="198"/>
+        <location filename="../UTEC_layer_tools.py" line="188"/>
         <source>&lt;p&gt;&lt;b&gt;Rename Selected Layers by Group Name&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Selected layers or layers in selected groups are renamed according to their parent group names. If a layer is not in a group, it is not renamed.&lt;/span&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer nach Gruppenname umbenennen&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Gewählte Layer oder Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen. Wenn ein Layer nicht in einer Gruppe ist, wird er nicht umbenannt.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="215"/>
+        <location filename="../UTEC_layer_tools.py" line="205"/>
         <source>&lt;p&gt;&lt;b&gt;Undo Last Rename&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Undoes the most recent layer renaming operation performed by this plugin.&lt;/span&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;&lt;b&gt;Letzte Umbenennung Rückgängig machen&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Die letzte Umbenennung, die von diesem Plugin ausgeführt wurde, wird rückgängig gemacht.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="181"/>
+        <location filename="../UTEC_layer_tools.py" line="171"/>
         <source>&lt;p&gt;&lt;b&gt;Copy Selected Layers to Project&apos;s GeoPackage&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Selected layers or layers in selected groups are copied to the project&apos;s GeoPackage (a GeoPackage in the project folder with the same name as the project file) and added back from the GeoPackage to the top of the layer tree of the current project.&lt;/span&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer ins Projekt-GeoPackage kopieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Gewählte Layer oder Layer in gewählten Gruppen werden in das Projekt-GeoPackage (ein GeoPackage im Projektordner mit dem gleichen Namen wie die Projektdatei) kopiert und dann aus dem Projekt-GeoPackage ganz oben im Layer-Baum des Projekts eingefügt.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="232"/>
+        <location filename="../UTEC_layer_tools.py" line="222"/>
         <source>&lt;p&gt;&lt;b&gt;Rename and Copy Selected Layers to Project&apos;s GeoPackage&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Selected layers or layers in selected groups are renamed according to their parent group names, then copied to the project&apos;s GeoPackage (a GeoPackage in the project folder with the same name as the project file) and then added back from the GeoPackage to the top of the layer tree of the current project.&lt;/span&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer Umbenennen und ins Projekt-GeoPackage kopieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Gewählte Layer oder Layer in gewählten Gruppen werden gemäß der Gruppen in denen sie liegen umbenannt, dann in das Projekt-GeoPackage (ein GeoPackage im Projektordner mit dem gleichen Namen wie die Projektdatei) kopiert und zuletzt aus dem Projekt-GeoPackage ganz oben im Layer-Baum des Projekts eingefügt.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="249"/>
+        <location filename="../UTEC_layer_tools.py" line="239"/>
         <source>&lt;p&gt;&lt;b&gt;Prepare Selected Layers for Sending&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Creates a &apos;Versand&apos; folder with a GeoPackage containing the selected layers and a project file with the same styling.&lt;/span&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer für den Versand vorbereiten&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Es wird ein Ordner namens &quot;Versand&quot; erstellt, in dem ein Geopackage und eine Projektdatei mit den gewählten Layern erstellt werden. Diese beiden Dateien können zusammen per E-Mail versendet werden.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
@@ -98,7 +98,7 @@
 <context>
     <name>RuntimeError</name>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="170"/>
+        <location filename="../UTEC_layer_tools.py" line="160"/>
         <source>Failed to create the plugin menu.</source>
         <translation>Konnte das Plugin-Menu nicht erstellen.</translation>
     </message>

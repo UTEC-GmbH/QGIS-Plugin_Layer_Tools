@@ -473,8 +473,7 @@ def package_plugin(metadata: PluginMetadata) -> None:
     clean_plugin_name: str = plugin_name.replace(" ", "_")
     logger.info("\n▶️ Packaging '%s'...", plugin_name)
 
-    # 1. Define packaging configuration directly in the script.
-    # This replaces reading from pb_tool.cfg.
+    # 1. Define packaging configuration
     plugin_zip_dir: str = metadata["plugin_package_name"]
     files_to_zip: list[str] = metadata["files_to_package"]
     dirs_to_zip: list[str] = metadata["dirs_to_package"]
