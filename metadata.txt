@@ -1,8 +1,12 @@
 [general]
 name=UTEC Layer Tools (dev)
 
-version=0.9
+version=0.9.1
 changelog=
+    Version 0.9.1:
+    - interne Verbesserungen zur Leistungsoptimierung
+    
+
     Version 0.9:
     - Aktualisierung der Symbole zur Datenquelle bei Änderungen am Layer (z.B. wenn Objekte zu einem leeren Layer hinzugefügt werden)
     - Auch bei leeren Layern wird jetzt angezeigt, wo sie abgespeichert sind.

@@ -26,11 +26,10 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QCoreApplication
 
 from .constants import GEOMETRY_SUFFIX_MAP, LAYER_TYPES
+from .context import PluginContext
 from .general import (
     clear_attribute_table,
-    get_current_project,
     get_selected_layers,
-    project_gpkg,
 )
 from .logs_and_errors import (
     log_debug,
@@ -52,7 +51,7 @@ def create_gpkg(
     """
 
     if gpkg_path is None:
-        gpkg_path = project_gpkg()
+        gpkg_path = PluginContext.project_gpkg()
 
     if gpkg_path.exists():
         log_debug(f"Existing GeoPackage found in \n'{gpkg_path}'")
@@ -244,9 +243,9 @@ def add_layers_to_gpkg(
               names in the GeoPackage.
     """
 
-    project: QgsProject = get_current_project()
+    project: QgsProject = PluginContext.project()
     if gpkg_path is None:
-        gpkg_path = project_gpkg()
+        gpkg_path = PluginContext.project_gpkg()
 
     if not gpkg_path.exists():
         raise_runtime_error(f"GeoPackage does not exist at '{gpkg_path}'")
@@ -363,11 +362,11 @@ def _initialize_parameters(
         A tuple containing the initialized project, layers, and gpkg_path.
     """
     if project is None:
-        project = get_current_project()
+        project = PluginContext.project()
     if layers is None:
         layers = get_selected_layers()
     if gpkg_path is None:
-        gpkg_path = project_gpkg()
+        gpkg_path = PluginContext.project_gpkg()
     return project, layers, gpkg_path
 
 

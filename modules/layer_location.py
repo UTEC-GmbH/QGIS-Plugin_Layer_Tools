@@ -5,6 +5,7 @@ Determine the location of the layer's data source.
 
 import contextlib
 import os
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from qgis.core import (
@@ -20,12 +21,11 @@ from qgis.gui import QgisInterface, QgsLayerTreeView, QgsLayerTreeViewIndicator
 from qgis.PyQt.QtCore import QTimer
 
 from .constants import LayerLocation
-from .general import project_gpkg
+from .context import PluginContext
 from .logs_and_errors import log_debug
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
 
 def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
@@ -48,9 +48,9 @@ def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
     log_message: str = ""
 
     layer_source: str = os.path.normcase(layer.source())
-    gpkg_path: Path = project_gpkg()
-    gpkg: str = os.path.normcase(str(gpkg_path))
-    project_folder: str = os.path.normcase(str(gpkg_path.parent))
+    project_gpkg_path: str = str(PluginContext.project_gpkg())
+    gpkg: str = os.path.normcase(project_gpkg_path)
+    project_folder: str = os.path.normcase(str(Path(project_gpkg_path).parent))
 
     if layer_source.startswith("memory"):
         # Memory layers get an indicator from QGIS itself, so we return None.
@@ -311,7 +311,7 @@ class LocationIndicatorManager:
             if lid in self.location_indicators:
                 self._remove_indicator_for_layer(layer)
 
-            if new_location:
+            if new_location or is_empty_layer(layer):
                 # _add_indicator_for_layer will update the cache with new node
                 self._add_indicator_for_layer(layer)
             else:

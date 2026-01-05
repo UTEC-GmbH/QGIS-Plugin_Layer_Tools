@@ -37,12 +37,15 @@ from qgis.PyQt.QtWidgets import (
     QToolButton,
 )
 
-from .modules import general as ge
-from .modules import logs_and_errors as lae
-from .modules.general import get_current_project
+from .modules.context import PluginContext
 from .modules.geopackage import move_layers_to_gpkg
 from .modules.layer_location import LocationIndicatorManager
-from .modules.main_interface import set_iface
+from .modules.logs_and_errors import (
+    CustomRuntimeError,
+    CustomUserError,
+    log_debug,
+    raise_runtime_error,
+)
 from .modules.rename import rename_layers, undo_rename_layers
 from .modules.resource_utils import resources
 from .modules.shipping import prepare_layers_for_shipping
@@ -61,12 +64,12 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
             iface: An interface instance that allows interaction with QGIS.
         """
         super().__init__()
-        self.project: QgsProject = get_current_project()
+        self.plugin_dir: Path = Path(__file__).parent
+        PluginContext.init(iface, self.plugin_dir)
+
+        self.project: QgsProject = PluginContext.project()
         self.iface: QgisInterface = iface
         self.msg_bar: QgsMessageBar | None = iface.messageBar()
-        ge.iface = iface
-        set_iface(iface)
-        self.plugin_dir: Path = Path(__file__).parent
         self.actions: list = []
         self.plugin_menu: QMenu | None = None
         self.plugin_icon = resources.icons.plugin_main_icon
@@ -82,7 +85,7 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
             try:
                 self.plugin_name = config.get("general", "name")
             except (configparser.NoSectionError, configparser.NoOptionError):
-                lae.log_debug("Could not read name from metadata.txt", Qgis.Warning)
+                log_debug("Could not read name from metadata.txt", Qgis.Warning)
 
         self.menu: str = self.plugin_name
 
@@ -91,7 +94,7 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         translator_path: Path = self.plugin_dir / "i18n" / f"{locale}.qm"
 
         if not translator_path.exists():
-            lae.log_debug(f"Translator not found in: {translator_path}", Qgis.Warning)
+            log_debug(f"Translator not found in: {translator_path}", Qgis.Warning)
         else:
             self.translator = QTranslator()
             if self.translator is not None and self.translator.load(
@@ -99,7 +102,7 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
             ):
                 QCoreApplication.installTranslator(self.translator)
             else:
-                lae.log_debug("Translator could not be installed.", Qgis.Warning)
+                log_debug("Translator could not be installed.", Qgis.Warning)
 
     def add_action(  # noqa: PLR0913 # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,
@@ -159,7 +162,7 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
             # fmt: off
             error_msg: str = QCoreApplication.translate("RuntimeError", "Failed to create the plugin menu.")
             # fmt: on
-            lae.raise_runtime_error(error_msg)
+            raise_runtime_error(error_msg)
 
         self.plugin_menu.setToolTipsVisible(True)
         self.plugin_menu.setIcon(self.plugin_icon)
@@ -295,37 +298,31 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
 
     def rename_selected_layers(self) -> None:
         """Call rename function from 'functions_rename.py'."""
-        lae.log_debug(
-            "... STARTING PLUGIN RUN ... (rename_selected_layers)", icon="✨✨✨"
-        )
-        with contextlib.suppress(lae.CustomUserError, lae.CustomRuntimeError):
+        log_debug("... STARTING PLUGIN RUN ... (rename_selected_layers)", icon="✨✨✨")
+        with contextlib.suppress(CustomUserError, CustomRuntimeError):
             rename_layers()
 
     def move_selected_layers(self) -> None:
         """Call move function from 'functions_geopackage.py'."""
-        lae.log_debug(
-            "... STARTING PLUGIN RUN ... (move_selected_layers)", icon="✨✨✨"
-        )
-        with contextlib.suppress(lae.CustomUserError, lae.CustomRuntimeError):
+        log_debug("... STARTING PLUGIN RUN ... (move_selected_layers)", icon="✨✨✨")
+        with contextlib.suppress(CustomUserError, CustomRuntimeError):
             move_layers_to_gpkg()
 
     def undo_last_rename(self) -> None:
         """Call undo function from 'modules/rename.py'."""
-        lae.log_debug("... STARTING PLUGIN RUN ... (undo_last_rename)", icon="✨✨✨")
-        with contextlib.suppress(lae.CustomUserError, lae.CustomRuntimeError):
+        log_debug("... STARTING PLUGIN RUN ... (undo_last_rename)", icon="✨✨✨")
+        with contextlib.suppress(CustomUserError, CustomRuntimeError):
             undo_rename_layers()
 
     def rename_and_move_layers(self) -> None:
         """Combine the rename and move functions."""
-        lae.log_debug(
-            "... STARTING PLUGIN RUN ... (rename_and_move_layers)", icon="✨✨✨"
-        )
-        with contextlib.suppress(lae.CustomUserError, lae.CustomRuntimeError):
+        log_debug("... STARTING PLUGIN RUN ... (rename_and_move_layers)", icon="✨✨✨")
+        with contextlib.suppress(CustomUserError, CustomRuntimeError):
             rename_layers()
             move_layers_to_gpkg()
 
     def prepare_shipping(self) -> None:
         """Call shipping function from 'modules/shipping.py'."""
-        lae.log_debug("... STARTING PLUGIN RUN ... (prepare_shipping)", icon="✨✨✨")
-        with contextlib.suppress(lae.CustomUserError, lae.CustomRuntimeError):
+        log_debug("... STARTING PLUGIN RUN ... (prepare_shipping)", icon="✨✨✨")
+        with contextlib.suppress(CustomUserError, CustomRuntimeError):
             prepare_layers_for_shipping()

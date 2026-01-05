@@ -19,10 +19,10 @@ from qgis.core import (
 from qgis.gui import QgsMapCanvas
 from qgis.PyQt.QtXml import QDomDocument
 
-from .general import get_current_project, get_path_to_project_file, get_selected_layers
+from .context import PluginContext
+from .general import get_selected_layers
 from .geopackage import add_layers_from_gpkg_to_project, add_layers_to_gpkg, create_gpkg
 from .logs_and_errors import log_debug
-from .main_interface import get_iface
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -111,11 +111,11 @@ def prepare_layers_for_shipping() -> None:
     """
 
     # Get current project and interface to copy properties from
-    original_project: QgsProject = get_current_project()
+    original_project: QgsProject = PluginContext.project()
 
     layers: list[QgsMapLayer] = get_selected_layers()
 
-    project_path: Path = get_path_to_project_file()
+    project_path: Path = PluginContext.project_path()
     versand_dir: Path = project_path.parent / "Versand"
     versand_dir.mkdir(exist_ok=True)
 
@@ -146,7 +146,7 @@ def prepare_layers_for_shipping() -> None:
     )
 
     # Set initial map extent to the current view of the original project
-    iface: QgisInterface | None = get_iface()
+    iface: QgisInterface | None = PluginContext.iface()
     if iface and (current_canvas := iface.mapCanvas()):
         _set_map_extent(current_canvas, shipping_project)
 

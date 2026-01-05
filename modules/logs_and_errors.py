@@ -1,4 +1,4 @@
-"""Module: logs&errors.py
+"""Module: logs_and_errors.py
 
 This module contains logging functions and custom error classes.
 """
@@ -6,14 +6,10 @@ This module contains logging functions and custom error classes.
 import inspect
 from pathlib import Path
 from types import FrameType
-from typing import TYPE_CHECKING, NoReturn
+from typing import NoReturn
 
 from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QCoreApplication
-from qgis.utils import iface
-
-if TYPE_CHECKING:
-    from qgis.gui import QgisInterface
 
 LEVEL_ICON: dict[Qgis.MessageLevel, str] = {
     Qgis.Success: "🎉",
@@ -92,16 +88,16 @@ def show_message(
     :param duration: The duration of the message in seconds (default: 0 = until closed)
     :return: None
     """
+    from .context import PluginContext  # noqa: PLC0415
 
-    qgis_iface: QgisInterface | None = iface
-    if qgis_iface and (msg_bar := qgis_iface.messageBar()):
+    if msg_bar := PluginContext.message_bar():
         msg_bar.clearWidgets()
         msg_bar.pushMessage(
             f"{LEVEL_ICON[level]} {message}", level=level, duration=duration
         )
     else:
         QgsMessageLog.logMessage(
-            f"{LEVEL_ICON[Qgis.Warning]} iface not set or message bar not available! "
+            f"{LEVEL_ICON[Qgis.Warning]} message bar not available! "
             f"→ Error not displayed in message bar."
         )
 

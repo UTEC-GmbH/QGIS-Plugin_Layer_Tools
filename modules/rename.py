@@ -21,8 +21,8 @@ from qgis.core import (
 )
 
 from .constants import GEOMETRY_SUFFIX_MAP
+from .context import PluginContext
 from .general import (
-    get_current_project,
     get_selected_layers,
     raise_runtime_error,
 )
@@ -69,7 +69,7 @@ def prepare_rename_plan() -> tuple[list[tuple[QgsMapLayer, str, str]], list[str]
         A tuple containing the rename plan, a list of skipped layer names, and a
         list of layer names that could not be found in the layer tree.
     """
-    project: QgsProject = get_current_project()
+    project: QgsProject = PluginContext.project()
     root: QgsLayerTree | None = project.layerTreeRoot()
     if root is None:
         raise_runtime_error("No Layer Tree is available.")
@@ -219,7 +219,7 @@ def rename_layers() -> None:
     successful_count: int = len(rename_plan) - len(failed_renames)
 
     if successful_renames:
-        project: QgsProject = get_current_project()
+        project: QgsProject = PluginContext.project()
         # Store the list of successful renames in the project file.
         # The list is stored as a JSON string.
         project.writeEntry(
@@ -236,7 +236,7 @@ def rename_layers() -> None:
 
 def undo_rename_layers() -> None:
     """Reverts the last renaming operation."""
-    project: QgsProject = get_current_project()
+    project: QgsProject = PluginContext.project()
     last_rename_json, found = project.readEntry("UTEC_Layer_Tools", "last_rename", "")
 
     if not found or not last_rename_json:
