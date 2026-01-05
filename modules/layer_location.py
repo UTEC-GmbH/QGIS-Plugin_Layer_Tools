@@ -20,10 +20,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-# TODO: Moving Layers within the layer tree (using drag-and-drop) leads to that layer losing its location indicator.
-# TODO: When adding a layer from a geopackage, the location is identified correctly, but the indicator is not added.
-
-
 def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
     """Determine the location of the layer's data source.
 
@@ -113,31 +109,35 @@ class LocationIndicatorManager:
         """
         self.project: QgsProject = project
         self.iface: QgisInterface = iface
-        # map by layer id to avoid stale object-identity issues when the
-        # layer-tree recreates nodes during moves/reorders
         self.location_indicators: dict[str, QgsLayerTreeViewIndicator] = {}
         self._model_reset_handler: Callable[[], None] | None = None
-        self._rows_moved_handler: Callable[..., None] | None = None
+        self._tree_change_handler: Callable[..., None] | None = None
         self._layout_changed_handler: Callable[[], None] | None = None
+        self._rows_moved_handler: Callable[..., None] | None = None
+        self._rows_removed_handler: Callable[..., None] | None = None
+        self._rows_inserted_handler: Callable[..., None] | None = None
+        self._update_timer: QTimer = QTimer()
 
     def init_indicators(self) -> None:
         """Create initial indicators and connect signals."""
         self._update_all_location_indicators()
         self.iface.initializationCompleted.connect(self._on_project_read)
-        self.project.layerWasAdded.connect(self._on_layer_added)
         self.project.layerWillBeRemoved.connect(self._on_layer_removed)
+
+        # Configure debounce timer
+        self._update_timer.setSingleShot(True)
+        self._update_timer.setInterval(200)
+        self._update_timer.timeout.connect(self._on_layer_tree_model_reset)
 
         if view := self.iface.layerTreeView():
             proxy_model = view.model()
             tree_model = view.layerTreeModel()
 
-            # small delay to let layer-tree rebuild nodes on moves/reorders
-            _delay_ms = 200
+            # Combined handler for all tree changes - restarts timer (debounce)
+            self._tree_change_handler = lambda *_: self._update_timer.start()
 
             # keep existing modelReset handler (connect to proxy and tree model)
-            self._model_reset_handler = lambda: QTimer.singleShot(
-                _delay_ms, self._on_layer_tree_model_reset
-            )
+            self._model_reset_handler = self._tree_change_handler
             with contextlib.suppress(Exception):
                 if proxy_model:
                     proxy_model.modelReset.connect(self._model_reset_handler)
@@ -145,20 +145,20 @@ class LocationIndicatorManager:
                 if tree_model:
                     tree_model.modelReset.connect(self._model_reset_handler)
 
-            # catch drag/drop / move events and layout changes on both models
-            self._rows_moved_handler = lambda *args: QTimer.singleShot(
-                _delay_ms, self._on_layer_tree_model_reset
-            )
-            with contextlib.suppress(Exception):
-                if proxy_model:
-                    proxy_model.rowsMoved.connect(self._rows_moved_handler)
-            with contextlib.suppress(Exception):
-                if tree_model:
-                    tree_model.rowsMoved.connect(self._rows_moved_handler)
+            # catch drag/drop / move events on both models
+            # We treat Insert/Move safely by just requesting an update
+            self._rows_moved_handler = self._tree_change_handler
+            self._rows_inserted_handler = self._tree_change_handler
+            self._rows_removed_handler = self._tree_change_handler
 
-            self._layout_changed_handler = lambda: QTimer.singleShot(
-                _delay_ms, self._on_layer_tree_model_reset
-            )
+            for model in [proxy_model, tree_model]:
+                if model:
+                    with contextlib.suppress(Exception):
+                        model.rowsMoved.connect(self._rows_moved_handler)
+                        model.rowsInserted.connect(self._rows_inserted_handler)
+                        model.rowsRemoved.connect(self._rows_removed_handler)
+
+            self._layout_changed_handler = self._tree_change_handler
             with contextlib.suppress(Exception):
                 if proxy_model:
                     proxy_model.layoutChanged.connect(self._layout_changed_handler)
@@ -170,35 +170,35 @@ class LocationIndicatorManager:
         """Clean up indicators and disconnect all signals."""
         self._clear_all_location_indicators()
 
+        if self._update_timer.isActive():
+            self._update_timer.stop()
+        with contextlib.suppress(TypeError, RuntimeError):
+            self._update_timer.timeout.disconnect(self._on_layer_tree_model_reset)
+
         if view := self.iface.layerTreeView():
-            proxy_model = view.model()
-            tree_model = view.layerTreeModel()
+            models = [view.model(), view.layerTreeModel()]
+            definitions = [
+                ("_model_reset_handler", "modelReset"),
+                ("_rows_moved_handler", "rowsMoved"),
+                ("_rows_inserted_handler", "rowsInserted"),
+                ("_rows_removed_handler", "rowsRemoved"),
+                ("_layout_changed_handler", "layoutChanged"),
+            ]
 
-            with contextlib.suppress(TypeError):
-                if self._model_reset_handler and proxy_model:
-                    proxy_model.modelReset.disconnect(self._model_reset_handler)
-            with contextlib.suppress(TypeError):
-                if self._model_reset_handler and tree_model:
-                    tree_model.modelReset.disconnect(self._model_reset_handler)
+            for handler_name, signal_name in definitions:
+                handler = getattr(self, handler_name, None)
+                if not handler:
+                    continue
 
-            with contextlib.suppress(TypeError):
-                if self._rows_moved_handler and proxy_model:
-                    proxy_model.rowsMoved.disconnect(self._rows_moved_handler)
-            with contextlib.suppress(TypeError):
-                if self._rows_moved_handler and tree_model:
-                    tree_model.rowsMoved.disconnect(self._rows_moved_handler)
-
-            with contextlib.suppress(TypeError):
-                if self._layout_changed_handler and proxy_model:
-                    proxy_model.layoutChanged.disconnect(self._layout_changed_handler)
-            with contextlib.suppress(TypeError):
-                if self._layout_changed_handler and tree_model:
-                    tree_model.layoutChanged.disconnect(self._layout_changed_handler)
+                for model in models:
+                    if not model:
+                        continue
+                    with contextlib.suppress(TypeError):
+                        getattr(model, signal_name).disconnect(handler)
 
         with contextlib.suppress(TypeError):
             self.iface.initializationCompleted.disconnect(self._on_project_read)
-        with contextlib.suppress(TypeError):
-            self.project.layerWasAdded.disconnect(self._on_layer_added)
+
         with contextlib.suppress(TypeError):
             self.project.layerWillBeRemoved.disconnect(self._on_layer_removed)
 
@@ -321,20 +321,11 @@ class LocationIndicatorManager:
 
     def _on_layer_tree_model_reset(self) -> None:
         """Handle the layer tree model's reset signal, e.g., on reorder."""
-        if self.project.isLoading():
-            return
 
         log_debug(
             "Location Indicators → Layer tree reset detected, updating all indicators."
         )
         self._update_all_location_indicators()
-
-    def _on_layer_added(self, layer: QgsMapLayer) -> None:
-        """Handle the layerWasAdded signal."""
-        log_debug(
-            f"Location Indicators → '{layer.name()}' → Layer added, adding indicator..."
-        )
-        self._add_indicator_for_layer(layer)
 
     def _on_layer_removed(self, layer_id: str) -> None:
         """Handle the layerWillBeRemoved signal."""
