@@ -5,7 +5,8 @@ version=0.8
 changelog=
     Version 0.9:
     - Aktualisierung der Symbole zur Datenquelle bei Änderungen am Layer (z.B. wenn Objekte zu einem leeren Layer hinzugefügt werden)
-    - bugfix: wenn ein Layer ineine Gruppe verschoben wird, verliert er nicht mehr seine Datenquellen-Symbole
+    - bugfix: beim Verschieben von Layern verliert er nicht mehr seine Datenquellen-Symbole
+    - Leistungsverbesserungen 
 
     Version 0.8:
     - ✨ Neue Funktion: "Versand" 
