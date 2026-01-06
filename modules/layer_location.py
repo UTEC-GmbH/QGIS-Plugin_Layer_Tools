@@ -38,13 +38,12 @@ def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
     cases like memory layers and empty vector layers.
 
     Args:
-        layer (QgsMapLayer): The QGIS map layer to check.
+        layer: The QGIS map layer to check.
 
     Returns:
         LayerLocation | None: An enum member indicating the data source location,
         or None for memory layers.
     """
-
     layer_source: str = os.path.normcase(layer.source())
     project_gpkg_path: str = str(PluginContext.project_gpkg())
     gpkg: str = os.path.normcase(project_gpkg_path)
@@ -67,15 +66,32 @@ def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
 
 
 def is_empty_layer(layer: QgsMapLayer) -> bool:
-    """Check if a vector layer is empty."""
+    """Check if a vector layer is empty.
+
+    Args:
+        layer: The layer to check.
+
+    Returns:
+        bool: True if the layer is a vector layer and has no features,
+        False otherwise.
+    """
     return isinstance(layer, QgsVectorLayer) and layer.featureCount() == 0
 
 
 def add_location_indicator(
     project: QgsProject, iface: QgisInterface, layer: QgsMapLayer
 ) -> list[QgsLayerTreeViewIndicator] | None:
-    """Add a location indicator for a single layer to the layer tree view."""
+    """Add a location indicator for a single layer to the layer tree view.
 
+    Args:
+        project: The QGIS project instance.
+        iface: The QGIS interface instance.
+        layer: The layer to add an indicator for.
+
+    Returns:
+        list[QgsLayerTreeViewIndicator] | None: A list of added indicators
+        or None if no indicator was added.
+    """
     indicators: list[QgsLayerTreeViewIndicator] = []
 
     if (
@@ -138,7 +154,11 @@ class LocationIndicatorManager:
         self._update_timer: QTimer = QTimer()
 
     def init_indicators(self) -> None:
-        """Create initial indicators and connect signals."""
+        """Create initial indicators and connect signals.
+
+        Sets up the signal connections for layer tree changes and initialization,
+        and triggers an initial update of all indicators.
+        """
         self._update_all_location_indicators()
         self.iface.initializationCompleted.connect(self._on_project_read)
         self.project.layerWillBeRemoved.connect(self._on_layer_removed)
@@ -186,7 +206,11 @@ class LocationIndicatorManager:
                     tree_model.layoutChanged.connect(self._layout_changed_handler)
 
     def unload(self) -> None:
-        """Clean up indicators and disconnect all signals."""
+        """Clean up indicators and disconnect all signals.
+
+        Removes all indicators from the layer tree and disconnects all connected
+        signals to ensure a clean unload.
+        """
         self._clear_all_location_indicators()
 
         if self._update_timer.isActive():
@@ -262,7 +286,6 @@ class LocationIndicatorManager:
         self, visible_layer_ids: set[str]
     ) -> None:
         """Update indicators for all visible layers, adding or removing as needed."""
-
         root: QgsLayerTree | None = self.project.layerTreeRoot()
         if not root:
             return
@@ -311,7 +334,6 @@ class LocationIndicatorManager:
         but signal didn't catch it
         or we want to be strictly consistent with the current tree traversal)
         """
-
         root: QgsLayerTree | None = self.project.layerTreeRoot()
         if not root:
             return

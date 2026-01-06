@@ -35,7 +35,6 @@ def file_line(frame: FrameType | None) -> str:
         A string formatted as " (filename: line_number)" or an empty string if
         the frame information is not available.
     """
-
     if frame and frame.f_back:
         filename: str = Path(frame.f_back.f_code.co_filename).name
         lineno: int = frame.f_back.f_lineno
@@ -66,7 +65,6 @@ def log_debug(
     Returns:
         None
     """
-
     file_line_number = file_line_number or file_line(inspect.currentframe())
 
     icon = icon or LEVEL_ICON[level]
@@ -83,10 +81,11 @@ def show_message(
     This helper function standardizes error handling by ensuring that a critical
     error is logged and displayed to the user.
 
-    :param error_msg: The error message to display and include in the exception.
-    :param level: The QGIS message level (Warning, Critical, etc.).
-    :param duration: The duration of the message in seconds (default: 0 = until closed)
-    :return: None
+    Args:
+        message: The error message to display and include in the exception.
+        level: The QGIS message level (Warning, Critical, etc.).
+            Defaults to Qgis.Critical.
+        duration: The duration of the message in seconds (default: 0 = until closed).
     """
     # pylint: disable=import-outside-toplevel
     from .context import PluginContext  # noqa: PLC0415
@@ -116,16 +115,13 @@ def log_summary_message(
     result types (successes, skips, failures, not found) and pluralization
     to create grammatically correct and informative feedback.
 
-    :param plugin: The QGIS plugin interface for interacting with QGIS.
-    :param successes: The number of successful operations.
-    :param skipped: A list of layer names that were skipped.
-    :param failures: A list of tuples detailing failed operations,
-                     (e.g., (old_name, new_name, error_message)).
-    :param not_found: A list of layer names that could not be found.
-    :param action: A string describing the action performed (e.g., "Renamed", "Copied").
-    :returns: A tuple containing the summary message (str) and the message level (int).
+    Args:
+        successes: The number of successful operations.
+        skipped: A list of layer names that were skipped.
+        failures: A list of tuples detailing failed operations,
+                  (e.g., (old_name, new_name, error_message)).
+        action: A string describing the action performed (e.g., "Renamed", "Copied").
     """
-
     layers_processed: int = (
         successes
         + (len(skipped) if skipped else 0)
@@ -185,8 +181,14 @@ class CustomUserError(Exception):
 
 
 def raise_runtime_error(error_msg: str) -> NoReturn:
-    """Log a critical error, display it, and raise a CustomRuntimeError."""
+    """Log a critical error, display it, and raise a CustomRuntimeError.
 
+    Args:
+        error_msg: The error message to be displayed and raised.
+
+    Raises:
+        CustomRuntimeError: The raised exception with the error message.
+    """
     file_line_number: str = file_line(inspect.currentframe())
     error_msg = f"{error_msg}{file_line_number}"
     log_msg: str = f"{LEVEL_ICON[Qgis.Critical]} {error_msg}"
@@ -197,8 +199,14 @@ def raise_runtime_error(error_msg: str) -> NoReturn:
 
 
 def raise_user_error(error_msg: str) -> NoReturn:
-    """Log a user-facing warning, display it, and raise a CustomUserError."""
+    """Log a user-facing warning, display it, and raise a CustomUserError.
 
+    Args:
+        error_msg: The error message to be displayed and raised.
+
+    Raises:
+        CustomUserError: The raised exception with the error message.
+    """
     file_line_number: str = file_line(inspect.currentframe())
     log_msg: str = f"{LEVEL_ICON[Qgis.Warning]} {error_msg}{file_line_number}"
     QgsMessageLog.logMessage(f"{log_msg}", LOG_TAG, level=Qgis.Warning)

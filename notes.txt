@@ -24,7 +24,7 @@ Notes:
     If lrelease is not installed, go to OSGeo4W setup and install "qt6-devel" (in the "Libs" section)
 
 
-  * Publishing New Versions (Automated)
+  * Publishing New Versions (locally)
 
     1. Update the `version` number and changelog in `metadata.txt`. 
 

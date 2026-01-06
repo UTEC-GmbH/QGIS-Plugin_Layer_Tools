@@ -40,11 +40,13 @@ def create_gpkg(
 ) -> Path:
     """Check if the GeoPackage exists and create an empty one if not.
 
-    :param gpkg_path: The path to the GeoPackage.
-    :param delete_existing: Whether to delete the existing GeoPackage if it exists.
-    :returns: The path to the GeoPackage.
-    """
+    Args:
+        gpkg_path: The path to the GeoPackage.
+        delete_existing: Whether to delete the existing GeoPackage if it exists.
 
+    Returns:
+        Path: The path to the GeoPackage.
+    """
     if gpkg_path is None:
         gpkg_path = PluginContext.project_gpkg()
 
@@ -73,13 +75,16 @@ def check_existing_layer(gpkg_path: Path, layer: QgsMapLayer) -> str:
     the same name and geometry type exists, the original name is returned to
     allow overwriting.
 
-    :param gpkg_path: The path to the GeoPackage.
-    :param layer: The layer to check for existence.
-    :returns: A layer name for the GeoPackage. This will be the original name
-              if no layer with that name exists, or if a layer with the same
-              name and geometry type exists (allowing overwrite). It will be a
-              new name with a suffix if a layer with the same name but
-              different geometry type exists.
+    Args:
+        gpkg_path: The path to the GeoPackage.
+        layer: The layer to check for existence.
+
+    Returns:
+        str: A layer name for the GeoPackage. This will be the original name
+             if no layer with that name exists, or if a layer with the same
+             name and geometry type exists (allowing overwrite). It will be a
+             new name with a suffix if a layer with the same name but
+             different geometry type exists.
     """
     if not isinstance(layer, QgsVectorLayer):
         return layer.name()
@@ -132,12 +137,14 @@ def add_vector_layer_to_gpkg(
 ) -> tuple:
     """Add a vector layer to the GeoPackage.
 
-    :param project: The QGIS project instance.
-    :param layer: The layer to add.
-    :param gpkg_path: The path to the GeoPackage.
-    :returns: A tuple containing the result and the layer name in the GeoPackage.
-    """
+    Args:
+        project: The QGIS project instance.
+        layer: The layer to add.
+        gpkg_path: The path to the GeoPackage.
 
+    Returns:
+        tuple: A tuple containing the result and the layer name in the GeoPackage.
+    """
     options = QgsVectorFileWriter.SaveVectorOptions()
     options.driverName = "GPKG"
     options.layerName = check_existing_layer(gpkg_path, layer)
@@ -162,7 +169,6 @@ def add_raster_layer_to_gpkg(
         A dictionary with the result. The 'error' key will be None on
         success or contain an error message on failure.
     """
-
     if not isinstance(layer, QgsRasterLayer):
         return {"error": "Layer is not a valid raster layer.", "OUTPUT": None}
 
@@ -207,10 +213,10 @@ def add_raster_layer_to_gpkg(
 def clear_autocad_attributes(layer: QgsMapLayer, gpkg_path: Path) -> None:
     """Clear all AutoCAD attributes from a layer's attribute table.
 
-    :param layer: The layer to clear AutoCAD attributes from.
-    :param gpkg_path: The path to the GeoPackage.
+    Args:
+        layer: The layer to clear AutoCAD attributes from.
+        gpkg_path: The path to the GeoPackage.
     """
-
     uri: str = f"{gpkg_path}|layername={layer.name()}"
     gpkg_layer = QgsVectorLayer(uri, layer.name(), "ogr")
     if gpkg_layer.isValid() and isinstance(layer, QgsVectorLayer):
@@ -233,15 +239,17 @@ def add_layers_to_gpkg(
 ) -> dict:
     """Add the selected layers to the project's GeoPackage.
 
-    :param layers: Optional list of layers to add. If not provided, the currently
-                   selected layers are used.
-    :param gpkg_path: Optional path to the GeoPackage. If not provided, the project's
-                      default GeoPackage is used.
-    :returns: A dictionary containing the results of the operation, including
-              successes, failures, and a mapping of original layers to their
-              names in the GeoPackage.
-    """
+    Args:
+        layers: Optional list of layers to add. If not provided, the currently
+            selected layers are used.
+        gpkg_path: Optional path to the GeoPackage. If not provided, the project's
+            default GeoPackage is used.
 
+    Returns:
+        dict: A dictionary containing the results of the operation, including
+            successes, failures, and a mapping of original layers to their
+            names in the GeoPackage.
+    """
     project: QgsProject = PluginContext.project()
     if gpkg_path is None:
         gpkg_path = PluginContext.project_gpkg()
@@ -322,7 +330,6 @@ def copy_layer_style(source_layer: QgsMapLayer, target_layer: QgsMapLayer) -> No
         source_layer: The QGIS layer from which to copy the style.
         target_layer: The QGIS layer to which the style will be applied.
     """
-
     mngr_source: QgsMapLayerStyleManager | None = source_layer.styleManager()
     mngr_target: QgsMapLayerStyleManager | None = target_layer.styleManager()
 
@@ -443,11 +450,12 @@ def add_layers_from_gpkg_to_project(
 ) -> None:
     """Add the selected layers from the project's GeoPackage.
 
-    :param gpkg_path: Optional path to the GeoPackage.
-    :param project: Optional project to add layers to.
-    :param layers: Optional list of layers to add.
-    :param layer_mapping: Optional mapping of original layer objects to their
-                          names in the GeoPackage.
+    Args:
+        gpkg_path: Optional path to the GeoPackage.
+        project: Optional project to add layers to.
+        layers: Optional list of layers to add.
+        layer_mapping: Optional mapping of original layer objects to their
+            names in the GeoPackage.
     """
     project, layers, gpkg_path = _initialize_parameters(project, layers, gpkg_path)
 
@@ -515,6 +523,5 @@ def add_layers_from_gpkg_to_project(
 
 def copy_layers_to_gpkg() -> None:
     """Copy the selected layers to the project's GeoPackage."""
-
     results: dict = add_layers_to_gpkg()
     add_layers_from_gpkg_to_project(layer_mapping=results.get("layer_mapping"))

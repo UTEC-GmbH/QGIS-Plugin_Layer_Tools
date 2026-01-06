@@ -25,7 +25,13 @@ if TYPE_CHECKING:
 def get_selected_layers() -> list[QgsMapLayer]:
     """Collect all layers selected in the QGIS layer tree view.
 
-    :returns: A list of selected QgsMapLayer objects.
+    Returns:
+        list[QgsMapLayer]: A list of selected QgsMapLayer objects, sorted
+        by their visual order in the layer tree.
+
+    Raises:
+        CustomRuntimeError: If QGIS interface or layer tree is unavailable.
+        CustomUserError: If no layers or groups are selected.
     """
     # fmt: off
     # ruff: noqa: E501
@@ -81,7 +87,8 @@ def get_selected_layers() -> list[QgsMapLayer]:
 def clear_attribute_table(layer: QgsMapLayer) -> None:
     """Clear the attribute table of a QGIS layer by deleting all columns.
 
-    :param layer: The layer whose attribute table should be cleared.
+    Args:
+        layer: The layer whose attribute table should be cleared.
     """
     if not isinstance(layer, QgsVectorLayer):
         # This function only applies to vector layers.
