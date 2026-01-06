@@ -55,7 +55,8 @@ def log_debug(
 
     Args:
         message: The message to log.
-        level: The QGIS message level (Success, Info, Warning, Critical).
+        level: The QGIS message level.
+            (Qgis.Success, Qgis.Info, Qgis.Warning or Qgis.Critical)
             Defaults to Qgis.Info.
         file_line_number: An optional string to append to the message.
             Defaults to the filename and line number of the caller.

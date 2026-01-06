@@ -81,7 +81,7 @@ def prepare_rename_plan() -> tuple[list[tuple[QgsMapLayer, str, str]], list[str]
     potential_renames: defaultdict[str, list[QgsMapLayer]] = defaultdict(list)
     skipped_layers: list[str] = []
 
-    log_debug(f"Renaming {len(layers_to_process)} layers...")
+    log_debug(f"Rename → Renaming {len(layers_to_process)} layers...")
     for layer in layers_to_process:
         node: QgsLayerTreeLayer | None = root.findLayer(layer.id())
 
@@ -89,7 +89,7 @@ def prepare_rename_plan() -> tuple[list[tuple[QgsMapLayer, str, str]], list[str]
         if not node:
             skipped_layers.append(layer.name())
             log_debug(
-                f"'{layer.name()}' → Rename → Skipped because not in layer tree.",
+                f"Rename → '{layer.name()}' → Skipped because not in layer tree.",
                 Qgis.Warning,
             )
             continue
@@ -98,7 +98,7 @@ def prepare_rename_plan() -> tuple[list[tuple[QgsMapLayer, str, str]], list[str]
         if isinstance(layer, QgsVectorLayer) and layer.featureCount() == 0:
             skipped_layers.append(layer.name())
             log_debug(
-                f"'{layer.name()}' → Rename → Skipped because empty.", Qgis.Warning
+                f"Rename → '{layer.name()}' → Skipped because empty.", Qgis.Warning
             )
             continue
 
@@ -108,7 +108,7 @@ def prepare_rename_plan() -> tuple[list[tuple[QgsMapLayer, str, str]], list[str]
         if not isinstance(parent, QgsLayerTreeGroup) or not raw_group_name:
             skipped_layers.append(layer.name())
             log_debug(
-                f"'{layer.name()}' → Rename → Skipped because not in a group.",
+                f"Rename → '{layer.name()}' → Skipped because not in a group.",
                 Qgis.Warning,
             )
             continue
@@ -117,7 +117,7 @@ def prepare_rename_plan() -> tuple[list[tuple[QgsMapLayer, str, str]], list[str]
         if not new_name_base:
             skipped_layers.append(layer.name())
             log_debug(
-                f"'{layer.name()}' → Rename → Skipped because invalid name.",
+                f"Rename → '{layer.name()}' → Skipped because invalid name.",
                 Qgis.Warning,
             )
             continue
@@ -154,7 +154,8 @@ def build_rename_plan(
     for new_name_base, layers in potential_renames.items():
         if len(layers) > 1:
             log_debug(
-                f"Name collision detected for '{new_name_base}'. Adding suffixes..."
+                f"Rename → Name collision detected for '{new_name_base}'. "
+                "Adding suffixes..."
             )
             for layer in layers:
                 suffix: str = (
@@ -203,7 +204,7 @@ def execute_rename_plan(
 
     if failed_renames:
         log_debug(
-            f"Failed to rename {len(failed_renames)} layers: {failed_renames}",
+            f"Rename → Failed to rename {len(failed_renames)} layers: {failed_renames}",
             Qgis.Warning,
         )
 
@@ -269,13 +270,15 @@ def undo_rename_layers() -> None:
     last_rename_json, found = project.readEntry("UTEC_Layer_Tools", "last_rename", "")
 
     if not found or not last_rename_json:
-        log_debug("No rename operation found in history to undo.", Qgis.Warning)
+        log_debug(
+            "Rename → No rename operation found in history to undo.", Qgis.Warning
+        )
         return
 
     try:
         last_rename: list[tuple[str, str, str]] = json.loads(last_rename_json)
     except json.JSONDecodeError:
-        log_debug("Could not parse rename history.", Qgis.Critical)
+        log_debug("Rename → Could not parse rename history.", Qgis.Critical)
         return
 
     successful_undos: int = 0
