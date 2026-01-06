@@ -26,17 +26,9 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QCoreApplication
 
 from .constants import GEOMETRY_SUFFIX_MAP, LAYER_TYPES
-from .general import (
-    clear_attribute_table,
-    get_current_project,
-    get_selected_layers,
-    project_gpkg,
-)
-from .logs_and_errors import (
-    log_debug,
-    log_summary_message,
-    raise_runtime_error,
-)
+from .context import PluginContext
+from .general import clear_attribute_table, get_selected_layers
+from .logs_and_errors import log_debug, log_summary_message, raise_runtime_error
 from .rename import geometry_type_suffix
 
 if TYPE_CHECKING:
@@ -49,10 +41,12 @@ def create_gpkg(
     """Check if the GeoPackage exists and create an empty one if not.
 
     :param gpkg_path: The path to the GeoPackage.
+    :param delete_existing: Whether to delete the existing GeoPackage if it exists.
+    :returns: The path to the GeoPackage.
     """
 
     if gpkg_path is None:
-        gpkg_path = project_gpkg()
+        gpkg_path = PluginContext.project_gpkg()
 
     if gpkg_path.exists():
         log_debug(f"Existing GeoPackage found in \n'{gpkg_path}'")
@@ -138,8 +132,10 @@ def add_vector_layer_to_gpkg(
 ) -> tuple:
     """Add a vector layer to the GeoPackage.
 
+    :param project: The QGIS project instance.
     :param layer: The layer to add.
     :param gpkg_path: The path to the GeoPackage.
+    :returns: A tuple containing the result and the layer name in the GeoPackage.
     """
 
     options = QgsVectorFileWriter.SaveVectorOptions()
@@ -158,6 +154,7 @@ def add_raster_layer_to_gpkg(
     """Add a raster layer to the GeoPackage using QgsRasterFileWriter.
 
     Args:
+        project: The QGIS project instance.
         layer: The layer to add.
         gpkg_path: The path to the GeoPackage.
 
@@ -211,6 +208,7 @@ def clear_autocad_attributes(layer: QgsMapLayer, gpkg_path: Path) -> None:
     """Clear all AutoCAD attributes from a layer's attribute table.
 
     :param layer: The layer to clear AutoCAD attributes from.
+    :param gpkg_path: The path to the GeoPackage.
     """
 
     uri: str = f"{gpkg_path}|layername={layer.name()}"
@@ -235,18 +233,18 @@ def add_layers_to_gpkg(
 ) -> dict:
     """Add the selected layers to the project's GeoPackage.
 
-    :param gpkg_path: Optional path to the GeoPackage. If not provided, the project's
-                      default GeoPackage is used.
     :param layers: Optional list of layers to add. If not provided, the currently
                    selected layers are used.
+    :param gpkg_path: Optional path to the GeoPackage. If not provided, the project's
+                      default GeoPackage is used.
     :returns: A dictionary containing the results of the operation, including
               successes, failures, and a mapping of original layers to their
               names in the GeoPackage.
     """
 
-    project: QgsProject = get_current_project()
+    project: QgsProject = PluginContext.project()
     if gpkg_path is None:
-        gpkg_path = project_gpkg()
+        gpkg_path = PluginContext.project_gpkg()
 
     if not gpkg_path.exists():
         raise_runtime_error(f"GeoPackage does not exist at '{gpkg_path}'")
@@ -301,10 +299,11 @@ def add_layers_to_gpkg(
             results["failures"].append((layer.name(), "Unsupported layer type."))
             log_debug(f"Failed to add layer '{layer.name()}': Unsupported layer type.")
 
+    action_tr: str = QCoreApplication.translate("log_summary", "Added to GeoPackage")
     log_summary_message(
         successes=results["successes"],
         failures=results["failures"],
-        action="Added to GeoPackage",
+        action=action_tr,
     )
 
     return results
@@ -363,11 +362,11 @@ def _initialize_parameters(
         A tuple containing the initialized project, layers, and gpkg_path.
     """
     if project is None:
-        project = get_current_project()
+        project = PluginContext.project()
     if layers is None:
         layers = get_selected_layers()
     if gpkg_path is None:
-        gpkg_path = project_gpkg()
+        gpkg_path = PluginContext.project_gpkg()
     return project, layers, gpkg_path
 
 
@@ -424,7 +423,7 @@ def _create_layer_from_source(
     Returns:
         A tuple containing the new QgsMapLayer (or None) and its URI string.
     """
-    uri = ""
+    uri: str = ""
     if "url=" in layer_to_find.source():
         return _handle_web_service_layer(layer_to_find, layer_name, project), uri
 
@@ -454,9 +453,9 @@ def add_layers_from_gpkg_to_project(
 
     root: QgsLayerTree | None = project.layerTreeRoot()
     if not root:
-        msg = QCoreApplication.translate(
-            "RuntimeError", "Could not get layer tree root."
-        )
+        # fmt: off
+        msg: str = QCoreApplication.translate("RuntimeError", "Could not get layer tree root.")  # noqa: E501
+        # fmt: on
         raise_runtime_error(msg)
 
     added_layers: list[str] = []
@@ -464,7 +463,7 @@ def add_layers_from_gpkg_to_project(
     gpkg_path_str = str(gpkg_path)
 
     for layer_to_find in layers:
-        layer_name = (
+        layer_name: str = (
             layer_mapping.get(layer_to_find, layer_to_find.name())
             if layer_mapping
             else layer_to_find.name()
@@ -506,15 +505,16 @@ def add_layers_from_gpkg_to_project(
             Qgis.Warning,
         )
 
+    action_tr: str = QCoreApplication.translate("log_summary", "Added from GeoPackage")
     log_summary_message(
         successes=len(added_layers),
         failures=not_found_layers,
-        action="Added from GeoPackage",
+        action=action_tr,
     )
 
 
-def move_layers_to_gpkg() -> None:
-    """Move the selected layers to the project's GeoPackage."""
+def copy_layers_to_gpkg() -> None:
+    """Copy the selected layers to the project's GeoPackage."""
 
-    results = add_layers_to_gpkg()
+    results: dict = add_layers_to_gpkg()
     add_layers_from_gpkg_to_project(layer_mapping=results.get("layer_mapping"))

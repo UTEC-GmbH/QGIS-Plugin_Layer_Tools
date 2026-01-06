@@ -19,10 +19,11 @@ from qgis.core import (
     QgsVectorLayer,
     QgsWkbTypes,
 )
+from qgis.PyQt.QtCore import QCoreApplication
 
 from .constants import GEOMETRY_SUFFIX_MAP
+from .context import PluginContext
 from .general import (
-    get_current_project,
     get_selected_layers,
     raise_runtime_error,
 )
@@ -69,7 +70,7 @@ def prepare_rename_plan() -> tuple[list[tuple[QgsMapLayer, str, str]], list[str]
         A tuple containing the rename plan, a list of skipped layer names, and a
         list of layer names that could not be found in the layer tree.
     """
-    project: QgsProject = get_current_project()
+    project: QgsProject = PluginContext.project()
     root: QgsLayerTree | None = project.layerTreeRoot()
     if root is None:
         raise_runtime_error("No Layer Tree is available.")
@@ -87,13 +88,18 @@ def prepare_rename_plan() -> tuple[list[tuple[QgsMapLayer, str, str]], list[str]
         # If the layer is not in the layer tree, skip it.
         if not node:
             skipped_layers.append(layer.name())
-            log_debug(f"'{layer.name()}' → Rename → Skipped because not in layer tree.")
+            log_debug(
+                f"'{layer.name()}' → Rename → Skipped because not in layer tree.",
+                Qgis.Warning,
+            )
             continue
 
         # If a vector layer is empty, skip it.
         if isinstance(layer, QgsVectorLayer) and layer.featureCount() == 0:
             skipped_layers.append(layer.name())
-            log_debug(f"'{layer.name()}' → Rename → Skipped because empty.")
+            log_debug(
+                f"'{layer.name()}' → Rename → Skipped because empty.", Qgis.Warning
+            )
             continue
 
         # If the layer is not in a group, skip it.
@@ -101,13 +107,19 @@ def prepare_rename_plan() -> tuple[list[tuple[QgsMapLayer, str, str]], list[str]
         raw_group_name: str = parent.name() if parent else ""
         if not isinstance(parent, QgsLayerTreeGroup) or not raw_group_name:
             skipped_layers.append(layer.name())
-            log_debug(f"'{layer.name()}' → Rename → Skipped because not in a group.")
+            log_debug(
+                f"'{layer.name()}' → Rename → Skipped because not in a group.",
+                Qgis.Warning,
+            )
             continue
 
         new_name_base: str = fix_layer_name(raw_group_name)
         if not new_name_base:
             skipped_layers.append(layer.name())
-            log_debug(f"'{layer.name()}' → Rename → Skipped because invalid name.")
+            log_debug(
+                f"'{layer.name()}' → Rename → Skipped because invalid name.",
+                Qgis.Warning,
+            )
             continue
 
         potential_renames[new_name_base].append(layer)
@@ -219,24 +231,25 @@ def rename_layers() -> None:
     successful_count: int = len(rename_plan) - len(failed_renames)
 
     if successful_renames:
-        project: QgsProject = get_current_project()
+        project: QgsProject = PluginContext.project()
         # Store the list of successful renames in the project file.
         # The list is stored as a JSON string.
         project.writeEntry(
             "UTEC_Layer_Tools", "last_rename", json.dumps(successful_renames)
         )
 
+    action_tr: str = QCoreApplication.translate("log_summary", "Renamed")
     log_summary_message(
         successes=successful_count,
         skipped=skipped_layers,
         failures=failed_renames,
-        action="Renamed",
+        action=action_tr,
     )
 
 
 def undo_rename_layers() -> None:
     """Reverts the last renaming operation."""
-    project: QgsProject = get_current_project()
+    project: QgsProject = PluginContext.project()
     last_rename_json, found = project.readEntry("UTEC_Layer_Tools", "last_rename", "")
 
     if not found or not last_rename_json:
@@ -282,6 +295,7 @@ def undo_rename_layers() -> None:
     if successful_undos > 0:
         project.removeEntry("UTEC_Layer_Tools", "last_rename")
 
+    action_tr: str = QCoreApplication.translate("log_summary", "Rename reverted")
     log_summary_message(
-        successes=successful_undos, failures=failed_undos, action="Reverted"
+        successes=successful_undos, failures=failed_undos, action=action_tr
     )

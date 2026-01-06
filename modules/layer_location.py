@@ -5,6 +5,7 @@ Determine the location of the layer's data source.
 
 import contextlib
 import os
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from qgis.core import (
@@ -20,12 +21,11 @@ from qgis.gui import QgisInterface, QgsLayerTreeView, QgsLayerTreeViewIndicator
 from qgis.PyQt.QtCore import QTimer
 
 from .constants import LayerLocation
-from .general import project_gpkg
+from .context import PluginContext
 from .logs_and_errors import log_debug
 
 if TYPE_CHECKING:
     from collections.abc import Callable
-    from pathlib import Path
 
 
 def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
@@ -44,37 +44,26 @@ def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
         LayerLocation | None: An enum member indicating the data source location,
         or None for memory layers.
     """
-    location: LayerLocation | None = None
-    log_message: str = ""
 
     layer_source: str = os.path.normcase(layer.source())
-    gpkg_path: Path = project_gpkg()
-    gpkg: str = os.path.normcase(str(gpkg_path))
-    project_folder: str = os.path.normcase(str(gpkg_path.parent))
+    project_gpkg_path: str = str(PluginContext.project_gpkg())
+    gpkg: str = os.path.normcase(project_gpkg_path)
+    project_folder: str = os.path.normcase(str(Path(project_gpkg_path).parent))
 
     if layer_source.startswith("memory"):
         # Memory layers get an indicator from QGIS itself, so we return None.
-        location = None
-        log_message = "memory layer (no indicator needed)"
-    elif "url=" in layer_source:
-        location = LayerLocation.CLOUD
-        log_message = "cloud data source. ☁️"
-    elif gpkg in layer_source:
-        location = LayerLocation.GPKG_PROJECT
-        log_message = "in project GeoPackage. ✅"
-    elif project_folder in layer_source:
-        if ".gpkg" in layer_source:
-            location = LayerLocation.GPKG_FOLDER
-            log_message = "in a different GeoPackage in the project folder. ✔️"
-        else:
-            location = LayerLocation.FOLDER_NO_GPKG
-            log_message = "in the project folder, but not in a GeoPackage. ⚠️"
-    else:
-        location = LayerLocation.EXTERNAL
-        log_message = "💥 external data source 💥"
-
-    log_debug(f"Location Indicators → '{layer.name()}' → Layer location: {log_message}")
-    return location
+        return None
+    if "url=" in layer_source:
+        return LayerLocation.CLOUD
+    if gpkg in layer_source:
+        return LayerLocation.GPKG_PROJECT
+    if project_folder in layer_source:
+        return (
+            LayerLocation.GPKG_FOLDER
+            if ".gpkg" in layer_source
+            else LayerLocation.FOLDER_NO_GPKG
+        )
+    return LayerLocation.EXTERNAL
 
 
 def is_empty_layer(layer: QgsMapLayer) -> bool:
@@ -216,7 +205,7 @@ class LocationIndicatorManager:
             ]
 
             for handler_name, signal_name in definitions:
-                handler = getattr(self, handler_name, None)
+                handler: str | None = getattr(self, handler_name, None)
                 if not handler:
                     continue
 
@@ -246,10 +235,6 @@ class LocationIndicatorManager:
             if node := root.findLayer(layer_id):
                 for indicator in indicators:
                     view.removeIndicator(node, indicator)
-            # attempt to get layer name for logging
-            layer: QgsMapLayer | None = self.project.mapLayer(layer_id)
-            name: str = layer.name() if layer else layer_id
-            log_debug(f"Location Indicators → '{name}' → indicators removed.")
 
         self.location_indicators.clear()
         self.layer_locations.clear()
@@ -277,6 +262,7 @@ class LocationIndicatorManager:
         self, visible_layer_ids: set[str]
     ) -> None:
         """Update indicators for all visible layers, adding or removing as needed."""
+
         root: QgsLayerTree | None = self.project.layerTreeRoot()
         if not root:
             return
@@ -311,7 +297,7 @@ class LocationIndicatorManager:
             if lid in self.location_indicators:
                 self._remove_indicator_for_layer(layer)
 
-            if new_location:
+            if new_location or is_empty_layer(layer):
                 # _add_indicator_for_layer will update the cache with new node
                 self._add_indicator_for_layer(layer)
             else:
@@ -319,18 +305,19 @@ class LocationIndicatorManager:
                 self.layer_locations[lid] = (None, layer_node)
 
     def _cleanup_removed_layers(self, visible_layer_ids: set[str]) -> None:
-        """Remove indicators for layers no longer in the tree."""
+        """Remove indicators for layers no longer in the tree.
+
+        (This handles cases where a layer was hidden/removed
+        but signal didn't catch it
+        or we want to be strictly consistent with the current tree traversal)
+        """
+
         root: QgsLayerTree | None = self.project.layerTreeRoot()
         if not root:
             return
 
-        # Cleanup: Remove indicators for layers no longer in the tree
-        # (This handles cases where a layer was hidden/removed
-        # but signal didn't catch it
-        # or we want to be strictly consistent with the current tree traversal)
         for lid in list(self.location_indicators.keys()):
             if lid not in visible_layer_ids:
-                # Need layer object to remove safely?
                 if layer := self.project.mapLayer(lid):
                     self._remove_indicator_for_layer(layer)
                 else:
@@ -395,18 +382,13 @@ class LocationIndicatorManager:
         node: QgsLayerTreeLayer | None = root.findLayer(lid) if root else None
 
         self.layer_locations[lid] = (get_layer_location(layer), node)
-        log_debug(
-            f"Location Indicators → '{layer.name()}' → indicators added successfully."
-        )
+
         self._connect_layer_signals(layer)
 
     def _add_indicator_for_layer(self, layer: QgsMapLayer) -> None:
         """Add location and empty indicators for a single layer if they don't exist."""
         layer_id: str = layer.id()
         if layer_id in self.location_indicators:
-            log_debug(
-                f"Location Indicators → '{layer.name()}' → indicators exist already."
-            )
             return
 
         if indicators := add_location_indicator(self.project, self.iface, layer):
@@ -461,18 +443,10 @@ class LocationIndicatorManager:
         if layer_id not in self.location_indicators:
             return
 
-        # try to get the layer object (may already be gone)
-        layer: QgsMapLayer | None = self.project.mapLayer(layer_id)
-        name: str = layer.name() if layer else layer_id
-        log_debug(
-            f"Location Indicators → '{name}' → Layer removed, removing indicator..."
-        )
-
-        if layer:
+        if layer := self.project.mapLayer(layer_id):
             self._disconnect_layer_signals(layer)
             self._remove_indicator_for_layer(layer)
         else:
             # layer object not available any more — remove stored indicator entry
             with contextlib.suppress(KeyError):
                 self.location_indicators.pop(layer_id)
-            log_debug(f"Location Indicators → '{name}' → indicator entry removed.")

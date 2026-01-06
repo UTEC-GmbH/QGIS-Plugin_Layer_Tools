@@ -1,8 +1,12 @@
 [general]
 name=UTEC Layer Tools (dev)
 
-version=0.9
+version=0.9.1
 changelog=
+    Version 0.9.1:
+    - interne Verbesserungen zur Leistungsoptimierung und zur Verwendung von Ressourcen (icons)
+    
+
     Version 0.9:
     - Aktualisierung der Symbole zur Datenquelle bei Änderungen am Layer (z.B. wenn Objekte zu einem leeren Layer hinzugefügt werden)
     - Auch bei leeren Layern wird jetzt angezeigt, wo sie abgespeichert sind.
@@ -46,7 +50,7 @@ description=Verschiedene Werkzeuge zur Darstellung, Benennung und zum Speichern 
 qgisMinimumVersion=3.0
 author=Florian Ludwig
 email=immerse-vowel-dole@duck.com
-icon=resources/icons/plugin_main_icon.svg
+icon=resources/icons/main_icon.svg
 download_url_base=file:////dc1/netz$/Software/QGIS_Plugins_UTEC
 
 [release]
