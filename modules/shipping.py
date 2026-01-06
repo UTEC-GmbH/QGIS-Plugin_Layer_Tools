@@ -17,6 +17,7 @@ from qgis.core import (
     QgsReferencedRectangle,
 )
 from qgis.gui import QgsMapCanvas
+from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtXml import QDomDocument
 
 from .context import PluginContext
@@ -110,7 +111,7 @@ def _set_map_extent(source_canvas: QgsMapCanvas, target_project: QgsProject) -> 
 def prepare_layers_for_shipping() -> None:
     """Prepare selected layers for shipping.
 
-    Creates a 'Versand' folder in the project directory, generates a GeoPackage
+    Creates a subfolder in the project directory, generates a GeoPackage
     containing the selected layers, and creates a companion .qgz project file
     with the same styling and layout properties.
     """
@@ -119,9 +120,10 @@ def prepare_layers_for_shipping() -> None:
 
     layers: list[QgsMapLayer] = get_selected_layers()
 
+    shipping_folder_name: str = QCoreApplication.translate("Shipping", "Shipping")
     project_path: Path = PluginContext.project_path()
-    versand_dir: Path = project_path.parent / "Versand"
-    versand_dir.mkdir(exist_ok=True)
+    shipping_dir: Path = project_path.parent / shipping_folder_name
+    shipping_dir.mkdir(exist_ok=True)
 
     # Use local time for the filename
     date_str: str = datetime.now().astimezone().strftime("%Y_%m_%d")
@@ -129,7 +131,7 @@ def prepare_layers_for_shipping() -> None:
 
     # Create a GeoPackage and add the layers to it
     gpkg_path: Path = create_gpkg(
-        versand_dir / f"{base_name}.gpkg", delete_existing=True
+        shipping_dir / f"{base_name}.gpkg", delete_existing=True
     )
     results: dict = add_layers_to_gpkg(layers=layers, gpkg_path=gpkg_path)
 
@@ -137,7 +139,7 @@ def prepare_layers_for_shipping() -> None:
         return
 
     # Create Shipping Project file
-    qgz_path: Path = versand_dir / f"{base_name}.qgz"
+    qgz_path: Path = shipping_dir / f"{base_name}.qgz"
     shipping_project = QgsProject()
     shipping_project.setFileName(str(qgz_path))
     _copy_project_properties(original_project, shipping_project)
