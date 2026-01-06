@@ -122,7 +122,7 @@ def log_summary_message(
     :param failures: A list of tuples detailing failed operations,
                      (e.g., (old_name, new_name, error_message)).
     :param not_found: A list of layer names that could not be found.
-    :param action: A string describing the action performed (e.g., "Renamed", "Moved").
+    :param action: A string describing the action performed (e.g., "Renamed", "Copied").
     :returns: A tuple containing the summary message (str) and the message level (int).
     """
 

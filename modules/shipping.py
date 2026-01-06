@@ -127,7 +127,7 @@ def prepare_layers_for_shipping() -> None:
     gpkg_path: Path = create_gpkg(
         versand_dir / f"{base_name}.gpkg", delete_existing=True
     )
-    results = add_layers_to_gpkg(layers=layers, gpkg_path=gpkg_path)
+    results: dict = add_layers_to_gpkg(layers=layers, gpkg_path=gpkg_path)
 
     if not results["successes"]:
         return

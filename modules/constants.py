@@ -4,7 +4,6 @@ This module contains shared constants and enumerations used across the plugin.
 """
 
 from collections.abc import Callable
-from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
@@ -25,6 +24,7 @@ LAYER_TYPES: dict = {
 }
 
 RESOURCES_PATH: Path = Path(__file__).parent.parent / "resources"
+ICONS_PATH: Path = RESOURCES_PATH / "icons"
 
 
 # pylint: disable=too-few-public-methods
@@ -34,15 +34,15 @@ class Icons:
     @staticmethod
     def _qicon(filename: str) -> QIcon:
         """Load an icon from the icons directory."""
-        return QIcon(str(RESOURCES_PATH / "icons" / filename))
+        return QIcon(str(ICONS_PATH / filename))
 
     def __init__(self) -> None:
         """Initialize the icons."""
 
         self.main_icon: QIcon = self._qicon("main_icon.svg")
 
-        self.main_menu_move: QIcon = self._qicon("main_menu_move.svg")
-        self.main_menu_rename_move: QIcon = self._qicon("main_menu_rename_move.svg")
+        self.main_menu_copy: QIcon = self._qicon("main_menu_copy.svg")
+        self.main_menu_rename_copy: QIcon = self._qicon("main_menu_rename_copy.svg")
         self.main_menu_rename: QIcon = self._qicon("main_menu_rename.svg")
         self.main_menu_send: QIcon = self._qicon("main_menu_send.svg")
         self.main_menu_undo: QIcon = self._qicon("main_menu_undo.svg")
@@ -59,28 +59,11 @@ class Icons:
 ICONS = Icons()
 
 
-@dataclass
-class LayerLocationInfo:
-    """Holds display information for a layer's location."""
-
-    icon: QIcon
-    _tooltip_factory: Callable[[], str]
-
-    @property
-    def tooltip(self) -> str:
-        """Generate and return the translated tooltip.
-
-        Returns:
-            The translated tooltip string.
-        """
-        return self._tooltip_factory()
-
-
-# fmt: off
-# ruff: noqa: E501
-class LayerLocation(LayerLocationInfo, Enum):
+class LayerLocation(Enum):
     """Enumeration for layer locations with associated display info."""
 
+    # fmt: off
+    # ruff: noqa: E501
     CLOUD = (
         ICONS.location_cloud,
         lambda: QCoreApplication.translate("LayerLocation", "<p>🔗<b>Cloud Layer</b>🔗</p>This layer is from a cloud-based service or database.<br><i>(Plugin: UTEC Layer Tools)</i>"),
@@ -109,4 +92,19 @@ class LayerLocation(LayerLocationInfo, Enum):
         ICONS.location_unknown,
         lambda: QCoreApplication.translate("LayerLocation", "<p>❓<b>Data Source Unknown</b>❓</p>The data source of this Layer could not be determined.<br><i>(Plugin: UTEC Layer Tools)</i>"),
     )
-# fmt: on
+    # fmt: on
+
+    def __init__(self, icon: QIcon, tooltip_factory: Callable[[], str]) -> None:
+        """Initialize the enum member."""
+        self._icon: QIcon = icon
+        self._tooltip_factory: Callable[[], str] = tooltip_factory
+
+    @property
+    def icon(self) -> QIcon:
+        """Return the icon for this location."""
+        return self._icon
+
+    @property
+    def tooltip(self) -> str:
+        """Generate and return the translated tooltip."""
+        return self._tooltip_factory()
