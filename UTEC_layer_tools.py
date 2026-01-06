@@ -1,4 +1,4 @@
-"""UTECLayerTools"""
+"""Main module for UTEC Layer Tools QGIS Plugin."""
 
 import configparser
 import contextlib
@@ -10,11 +10,7 @@ from qgis.core import Qgis, QgsProject
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QSettings, QTranslator
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import (
-    QAction,
-    QMenu,
-    QToolButton,
-)
+from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton
 
 from .modules.constants import ICONS
 from .modules.context import PluginContext
@@ -131,7 +127,11 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         return action
 
     def initGui(self) -> None:  # noqa: N802
-        """Create the menu entries and toolbar icons for the plugin."""
+        """Create the menu entries and toolbar icons for the plugin.
+
+        Initializes the plugin menu, adds actions to the menu and toolbar, and
+        sets up the location indicator manager.
+        """
 
         # Create a menu for the plugin in the "Plugins" menu
         self.plugin_menu = QMenu(self.menu, self.iface.pluginMenu())
@@ -274,32 +274,52 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
     # --- Plugin actions ---
 
     def rename_selected_layers(self) -> None:
-        """Call rename function from 'functions_rename.py'."""
+        """Rename selected layers based on their group hierarchy.
+
+        This method calls the `rename_layers` function from `modules.rename`
+        to perform the renaming operation.
+        """
         log_debug("... STARTING PLUGIN RUN ... (rename_selected_layers)", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
             rename_layers()
 
     def copy_selected_layers(self) -> None:
-        """Call copy function from 'functions_geopackage.py'."""
+        """Copy selected layers to the project's GeoPackage.
+
+        This method calls the `copy_layers_to_gpkg` function from
+        `modules.geopackage` to perform the copy operation.
+        """
         log_debug("... STARTING PLUGIN RUN ... (copy_selected_layers)", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
             copy_layers_to_gpkg()
 
     def undo_last_rename(self) -> None:
-        """Call undo function from 'modules/rename.py'."""
+        """Undo the last rename operation.
+
+        This method calls the `undo_rename_layers` function from `modules.rename`
+        to revert the last renaming action.
+        """
         log_debug("... STARTING PLUGIN RUN ... (undo_last_rename)", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
             undo_rename_layers()
 
     def rename_and_copy_layers(self) -> None:
-        """Combine the rename and copy functions."""
+        """Rename selected layers and then copy them to the GeoPackage.
+
+        This convenience method sequentially calls `rename_layers` and then
+        `copy_layers_to_gpkg`.
+        """
         log_debug("... STARTING PLUGIN RUN ... (rename_and_copy_layers)", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
             rename_layers()
             copy_layers_to_gpkg()
 
     def prepare_shipping(self) -> None:
-        """Call shipping function from 'modules/shipping.py'."""
+        """Prepare selected layers for shipping.
+
+        This method calls the `prepare_layers_for_shipping` function from
+        `modules.shipping` to create a shipping package.
+        """
         log_debug("... STARTING PLUGIN RUN ... (prepare_shipping)", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
             prepare_layers_for_shipping()

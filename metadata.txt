@@ -1,10 +1,11 @@
 [general]
 name=UTEC Layer Tools (dev)
 
-version=0.9.1
+version=1.0
 changelog=
-    Version 0.9.1:
+    Version 1.0:
     - interne Verbesserungen zur Leistungsoptimierung und zur Verwendung von Ressourcen (icons)
+    - Verbesserungen der Benachrichtigungen nach Durchlauf
     
 
     Version 0.9:

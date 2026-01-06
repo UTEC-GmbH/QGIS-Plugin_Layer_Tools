@@ -129,7 +129,7 @@ def _file_url_to_path(url: str) -> Path:
     """Convert a file URL to a local filesystem Path object.
 
     Args:
-        url (str): The file URL to convert (must use the 'file://' scheme).
+        url: The file URL to convert (must use the 'file://' scheme).
 
     Returns:
         Path: The corresponding local filesystem path.
@@ -255,7 +255,13 @@ def _find_or_create_plugin_node(root: Element, plugin_name: str) -> Element:
 
 
 def _update_xml_tag(parent_node: Element, tag_name: str, value: str) -> None:
-    """Find a child tag and update its text, creating it if it doesn't exist."""
+    """Find a child tag and update its text, creating it if it doesn't exist.
+
+    Args:
+        parent_node: The parent XML element.
+        tag_name: The name of the child tag to find or create.
+        value: The text value to set for the tag.
+    """
     tag: Element[str] | None = parent_node.find(tag_name)
     if tag is None:
         tag = SubElement(parent_node, tag_name)
@@ -524,7 +530,15 @@ RUN
 
 
 def run_command(command: list[str], *, shell: bool = False) -> None:
-    """Run a command in a subprocess and checks for errors."""
+    """Run a command in a subprocess and checks for errors.
+
+    Args:
+        command: The command to run as a list of strings.
+        shell: Whether to run the command in a shell. Defaults to False.
+
+    Raises:
+        ReleaseScriptError: If the command fails (non-zero exit code).
+    """
     logger.info("\n▶️ Running command: %s", " ".join(command))
     try:
         env: dict[str, str] = os.environ.copy()

@@ -22,20 +22,39 @@ class PluginContext:
 
     @classmethod
     def init(cls, iface: QgisInterface, plugin_dir: Path) -> None:
-        """Initialize with the QGIS interface and plugin directory."""
+        """Initialize with the QGIS interface and plugin directory.
+
+        Args:
+            iface: The QGIS interface instance.
+            plugin_dir: The root directory of the plugin.
+        """
         cls._iface = iface
         cls._plugin_dir = plugin_dir
 
     @classmethod
     def iface(cls) -> QgisInterface:
-        """Get the QGIS interface. Raises error if not initialized."""
+        """Get the QGIS interface.
+
+        Returns:
+            QgisInterface: The QGIS interface instance.
+
+        Raises:
+            CustomRuntimeError: If the context has not been initialized.
+        """
         if cls._iface is None:
             raise_runtime_error("PluginContext not initialized with iface.")
         return cls._iface
 
     @classmethod
     def project(cls) -> QgsProject:
-        """Return the current QGIS project instance."""
+        """Return the current QGIS project instance.
+
+        Returns:
+            QgsProject: The current QGIS project.
+
+        Raises:
+            CustomRuntimeError: If no QGIS project is currently open.
+        """
         project = QgsProject.instance()
         if project is None:
             raise_runtime_error("No QGIS project is currently open.")
@@ -43,12 +62,23 @@ class PluginContext:
 
     @classmethod
     def message_bar(cls) -> QgsMessageBar | None:
-        """Get the QGIS message bar."""
+        """Get the QGIS message bar.
+
+        Returns:
+            QgsMessageBar | None: The QGIS message bar or None if not available.
+        """
         return cls._iface.messageBar() if cls._iface else None
 
     @classmethod
     def plugin_dir(cls) -> Path:
-        """Get the plugin directory."""
+        """Get the plugin directory.
+
+        Returns:
+            Path: The absolute path to the plugin directory.
+
+        Raises:
+            CustomRuntimeError: If the context has not been initialized.
+        """
         if cls._plugin_dir is None:
             raise_runtime_error("PluginContext not initialized with plugin_dir.")
         return cls._plugin_dir
@@ -77,6 +107,7 @@ class PluginContext:
 
         Example: for a project 'my_project.qgz', returns 'my_project.gpkg'.
 
-        :returns: The Path object to the GeoPackage.
+        Returns:
+             Path: The Path object to the GeoPackage.
         """
         return cls.project_path().with_suffix(".gpkg")

@@ -33,7 +33,14 @@ class Icons:
 
     @staticmethod
     def _qicon(filename: str) -> QIcon:
-        """Load an icon from the icons directory."""
+        """Load an icon from the icons directory.
+
+        Args:
+            filename: The name of the icon file (including extension).
+
+        Returns:
+            QIcon: The loaded QIcon object.
+        """
         return QIcon(str(ICONS_PATH / filename))
 
     def __init__(self) -> None:
@@ -95,7 +102,12 @@ class LayerLocation(Enum):
     # fmt: on
 
     def __init__(self, icon: QIcon, tooltip_factory: Callable[[], str]) -> None:
-        """Initialize the enum member."""
+        """Initialize the enum member.
+
+        Args:
+            icon: The icon associated with the layer location.
+            tooltip_factory: A callable that returns the translated tooltip text.
+        """
         self._icon: QIcon = icon
         self._tooltip_factory: Callable[[], str] = tooltip_factory
 

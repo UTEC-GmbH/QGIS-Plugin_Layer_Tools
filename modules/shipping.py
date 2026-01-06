@@ -86,8 +86,12 @@ def _copy_project_properties(
 
 
 def _set_map_extent(source_canvas: QgsMapCanvas, target_project: QgsProject) -> None:
-    """Copy the current map extent (zoom and position) to the new project file."""
+    """Copy the current map extent (zoom and position) to the new project file.
 
+    Args:
+        source_canvas: The source project's map canvas.
+        target_project: The target project where the extent will be applied.
+    """
     source_extent: QgsRectangle = source_canvas.extent()
     source_crs: QgsCoordinateReferenceSystem = (
         source_canvas.mapSettings().destinationCrs()
@@ -106,10 +110,10 @@ def _set_map_extent(source_canvas: QgsMapCanvas, target_project: QgsProject) -> 
 def prepare_layers_for_shipping() -> None:
     """Prepare selected layers for shipping.
 
-    Creates a 'Versand' folder, a GeoPackage with selected layers, and a .qgz project
-    file with the same styling.
+    Creates a 'Versand' folder in the project directory, generates a GeoPackage
+    containing the selected layers, and creates a companion .qgz project file
+    with the same styling and layout properties.
     """
-
     # Get current project and interface to copy properties from
     original_project: QgsProject = PluginContext.project()
 
