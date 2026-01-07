@@ -12,6 +12,8 @@ from qgis.PyQt.QtCore import QCoreApplication, QObject, QSettings, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton
 
+from modules.constants import ActionResults
+
 from .modules.constants import ICONS
 from .modules.context import PluginContext
 from .modules.geopackage import copy_layers_to_gpkg
@@ -20,6 +22,7 @@ from .modules.logs_and_errors import (
     CustomRuntimeError,
     CustomUserError,
     log_debug,
+    log_summary_message,
     raise_runtime_error,
 )
 from .modules.rename import rename_layers, undo_rename_layers
@@ -286,7 +289,12 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         """
         log_debug("... STARTING PLUGIN RUN ... (rename_selected_layers)", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
-            rename_layers()
+            results: ActionResults = rename_layers()
+            log_summary_message(
+                processed=len(results.processed),
+                skipped=results.skips,
+                errors=results.errors,
+            )
 
     def copy_selected_layers(self) -> None:
         """Copy selected layers to the project's GeoPackage.

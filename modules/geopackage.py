@@ -532,7 +532,7 @@ def add_layers_from_gpkg_to_project(
     action_tr: str = QCoreApplication.translate("log_summary", "Added from GeoPackage")
     log_summary_message(
         successes=len(added_layers),
-        failures=not_found_layers,
+        errors=not_found_layers,
         action=action_tr,
     )
 
