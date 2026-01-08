@@ -25,10 +25,10 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QCoreApplication
 
-from .constants import GEOMETRY_SUFFIX_MAP, LAYER_TYPES, Issue, ActionResults
+from .constants import GEOMETRY_SUFFIX_MAP, LAYER_TYPES, ActionResults, Issue
 from .context import PluginContext
 from .general import clear_attribute_table, get_selected_layers
-from .logs_and_errors import log_debug, log_summary_message, raise_runtime_error
+from .logs_and_errors import log_debug, raise_runtime_error
 from .rename import geometry_type_suffix
 
 if TYPE_CHECKING:
@@ -134,7 +134,7 @@ def check_existing_layer(gpkg_path: Path, layer: QgsMapLayer) -> str:
 
 def add_vector_layer_to_gpkg(
     project: QgsProject, layer: QgsMapLayer, gpkg_path: Path
-) -> tuple:
+) -> ActionResults[tuple]:
     """Add a vector layer to the GeoPackage.
 
     Args:
@@ -145,19 +145,25 @@ def add_vector_layer_to_gpkg(
     Returns:
         tuple: A tuple containing the result and the layer name in the GeoPackage.
     """
+    layer_name: str = layer.name()
     options = QgsVectorFileWriter.SaveVectorOptions()
     options.driverName = "GPKG"
     options.layerName = check_existing_layer(gpkg_path, layer)
     options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
 
-    return QgsVectorFileWriter.writeAsVectorFormatV3(
+    result: tuple = QgsVectorFileWriter.writeAsVectorFormatV3(
         layer, str(gpkg_path), project.transformContext(), options
     )
+
+    if result[0] == QgsVectorFileWriter.WriterError.NoError:
+        return ActionResults(result, successes=[layer_name])
+
+    return ActionResults(result, errors=[Issue(layer.name(), result[1])])
 
 
 def add_raster_layer_to_gpkg(
     project: QgsProject, layer: QgsMapLayer, gpkg_path: Path
-) -> dict[str, str | None]:
+) -> ActionResults[str]:
     """Add a raster layer to the GeoPackage using QgsRasterFileWriter.
 
     Args:
@@ -244,7 +250,7 @@ def clear_autocad_attributes(layer: QgsMapLayer, gpkg_path: Path) -> None:
 
 def add_layers_to_gpkg(
     layers: list[QgsMapLayer] | None = None, gpkg_path: Path | None = None
-) -> dict:
+) -> ActionResults[dict]:
     """Add the selected layers to the project's GeoPackage.
 
     Args:
@@ -264,43 +270,48 @@ def add_layers_to_gpkg(
 
     if not gpkg_path.exists():
         raise_runtime_error(f"GeoPackage does not exist at '{gpkg_path}'")
-
-    results: dict = {"successes": 0, "failures": [], "layer_mapping": {}}
-    res: ActionResults = ActionResults(None)
     if layers is None:
         layers = get_selected_layers()
+
+    results: dict = {"successes": 0, "failures": [], "layer_mapping": {}}
+    res: ActionResults = ActionResults(dict)
     for layer in layers:
+        layer_name: str = layer.name()
+        res.processed.append(layer_name)
+
         if "url=" in layer.source():
-            log_debug(
-                f"GeoPackage → Layer '{layer.name()}' is a web service. Skipping."
-            )
-            results["successes"] += 1
-            results["layer_mapping"][layer] = layer.name()
+            log_debug(f"GeoPackage → Layer '{layer_name}' is a web service. Skipping.")
+            res.result[layer] = layer_name
+            res.skips.append(Issue(layer_name, "Layer is a web service."))
             continue
 
+        # change layer name if necessary
         layer_name: str = check_existing_layer(gpkg_path, layer)
 
         log_debug(
-            f"GeoPackage → Adding layer '{layer.name()}' (layer_name: '{layer_name}') "
+            f"GeoPackage → Adding layer '{layer_name}' (layer_name: '{layer_name}') "
             f"of type {LAYER_TYPES.get(layer.type(), layer.type())}' "
             f"to GeoPackage '{gpkg_path.name}'..."
         )
 
         if isinstance(layer, QgsVectorLayer):
-            error: tuple = add_vector_layer_to_gpkg(project, layer, gpkg_path)
-            if error[0] == QgsVectorFileWriter.WriterError.NoError:
-                results["successes"] += 1
-                results["layer_mapping"][layer] = layer_name
+            add_layer_result: ActionResults[tuple] = add_vector_layer_to_gpkg(
+                project, layer, gpkg_path
+            )
+            if add_layer_result.successes:
+                res.successes.append(layer_name)
+                res.result[layer] = layer_name
                 clear_autocad_attributes(layer, gpkg_path)
                 log_debug(
-                    f"GeoPackage → Layer '{layer.name()}' added to "
+                    f"GeoPackage → Layer '{layer_name}' added to "
                     f"GeoPackage '{gpkg_path.name}' successfully.",
                     Qgis.Success,
                 )
             else:
-                results["failures"].append((layer.name(), error[1]))
+                error: Issue = add_layer_result.errors[0]
+                res.errors.append(Issue(layer_name, error.issue))
                 log_debug(
-                    f"GeoPackage → Failed to add layer '{layer.name()}': {error[1]}",
+                    f"GeoPackage → Failed to add layer '{layer_name}': {error.issue}",
                     Qgis.Warning,
                 )
 
@@ -310,22 +321,22 @@ def add_layers_to_gpkg(
                 results["successes"] += 1
                 results["layer_mapping"][layer] = layer_name
                 log_debug(
-                    f"GeoPackage → Layer '{layer.name()}' added to "
+                    f"GeoPackage → Layer '{layer_name}' added to "
                     f"GeoPackage '{gpkg_path.name}' successfully.",
                     Qgis.Success,
                 )
             else:
-                results["failures"].append((layer.name(), raster_results["error"]))
+                results["failures"].append((layer_name, raster_results["error"]))
                 log_debug(
                     "GeoPackage → Failed to add layer "
-                    f"'{layer.name()}': {raster_results['error']}",
+                    f"'{layer_name}': {raster_results['error']}",
                     Qgis.Warning,
                 )
         else:
-            results["failures"].append((layer.name(), "Unsupported layer type."))
+            results["failures"].append((layer_name, "Unsupported layer type."))
             log_debug(
                 "GeoPackage → Failed to add layer "
-                f"'{layer.name()}': Unsupported layer type.",
+                f"'{layer_name}': Unsupported layer type.",
                 Qgis.Warning,
             )
 
@@ -531,11 +542,6 @@ def add_layers_from_gpkg_to_project(
         )
 
     action_tr: str = QCoreApplication.translate("log_summary", "Added from GeoPackage")
-    log_summary_message(
-        successes=len(added_layers),
-        errors=not_found_layers,
-        action=action_tr,
-    )
 
 
 def copy_layers_to_gpkg() -> None:
