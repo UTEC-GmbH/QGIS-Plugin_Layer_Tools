@@ -25,7 +25,7 @@ from .modules.logs_and_errors import (
     log_summary_message,
     raise_runtime_error,
 )
-from .modules.rename import rename_layers, undo_rename_layers
+from .modules.rename import rename_layers, undo_rename_layers, Rename
 from .modules.shipping import prepare_layers_for_shipping
 
 if TYPE_CHECKING:
@@ -289,7 +289,7 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         """
         log_debug("... STARTING PLUGIN RUN ... (rename_selected_layers)", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
-            results: ActionResults = rename_layers()
+            results: ActionResults[None] = rename_layers()
             log_summary_message(
                 processed=len(results.processed),
                 skipped=results.skips,
@@ -304,7 +304,12 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         """
         log_debug("... STARTING PLUGIN RUN ... (copy_selected_layers)", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
-            copy_layers_to_gpkg()
+            results: ActionResults = copy_layers_to_gpkg()
+            log_summary_message(
+                processed=len(results.processed),
+                skipped=results.skips,
+                errors=results.errors,
+            )
 
     def undo_last_rename(self) -> None:
         """Undo the last rename operation.
@@ -314,7 +319,12 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         """
         log_debug("... STARTING PLUGIN RUN ... (undo_last_rename)", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
-            undo_rename_layers()
+            results: ActionResults[list[Rename]] = undo_rename_layers()
+            log_summary_message(
+                processed=len(results.processed),
+                skipped=results.skips,
+                errors=results.errors,
+            )
 
     def rename_and_copy_layers(self) -> None:
         """Rename selected layers and then copy them to the GeoPackage.
@@ -324,8 +334,15 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         """
         log_debug("... STARTING PLUGIN RUN ... (rename_and_copy_layers)", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
-            rename_layers()
-            copy_layers_to_gpkg()
+            results_rename: ActionResults[None] = rename_layers()
+            results_copy: ActionResults = copy_layers_to_gpkg()
+            log_summary_message(
+                processed=max(
+                    len(results_rename.processed), len(results_copy.processed)
+                ),
+                skipped=results_rename.skips + results_copy.skips,
+                errors=results_rename.errors + results_copy.errors,
+            )
 
     def prepare_shipping(self) -> None:
         """Prepare selected layers for shipping.
@@ -335,4 +352,9 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         """
         log_debug("... STARTING PLUGIN RUN ... (prepare_shipping)", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
-            prepare_layers_for_shipping()
+            results: ActionResults = prepare_layers_for_shipping()
+            log_summary_message(
+                processed=len(results.processed),
+                skipped=results.skips,
+                errors=results.errors,
+            )

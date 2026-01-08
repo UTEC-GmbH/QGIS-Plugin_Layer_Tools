@@ -1,7 +1,7 @@
-"""Module: functions_rename.py
+"""Module: rename.py
 
-This module contains the function for renaming and moving layers
-in a QGIS project based on their group names.
+This module contains the function for renaming layers in a QGIS project based
+on their group names.
 """
 
 import contextlib
@@ -41,8 +41,8 @@ class Rename:
         error (str | None): An error message if the rename operation fails.
     """
 
-    layer: QgsMapLayer | None
-    old_name: str | None
+    layer: QgsMapLayer | None = None
+    old_name: str | None = None
     new_name: str | None = None
     skip: str | None = None
     error: str | None = None
@@ -99,7 +99,8 @@ def handle_name_collisions(potential_renames: list[Rename]) -> list[Rename]:
 
     This function processes a list of potential renames. If multiple layers
     target the same new name (a name collision), it appends a geometry-specific
-    suffix to each layer's new name to ensure uniqueness. If a layer's current
+    suffix to each layer's new name to differentiate layers with different
+    geometry types. If a layer's current
     name already matches the proposed new name, it is excluded from the plan.
 
     Args:
@@ -139,14 +140,13 @@ def handle_name_collisions(potential_renames: list[Rename]) -> list[Rename]:
     return rename_plan
 
 
-def prepare_rename_plan() -> ActionResults:
+def prepare_rename_plan() -> ActionResults[list[Rename]]:
     """Prepare a plan to rename selected layers based on their parent group.
 
-    Empty vector layers are planned to be renamed to 'empty layer'. For other
-    layers, the new name is based on their parent group name.
+    The new name is based on the layer's parent group name.
 
     If multiple layers would be renamed to the same name (e.g., they are in
-    the same group, or multiple layers are empty), a geometry type suffix is
+    the same group), a geometry type suffix is
     appended to differentiate them.
 
     Returns:
@@ -159,12 +159,13 @@ def prepare_rename_plan() -> ActionResults:
         raise_runtime_error("No Layer Tree is available.")
 
     layers_to_process: list[QgsMapLayer] = get_selected_layers()
-    potential_renames: list[Rename] = []
+    potential_renames: ActionResults[list[Rename]] = ActionResults([])
 
     log_debug(f"Rename → Renaming {len(layers_to_process)} layers...")
     for layer in layers_to_process:
         node: QgsLayerTreeLayer | None = root.findLayer(layer.id())
         old_name: str = layer.name()
+        potential_renames.processed.append(old_name)
 
         # If the layer is not in the layer tree, skip it.
         if not node:
@@ -172,7 +173,7 @@ def prepare_rename_plan() -> ActionResults:
                 f"Rename → '{old_name}' → Error: layer not in layer tree.",
                 Qgis.Warning,
             )
-            potential_renames.append(Rename(layer, old_name, error="not in layer tree"))
+            potential_renames.errors.append(Issue(old_name, "not in layer tree"))
             continue
 
         parent: QgsLayerTreeNode | None = node.parent()
@@ -184,7 +185,7 @@ def prepare_rename_plan() -> ActionResults:
                 f"Rename → '{old_name}' → Skipped because not in a group.",
                 Qgis.Warning,
             )
-            potential_renames.append(Rename(layer, old_name, skip="not in a group"))
+            potential_renames.skips.append(Issue(old_name, "not in a group"))
             continue
 
         new_name: str = fix_layer_name(raw_group_name)
@@ -193,24 +194,22 @@ def prepare_rename_plan() -> ActionResults:
                 f"Rename → '{old_name}' → Skipped because invalid name.",
                 Qgis.Warning,
             )
-            potential_renames.append(Rename(layer, old_name, error="invalid name"))
+            potential_renames.errors.append(Issue(old_name, "invalid name"))
             continue
 
-        potential_renames.append(Rename(layer, old_name, new_name))
-
-    rename_plan: list[Rename] = handle_name_collisions(potential_renames)
+        potential_renames.result.append(Rename(layer, old_name, new_name))
 
     return ActionResults(
-        result=rename_plan,
-        processed=[ren.old_name for ren in rename_plan if ren.old_name],
-        skips=[Issue(s.old_name, s.skip) for s in rename_plan if s.skip and s.old_name],
-        errors=[
-            Issue(e.old_name, e.error) for e in rename_plan if e.error and e.old_name
-        ],
+        result=handle_name_collisions(potential_renames.result),
+        processed=potential_renames.processed,
+        skips=potential_renames.skips,
+        errors=potential_renames.errors,
     )
 
 
-def execute_rename_plan(rename_plan: list[Rename]) -> ActionResults:
+def execute_rename_plan(
+    rename_plan: list[Rename],
+) -> ActionResults[list[tuple[str, str, str]]]:
     """Execute the renaming of layers and record the changes for undo.
 
     This function iterates through the rename_plan, renaming each layer
@@ -225,95 +224,111 @@ def execute_rename_plan(rename_plan: list[Rename]) -> ActionResults:
         ActionResults: An object containing the results of the execution,
             including successful renames (for the undo stack), skips, and errors.
     """
-    fails: list[Rename] = []
-    successful_renames: list[Rename] = []
-
+    # results.result stores successful renames as tuple for the json string.
+    results: ActionResults[list[tuple[str, str, str]]] = ActionResults([])
     for rename in rename_plan:
-        if rename.skip or rename.error or not rename.layer:
-            fails.append(rename)
+        if rename.old_name:
+            results.processed.append(rename.old_name)
+
+        if (
+            rename.error
+            or not rename.layer
+            or not rename.old_name
+            or not rename.new_name
+        ):
+            results.errors.append(Issue(rename.old_name or "", rename.error or ""))
             continue
+
+        if rename.skip:
+            results.skips.append(Issue(rename.old_name, rename.skip))
+            continue
+
         try:
             rename.layer.setName(rename.new_name)
             # On success, record the change for the undo stack.
-            successful_renames.append(rename)
+            results.result.append((rename.layer.id(), rename.old_name, rename.new_name))
+            results.successes.append(rename.old_name)
         except RuntimeError as e:
             # If setName fails, the layer name is unchanged.
-            fails.append(Rename(*rename, error=str(e)))
+            results.errors.append(Issue(rename.old_name, str(e)))
 
-    if fails:
+    if results.skips or results.errors:
+        fails: int = len(results.skips) + len(results.errors)
         log_debug(
-            f"Rename → Failed to rename {len(fails)} layers: {fails}",
+            f"Rename → Failed to rename {fails} layers.\n"
+            f"Skips: {results.skips} / Errors: {results.errors})",
             Qgis.Warning,
         )
 
-    return ActionResults(
-        result=successful_renames,
-        successes=[s.new_name for s in successful_renames if s.new_name],
-        skips=[Issue(f.old_name, f.skip) for f in fails if f.skip and f.old_name],
-        errors=[Issue(f.old_name, f.error) for f in fails if f.error and f.old_name],
-    )
+    return results
 
 
-def rename_layers() -> ActionResults:
+def rename_layers() -> ActionResults[None]:
     """Orchestrate the renaming of selected layers to their parent group names.
 
     Prepares a rename plan, executes it, records the successful renames for potential
-    undo, and presents a summary of the operation to the user.
+    undo, and returns the results of the operation.
 
     Returns:
         ActionResults: The results of the rename operation.
     """
-    prep: ActionResults = prepare_rename_plan()
-    renamed: ActionResults = execute_rename_plan(prep.result)
+    prep: ActionResults[list[Rename]] = prepare_rename_plan()
+    renamed: ActionResults[list[tuple[str, str, str]]] = execute_rename_plan(
+        prep.result
+    )
 
-    # Store the list of successful renames in the project file.
-    # The list is stored as a JSON string.
-    if renamed.successes:
-        successful_renames: list[tuple[str, str, str]] = [
-            (ren.layer.id(), ren.old_name, ren.new_name) for ren in renamed.result
-        ]
+    # Store the list of successful renames in the project file
+    # for the undo fuction of the plugin. (stored as a JSON string)
+    if renamed.result:
         project: QgsProject = PluginContext.project()
         project.writeEntry(
-            "UTEC_Layer_Tools", "last_rename", json.dumps(successful_renames)
+            "UTEC_Layer_Tools", "last_rename", json.dumps(renamed.result)
         )
 
-    return renamed
+    return ActionResults(
+        result=None,
+        processed=renamed.processed,
+        skips=renamed.skips,
+        errors=renamed.errors,
+    )
 
 
-def undo_rename_layers() -> ActionResults:
+def undo_rename_layers() -> ActionResults[list[Rename]]:
     """Revert the last renaming operation.
 
     Reads the last rename history from the project, attempts to revert the
-    names of the affected layers, and reports the results.
+    names of the affected layers, and returns the results.
 
     Returns:
         ActionResults: The results of the undo operation.
     """
     project: QgsProject = PluginContext.project()
-    last_rename_json, found = project.readEntry("UTEC_Layer_Tools", "last_rename", "")
+    rename_cache: tuple[str, bool | None] = project.readEntry(
+        "UTEC_Layer_Tools", "last_rename", ""
+    )
+    last_rename_json: str = rename_cache[0]
+    found: bool | None = rename_cache[1]
 
     if not found or not last_rename_json:
         log_debug("Rename → No rename operation found to undo.", Qgis.Warning)
-        return ActionResults("Error: No rename operation found to undo.")
+        raise_runtime_error("No rename operation found to undo.")
+
     try:
         last_renames: list[tuple[str, str, str]] = json.loads(last_rename_json)
     except json.JSONDecodeError:
         log_debug("Rename → Could not parse rename history.", Qgis.Critical)
-        return ActionResults("Error: Could not parse rename history.")
+        raise_runtime_error("Could not parse rename history.")
 
-    successful_undos: list[Rename] = []
-    fails: list[Rename] = []
-    processed: list[str] = []
-
+    results: ActionResults[list[Rename]] = ActionResults([])
     for layer_id, old_name, new_name in last_renames:
-        processed.append(new_name)
+        results.processed.append(new_name)
+
         layer: QgsMapLayer | None = project.mapLayer(layer_id)
         if not layer:
-            fails.append(
-                Rename(
-                    None,
+            results.errors.append(
+                Issue(
                     new_name,
-                    error=f"Original layer ('{old_name}') not found in project.",
+                    f"Layer '{new_name}' (old name'{old_name}') not found in project.",
                 )
             )
             continue
@@ -321,30 +336,24 @@ def undo_rename_layers() -> ActionResults:
         # Check if the layer name is still what we set it to.
         # If the user renamed it again, we shouldn't force an undo.
         if layer.name() != new_name:
-            fails.append(
-                Rename(
-                    layer,
+            results.skips.append(
+                Issue(
                     old_name,
-                    new_name,
-                    skip=f"Layer was renamed to '{layer.name()}' since last operation.",
+                    f"Layer was manually renamed to '{layer.name()}' "
+                    "since last operation and will not be reverted.",
                 )
             )
             continue
 
         try:
             layer.setName(old_name)
-            successful_undos.append(Rename(layer, new_name, old_name))
+            results.result.append(Rename(layer, new_name, old_name))
+            results.successes.append(new_name)
         except RuntimeError as e:
-            fails.append(Rename(layer, new_name, old_name, error=str(e)))
+            results.errors.append(Issue(new_name, str(e)))
 
     # Clear the history after a successful undo to prevent multiple undos.
-    if successful_undos:
+    if results.successes or results.skips:
         project.removeEntry("UTEC_Layer_Tools", "last_rename")
 
-    return ActionResults(
-        result=successful_undos,
-        processed=processed,
-        successes=[s.old_name for s in successful_undos if s.old_name],
-        skips=[Issue(f.old_name, f.skip) for f in fails if f.skip and f.old_name],
-        errors=[Issue(f.old_name, f.error) for f in fails if f.error and f.old_name],
-    )
+    return results

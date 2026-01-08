@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any
+from typing import Generic, TypeVar
 
 from qgis.core import Qgis, QgsMapLayer
 from qgis.PyQt.QtCore import QCoreApplication
@@ -43,19 +43,22 @@ class Issue:
         return f"Layer: '{self.layer}': {self.issue}"
 
 
+T = TypeVar("T")
+
+
 @dataclass
-class ActionResults:
+class ActionResults(Generic[T]):
     """Holds the results of an action.
 
     Attributes:
-        result (Any): The result of the action.
+        result (T | None): The result of the action.
         processed (list[str]): A list of layer names that were processed.
         successes (list[str]): A list of layer names that were successfully processed.
         skips (list[Issue]): A list of skipped layers and the reason for skipping.
         errors (list[Issue]): A list of errors that occurred during the action.
     """
 
-    result: Any
+    result: T
     processed: list[str] = field(default_factory=list)
     successes: list[str] = field(default_factory=list)
     skips: list[Issue] = field(default_factory=list)

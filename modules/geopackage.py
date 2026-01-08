@@ -25,7 +25,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QCoreApplication
 
-from .constants import GEOMETRY_SUFFIX_MAP, LAYER_TYPES
+from .constants import GEOMETRY_SUFFIX_MAP, LAYER_TYPES, Issue, ActionResults
 from .context import PluginContext
 from .general import clear_attribute_table, get_selected_layers
 from .logs_and_errors import log_debug, log_summary_message, raise_runtime_error
@@ -266,6 +266,7 @@ def add_layers_to_gpkg(
         raise_runtime_error(f"GeoPackage does not exist at '{gpkg_path}'")
 
     results: dict = {"successes": 0, "failures": [], "layer_mapping": {}}
+    res: ActionResults = ActionResults(None)
     if layers is None:
         layers = get_selected_layers()
     for layer in layers:
