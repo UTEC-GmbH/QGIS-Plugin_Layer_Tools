@@ -6,6 +6,7 @@ This module contains the general functions.
 from typing import TYPE_CHECKING
 
 from qgis.core import (
+    QgsFeatureRequest,
     QgsLayerTreeGroup,
     QgsLayerTreeLayer,
     QgsMapLayer,
@@ -105,3 +106,25 @@ def clear_attribute_table(layer: QgsMapLayer) -> None:
     if field_indices := list(range(layer.fields().count())):
         provider.deleteAttributes(field_indices)
         layer.updateFields()
+
+
+def is_empty_layer(layer: QgsMapLayer) -> bool:
+    """Check if a vector layer is empty.
+
+    This check is optimized to return as soon as the first feature is found,
+    avoiding a full count of features which can be slow for large datasets.
+
+    Args:
+        layer: The layer to check.
+
+    Returns:
+        bool: True if the layer is a vector layer and has no features,
+        False otherwise.
+    """
+    if not isinstance(layer, QgsVectorLayer):
+        return False
+
+    request = QgsFeatureRequest()
+    request.setLimit(1)
+    request.setFlags(QgsFeatureRequest.NoGeometry)
+    return next(layer.getFeatures(request), None) is None

@@ -22,8 +22,8 @@ from qgis.core import (
 
 from .constants import GEOMETRY_SUFFIX_MAP, ActionResults, Issue
 from .context import PluginContext
-from .general import get_selected_layers, raise_runtime_error
-from .logs_and_errors import log_debug
+from .general import get_selected_layers, is_empty_layer
+from .logs_and_errors import log_debug, raise_runtime_error
 
 if TYPE_CHECKING:
     from qgis.core import QgsLayerTree, QgsLayerTreeNode
@@ -125,7 +125,7 @@ def handle_name_collisions(potential_renames: list[Rename]) -> list[Rename]:
             )
             for layer in layers:
                 suffix: str = (
-                    "" if layer.featureCount() == 0 else geometry_type_suffix(layer)
+                    "" if is_empty_layer(layer) else geometry_type_suffix(layer)
                 )
                 final_new_name: str = f"{name}{suffix}"
                 if layer.name() != final_new_name:
