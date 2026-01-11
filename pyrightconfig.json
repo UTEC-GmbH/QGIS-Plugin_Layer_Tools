@@ -4,5 +4,13 @@
     "reportMissingModuleSource": "none",
     "reportGeneralTypeIssues": "none",
     "reportPrivateImportUsage": "none",
-    "executionEnvironments": []
+    "executionEnvironments": [],
+    "python.analysis.extraPaths": [
+        "C:\\OSGeo4W\\apps\\qgis-ltr\\python",
+        "C:\\OSGeo4W\\apps\\qgis-ltr\\python\\plugins",
+        "C:\\OSGeo4W\\apps\\Python312",
+        "C:\\OSGeo4W\\apps\\Python312\\Lib\\site-packages",
+        "C:\\OSGeo4W\\apps\\qgis\\python",
+        "C:\\OSGeo4W\\apps\\qgis\\python\\plugins"
+    ],
 }

@@ -1,11 +1,5 @@
 {
     "python.defaultInterpreterPath": "C:\\OSGeo4W\\apps\\Python312\\python.exe",
-    "python.analysis.extraPaths": [
-        "C:\\OSGeo4W\\apps\\qgis-ltr\\python",
-        "C:\\OSGeo4W\\apps\\qgis-ltr\\python\\plugins",
-        "C:\\OSGeo4W\\apps\\Python312",
-        "C:\\OSGeo4W\\apps\\Python312\\Lib\\site-packages"
-    ],
     "python.autoComplete.extraPaths": [
         "C:\\OSGeo4W\\apps\\qgis-ltr\\python",
         "C:\\OSGeo4W\\apps\\qgis-ltr\\python\\plugins",
@@ -15,5 +9,10 @@
     "python.envFile": "${workspaceFolder}/.env",
     "pylint.args": [
         "--rcfile=${workspaceFolder}/.pylintrc"
-    ]
+    ],
+    "python.testing.pytestArgs": [
+        "tests"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
 }
