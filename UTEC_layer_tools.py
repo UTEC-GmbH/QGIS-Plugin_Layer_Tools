@@ -12,8 +12,6 @@ from qgis.PyQt.QtCore import QCoreApplication, QObject, QSettings, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton
 
-from modules.constants import ActionResults
-
 from .modules.constants import ICONS
 from .modules.context import PluginContext
 from .modules.geopackage import copy_layers_to_gpkg
@@ -25,11 +23,13 @@ from .modules.logs_and_errors import (
     log_summary_message,
     raise_runtime_error,
 )
-from .modules.rename import rename_layers, undo_rename_layers, Rename
+from .modules.rename import Rename, rename_layers, undo_rename_layers
 from .modules.shipping import prepare_layers_for_shipping
 
 if TYPE_CHECKING:
     from qgis.gui import QgsMessageBar
+
+    from modules.constants import ActionResults
 
 
 class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
@@ -304,7 +304,7 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         """
         log_debug("... STARTING PLUGIN RUN ... (copy_selected_layers)", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
-            results: ActionResults = copy_layers_to_gpkg()
+            results: ActionResults[None] = copy_layers_to_gpkg()
             log_summary_message(
                 processed=len(results.processed),
                 skipped=results.skips,
@@ -335,7 +335,7 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         log_debug("... STARTING PLUGIN RUN ... (rename_and_copy_layers)", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
             results_rename: ActionResults[None] = rename_layers()
-            results_copy: ActionResults = copy_layers_to_gpkg()
+            results_copy: ActionResults[None] = copy_layers_to_gpkg()
             log_summary_message(
                 processed=max(
                     len(results_rename.processed), len(results_copy.processed)
