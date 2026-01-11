@@ -4,8 +4,10 @@ This module contains shared constants and enumerations used across the plugin.
 """
 
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
+from typing import Generic, TypeVar
 
 from qgis.core import Qgis, QgsMapLayer
 from qgis.PyQt.QtCore import QCoreApplication
@@ -22,6 +24,46 @@ LAYER_TYPES: dict = {
     QgsMapLayer.RasterLayer: "RasterLayer",
     QgsMapLayer.PluginLayer: "PluginLayer",
 }
+
+
+@dataclass
+class Issue:
+    """Represents a problem associated with a specific layer.
+
+    Attributes:
+        layer (str): The layer name.
+        issue (str): The issue description.
+    """
+
+    layer: str
+    issue: str
+
+    def __str__(self) -> str:
+        """Return a string representation of the Issue object."""
+        return f"Layer: '{self.layer}': {self.issue}"
+
+
+T = TypeVar("T")
+
+
+@dataclass
+class ActionResults(Generic[T]):
+    """Holds the results of an action.
+
+    Attributes:
+        result (T | None): The result of the action.
+        processed (list[str]): A list of layer names that were processed.
+        successes (list[str]): A list of layer names that were successfully processed.
+        skips (list[Issue]): A list of skipped layers and the reason for skipping.
+        errors (list[Issue]): A list of errors that occurred during the action.
+    """
+
+    result: T
+    processed: list[str] = field(default_factory=list)
+    successes: list[str] = field(default_factory=list)
+    skips: list[Issue] = field(default_factory=list)
+    errors: list[Issue] = field(default_factory=list)
+
 
 RESOURCES_PATH: Path = Path(__file__).parent.parent / "resources"
 ICONS_PATH: Path = RESOURCES_PATH / "icons"

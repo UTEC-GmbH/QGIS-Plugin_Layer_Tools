@@ -11,6 +11,8 @@ from typing import NoReturn
 from qgis.core import Qgis, QgsMessageLog
 from qgis.PyQt.QtCore import QCoreApplication
 
+from .constants import Issue
+
 LEVEL_ICON: dict[Qgis.MessageLevel, str] = {
     Qgis.Success: "🎉",
     Qgis.Info: "💡",
@@ -55,7 +57,8 @@ def log_debug(
 
     Args:
         message: The message to log.
-        level: The QGIS message level (Success, Info, Warning, Critical).
+        level: The QGIS message level.
+            (Qgis.Success, Qgis.Info, Qgis.Warning or Qgis.Critical)
             Defaults to Qgis.Info.
         file_line_number: An optional string to append to the message.
             Defaults to the filename and line number of the caller.
@@ -98,15 +101,14 @@ def show_message(
     else:
         QgsMessageLog.logMessage(
             f"{LEVEL_ICON[Qgis.Warning]} message bar not available! "
-            f"→ Error not displayed in message bar."
+            f"→ Message not displayed in message bar."
         )
 
 
 def log_summary_message(
-    successes: int = 0,
-    skipped: list | None = None,
-    failures: list | None = None,
-    action: str = "Operation",
+    processed: int,
+    skipped: list[Issue] | None = None,
+    errors: list[Issue] | None = None,
 ) -> None:
     """Generate a summary message for the user based on operation results.
 
@@ -116,60 +118,35 @@ def log_summary_message(
     to create grammatically correct and informative feedback.
 
     Args:
-        successes: The number of successful operations.
-        skipped: A list of layer names that were skipped.
-        failures: A list of tuples detailing failed operations,
-                  (e.g., (old_name, new_name, error_message)).
-        action: A string describing the action performed (e.g., "Renamed", "Copied").
+        processed: The total number of layers processed.
+        skipped: A list of issues that occurred during the operation.
+        errors: A list of errors that occurred during the operation.
     """
-    layers_processed: int = (
-        successes
-        + (len(skipped) if skipped else 0)
-        + (len(failures) if failures else 0)
-    )
 
     # fmt: off
-    message_parts: list[str] = [
-        QCoreApplication.translate("log_summary", "{amount} Layers processed.").format(amount=layers_processed) # noqa: E501
-    ]
+    # ruff: noqa: E501
+    s_message: str = QCoreApplication.translate("log_summary", "{amount} layers processed. (skipped: {skipped} / errors: {errors})").format(amount=processed, skipped = len(skipped or []), errors = len(errors or []))
+    protocol: str = QCoreApplication.translate("log_summary", " → For more inforation on skips and errors, see the plugin log.")  
     # fmt: on
+
+    l_message: str = s_message
     debug_level: Qgis.MessageLevel = Qgis.Success
 
-    if successes:
-        # fmt: off
-        msg_part: str = QCoreApplication.translate("log_summary", "{action} {successes} layer(s).").format(action=action.lower(), successes=successes)  # noqa: E501
-        # fmt: on
-        message_parts.append(msg_part)
-
+    if skipped or errors:
+        s_message = f"{s_message} {protocol}"
     if skipped:
-        # fmt: off
-        msg_part: str = QCoreApplication.translate("log_summary", "Skipped {num_skipped} layer(s).").format(num_skipped=len(skipped))  # noqa: E501
-        # fmt: on
         debug_level = Qgis.Info
-        message_parts.append(msg_part)
-        for skipped_layer in skipped:
-            log_debug(f"Skipped layer '{skipped_layer}'", debug_level)
-
-    if failures:
-        # fmt: off
-        msg_part: str = QCoreApplication.translate("log_summary", "Failed to {action} {num_failures} layer(s).").format(action=action.lower(), num_failures=len(failures))  # noqa: E501
-        # fmt: on
+        l_message = (
+            f"{l_message}\nSkipped:\n{'\n'.join([str(issue) for issue in skipped])}"
+        )
+    if errors:
         debug_level = Qgis.Warning
-        message_parts.append(msg_part)
-        for failure in failures:
-            log_debug(f"Failed to {action} {failure[0]}: {failure[1]}", debug_level)
+        l_message = (
+            f"{l_message}\nErrors:\n{'\n'.join([str(issue) for issue in errors])}"
+        )
 
-    if not message_parts:  # If no operations were reported
-        # fmt: off
-        msg_part: str = QCoreApplication.translate("log_summary", "No layers processed or all selected layers already have the desired state.")  # noqa: E501
-        # fmt: on
-        debug_level = Qgis.Info
-        message_parts.append(msg_part)
-
-    full_message: str = " ".join(message_parts)
-
-    log_debug(full_message, debug_level)
-    show_message(full_message, debug_level, duration=10)
+    log_debug(l_message, debug_level)
+    show_message(s_message, debug_level, duration=10)
 
 
 class CustomRuntimeError(Exception):

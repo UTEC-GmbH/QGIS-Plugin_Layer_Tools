@@ -20,6 +20,7 @@ from qgis.gui import QgsMapCanvas
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtXml import QDomDocument
 
+from .constants import ActionResults
 from .context import PluginContext
 from .general import get_selected_layers
 from .geopackage import add_layers_from_gpkg_to_project, add_layers_to_gpkg, create_gpkg
@@ -108,12 +109,15 @@ def _set_map_extent(source_canvas: QgsMapCanvas, target_project: QgsProject) -> 
         )
 
 
-def prepare_layers_for_shipping() -> None:
+def prepare_layers_for_shipping() -> ActionResults[None]:
     """Prepare selected layers for shipping.
 
     Creates a subfolder in the project directory, generates a GeoPackage
     containing the selected layers, and creates a companion .qgz project file
     with the same styling and layout properties.
+
+    Returns:
+        ActionResults: An object containing the results of the operation.
     """
     # Get current project and interface to copy properties from
     original_project: QgsProject = PluginContext.project()
@@ -133,10 +137,18 @@ def prepare_layers_for_shipping() -> None:
     gpkg_path: Path = create_gpkg(
         shipping_dir / f"{base_name}.gpkg", delete_existing=True
     )
-    results: dict = add_layers_to_gpkg(layers=layers, gpkg_path=gpkg_path)
+    results: ActionResults[dict] = add_layers_to_gpkg(
+        layers=layers, gpkg_path=gpkg_path
+    )
 
-    if not results["successes"]:
-        return
+    if not results.successes:
+        return ActionResults(
+            result=None,
+            processed=results.processed,
+            successes=results.successes,
+            skips=results.skips,
+            errors=results.errors,
+        )
 
     # Create Shipping Project file
     qgz_path: Path = shipping_dir / f"{base_name}.qgz"
@@ -144,11 +156,11 @@ def prepare_layers_for_shipping() -> None:
     shipping_project.setFileName(str(qgz_path))
     _copy_project_properties(original_project, shipping_project)
 
-    add_layers_from_gpkg_to_project(
+    project_results: ActionResults[None] = add_layers_from_gpkg_to_project(
         gpkg_path=gpkg_path,
         project=shipping_project,
         layers=list(reversed(layers)),
-        layer_mapping=results["layer_mapping"],
+        layer_mapping=results.result,
     )
 
     # Set initial map extent to the current view of the original project
@@ -159,3 +171,11 @@ def prepare_layers_for_shipping() -> None:
     # Save the shipping project
     shipping_project.write()
     log_debug(f"Created shipping project: {qgz_path}", Qgis.Success)
+
+    return ActionResults(
+        result=None,
+        processed=results.processed,
+        successes=results.successes,
+        skips=results.skips + project_results.skips,
+        errors=results.errors + project_results.errors,
+    )
