@@ -118,7 +118,7 @@
         <translation>Keine Layer oder Layer-Gruppen ausgewählt.</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="491"/>
+        <location filename="../modules/geopackage.py" line="536"/>
         <source>Could not get layer tree root.</source>
         <translation>Konnte &quot;layer tree root&quot; nicht finden.</translation>
     </message>
@@ -143,13 +143,13 @@
     <name>log_summary</name>
     <message>
         <location filename="../modules/logs_and_errors.py" line="128"/>
-        <source>{amount} layers processed. (skipped: {skipped} / errors: {errors})</source>
-        <translation>{amount} Layer bearbeitet. (Übersprungen: {skipped} / Fehler: {errors})</translation>
+        <source>{amount} layers processed. (skipped actions: {skipped} / errors: {errors})</source>
+        <translation>{amount} Layer verarbeitet. (Übersprungene Vorgänge: {skipped} / Fehler: {errors})</translation>
     </message>
     <message>
         <location filename="../modules/logs_and_errors.py" line="129"/>
-        <source> → For more inforation on skips and errors, see the plugin log.</source>
-        <translation>→ siehe Protokoll für Informationen zu übersprungenen Layern und Fehler.</translation>
+        <source> → For more inforation on skipped actions and errors, see the plugin log.</source>
+        <translation> → nähere Informationen zu übersprungenen Vorgängen und Fehlern im Protokoll.</translation>
     </message>
 </context>
 </TS>

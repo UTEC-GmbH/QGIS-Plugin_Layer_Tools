@@ -125,8 +125,8 @@ def log_summary_message(
 
     # fmt: off
     # ruff: noqa: E501
-    s_message: str = QCoreApplication.translate("log_summary", "{amount} layers processed. (skipped: {skipped} / errors: {errors})").format(amount=processed, skipped = len(skipped or []), errors = len(errors or []))
-    protocol: str = QCoreApplication.translate("log_summary", " → For more inforation on skips and errors, see the plugin log.")  
+    s_message: str = QCoreApplication.translate("log_summary", "{amount} layers processed. (skipped actions: {skipped} / errors: {errors})").format(amount=processed, skipped = len(skipped or []), errors = len(errors or []))
+    protocol: str = QCoreApplication.translate("log_summary", " → For more inforation on skipped actions and errors, see the plugin log.")  
     # fmt: on
 
     l_message: str = s_message

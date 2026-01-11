@@ -67,7 +67,30 @@ def create_gpkg(
     return gpkg_path
 
 
-def check_existing_layer(gpkg_path: Path, layer: QgsMapLayer) -> str:
+def get_gpkg_layer_names(gpkg_path: Path) -> set[str]:
+    """Get a set of all table names (layers) in a GeoPackage.
+
+    Args:
+        gpkg_path: The path to the GeoPackage.
+
+    Returns:
+        set[str]: A set of table names.
+    """
+    if not gpkg_path.exists():
+        return set()
+
+    with contextlib.suppress(sqlite3.Error), sqlite3.connect(str(gpkg_path)) as conn:
+        cursor: sqlite3.Cursor = conn.cursor()
+        cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+        return {row[0] for row in cursor.fetchall()}
+    return set()
+
+
+def check_existing_layer(
+    gpkg_path: Path,
+    layer: QgsMapLayer,
+    existing_layers: set[str] | None = None,
+) -> str:
     """Check if a layer with the same name and geometry type exists in the GeoPackage.
 
     If a layer with the same name but different geometry type exists, a new
@@ -78,6 +101,7 @@ def check_existing_layer(gpkg_path: Path, layer: QgsMapLayer) -> str:
     Args:
         gpkg_path: The path to the GeoPackage.
         layer: The layer to check for existence.
+        existing_layers: Optional set of existing layer names to avoid repeated I/O.
 
     Returns:
         str: A layer name for the GeoPackage. This will be the original name
@@ -91,17 +115,24 @@ def check_existing_layer(gpkg_path: Path, layer: QgsMapLayer) -> str:
 
     layer_name: str = layer.name()
 
-    # Check if the layer exists in the GeoPackage using sqlite3 directly
-    # to avoid QGIS warnings about missing layers and OGR errors on empty GPKGs.
-    layer_exists = False
-    with contextlib.suppress(sqlite3.Error), sqlite3.connect(str(gpkg_path)) as conn:
-        cursor: sqlite3.Cursor = conn.cursor()
-        cursor.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-            (layer_name,),
-        )
-        if cursor.fetchone():
-            layer_exists = True
+    # Check if the layer exists
+    if existing_layers is not None:
+        layer_exists: bool = layer_name in existing_layers
+    else:
+        # Fallback to single connection if no cache provided
+        layer_exists = False
+        with (
+            contextlib.suppress(sqlite3.Error),
+            sqlite3.connect(str(gpkg_path)) as conn,
+        ):
+            cursor: sqlite3.Cursor = conn.cursor()
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                (layer_name,),
+            )
+            if cursor.fetchone():
+                layer_exists = True
+
     if not layer_exists:
         # Layer does not exist, safe to use original name.
         return layer_name
@@ -133,7 +164,10 @@ def check_existing_layer(gpkg_path: Path, layer: QgsMapLayer) -> str:
 
 
 def add_vector_layer_to_gpkg(
-    project: QgsProject, layer: QgsMapLayer, gpkg_path: Path
+    project: QgsProject,
+    layer: QgsMapLayer,
+    gpkg_path: Path,
+    existing_layers: set[str] | None = None,
 ) -> ActionResults[tuple]:
     """Add a vector layer to the GeoPackage.
 
@@ -141,6 +175,7 @@ def add_vector_layer_to_gpkg(
         project: The QGIS project instance.
         layer: The layer to add.
         gpkg_path: The path to the GeoPackage.
+        existing_layers: Optional set of existing layer names.
 
     Returns:
         ActionResults: An object containing the result tuple from QgsVectorFileWriter
@@ -149,7 +184,7 @@ def add_vector_layer_to_gpkg(
     layer_name: str = layer.name()
     options = QgsVectorFileWriter.SaveVectorOptions()
     options.driverName = "GPKG"
-    options.layerName = check_existing_layer(gpkg_path, layer)
+    options.layerName = check_existing_layer(gpkg_path, layer, existing_layers)
     options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
 
     result_write: tuple = QgsVectorFileWriter.writeAsVectorFormatV3(
@@ -171,7 +206,10 @@ def add_vector_layer_to_gpkg(
 
 
 def add_raster_layer_to_gpkg(
-    project: QgsProject, layer: QgsMapLayer, gpkg_path: Path
+    project: QgsProject,
+    layer: QgsMapLayer,
+    gpkg_path: Path,
+    existing_layers: set[str] | None = None,
 ) -> ActionResults[str | None]:
     """Add a raster layer to the GeoPackage using QgsRasterFileWriter.
 
@@ -179,6 +217,7 @@ def add_raster_layer_to_gpkg(
         project: The QGIS project instance.
         layer: The layer to add.
         gpkg_path: The path to the GeoPackage.
+        existing_layers: Optional set of existing layer names.
 
     Returns:
         ActionResults: An object containing the result (path to gpkg on success),
@@ -193,7 +232,7 @@ def add_raster_layer_to_gpkg(
     if not provider:
         raise_runtime_error("Could not get raster data provider.")
 
-    layer_name: str = check_existing_layer(gpkg_path, layer)
+    layer_name: str = check_existing_layer(gpkg_path, layer, existing_layers)
 
     writer = QgsRasterFileWriter(str(gpkg_path))
     writer.setOutputFormat("GPKG")
@@ -287,6 +326,9 @@ def add_layers_to_gpkg(
 
     results: ActionResults[dict[QgsMapLayer, str]] = ActionResults({})
 
+    # Pre-fetch existing layer names to avoid repeated DB connections
+    existing_layers: set[str] = get_gpkg_layer_names(gpkg_path)
+
     for layer in layers:
         layer_name: str = layer.name()
         results.processed.append(layer_name)
@@ -298,7 +340,7 @@ def add_layers_to_gpkg(
             continue
 
         # change layer name if necessary
-        layer_name: str = check_existing_layer(gpkg_path, layer)
+        layer_name: str = check_existing_layer(gpkg_path, layer, existing_layers)
 
         log_debug(
             f"GeoPackage → Adding layer '{layer_name}' "
@@ -308,24 +350,27 @@ def add_layers_to_gpkg(
 
         if isinstance(layer, QgsVectorLayer):
             add_layer_result: ActionResults[tuple] = add_vector_layer_to_gpkg(
-                project, layer, gpkg_path
+                project, layer, gpkg_path, existing_layers
             )
             # Logging handled in add_vector_layer_to_gpkg
             if add_layer_result.successes:
                 results.successes.append(layer_name)
                 results.result[layer] = layer_name
+                # Update our cache so subsequent layers know about this one
+                existing_layers.add(layer_name)
                 clear_autocad_attributes(layer, gpkg_path)
             else:
                 results.errors.extend(add_layer_result.errors)
 
         elif isinstance(layer, QgsRasterLayer):
             raster_results: ActionResults[str | None] = add_raster_layer_to_gpkg(
-                project, layer, gpkg_path
+                project, layer, gpkg_path, existing_layers
             )
             # Logging handled in add_raster_layer_to_gpkg
             if raster_results.successes:
                 results.successes.append(layer_name)
                 results.result[layer] = layer_name
+                existing_layers.add(layer_name)
             else:
                 results.errors.extend(raster_results.errors)
         else:
