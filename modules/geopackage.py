@@ -114,13 +114,13 @@ def check_existing_layer(
         return layer.name()
 
     layer_name: str = layer.name()
+    layer_exists: bool = False
 
     # Check if the layer exists
     if existing_layers is not None:
-        layer_exists: bool = layer_name in existing_layers
+        layer_exists = layer_name in existing_layers
     else:
         # Fallback to single connection if no cache provided
-        layer_exists = False
         with (
             contextlib.suppress(sqlite3.Error),
             sqlite3.connect(str(gpkg_path)) as conn,
@@ -137,23 +137,24 @@ def check_existing_layer(
         # Layer does not exist, safe to use original name.
         return layer_name
 
+    # Check if we can overwrite (same geometry type)
     uri: str = f"{gpkg_path}|layername={layer_name}"
     gpkg_layer = QgsVectorLayer(uri, layer_name, "ogr")
 
-    if not gpkg_layer.isValid():
-        return layer_name
+    if gpkg_layer.isValid():
+        incoming_geom_type: Qgis.GeometryType = QgsWkbTypes.geometryType(
+            layer.wkbType()
+        )
+        existing_geom_type: Qgis.GeometryType = QgsWkbTypes.geometryType(
+            gpkg_layer.wkbType()
+        )
 
-    # A layer with the same name exists. Check geometry types.
-    incoming_geom_type: Qgis.GeometryType = QgsWkbTypes.geometryType(layer.wkbType())
-    existing_geom_type: Qgis.GeometryType = QgsWkbTypes.geometryType(
-        gpkg_layer.wkbType()
-    )
+        if incoming_geom_type == existing_geom_type:
+            # Name and geometry match, so we can overwrite. Return original name.
+            return layer_name
 
-    if incoming_geom_type == existing_geom_type:
-        # Name and geometry match, so we can overwrite. Return original name.
-        return layer_name
-
-    # Name matches but geometry is different. Create a new name with a suffix.
+    # Name matches but geometry is different (or layer invalid).
+    # Create a new name with a suffix.
     # First, strip any existing geometry suffix from the layer name to get a
     # base name to prevent creating names with double suffixes (e.g., 'layer-pt-pt').
     suffix_values: str = "|".join([*list(GEOMETRY_SUFFIX_MAP.values()), "pl"])

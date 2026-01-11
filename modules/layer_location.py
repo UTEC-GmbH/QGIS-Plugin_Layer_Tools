@@ -9,12 +9,14 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from qgis.core import (
+    QgsFeatureRequest,
     QgsLayerTree,
     QgsLayerTreeLayer,
     QgsLayerTreeModel,
     QgsLayerTreeNode,
     QgsMapLayer,
     QgsProject,
+    QgsProviderRegistry,
     QgsVectorLayer,
 )
 from qgis.gui import QgisInterface, QgsLayerTreeView, QgsLayerTreeViewIndicator
@@ -44,22 +46,28 @@ def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
         LayerLocation | None: An enum member indicating the data source location,
         or None for memory layers.
     """
-    layer_source: str = os.path.normcase(layer.source())
+    prov_instance: QgsProviderRegistry | None = QgsProviderRegistry.instance()
+    if not prov_instance:
+        return None
+
+    decoded_uri: dict = prov_instance.decodeUri(layer.providerType(), layer.source())
+    layer_path: str = os.path.normcase(decoded_uri.get("path", ""))
     project_gpkg_path: str = str(PluginContext.project_gpkg())
     gpkg: str = os.path.normcase(project_gpkg_path)
     project_folder: str = os.path.normcase(str(Path(project_gpkg_path).parent))
 
-    if layer_source.startswith("memory"):
+    if layer.source().startswith("memory"):
         # Memory layers get an indicator from QGIS itself, so we return None.
+        # (Checking source string is reliable for memory layers)
         return None
-    if "url=" in layer_source:
+    if "url" in decoded_uri:
         return LayerLocation.CLOUD
-    if gpkg in layer_source:
+    if gpkg in layer_path:
         return LayerLocation.GPKG_PROJECT
-    if project_folder in layer_source:
+    if project_folder in layer_path:
         return (
             LayerLocation.GPKG_FOLDER
-            if ".gpkg" in layer_source
+            if layer_path.endswith((".gpkg", ".sqlite"))
             else LayerLocation.FOLDER_NO_GPKG
         )
     return LayerLocation.EXTERNAL
@@ -68,6 +76,9 @@ def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
 def is_empty_layer(layer: QgsMapLayer) -> bool:
     """Check if a vector layer is empty.
 
+    This check is optimized to return as soon as the first feature is found,
+    avoiding a full count of features which can be slow for large datasets.
+
     Args:
         layer: The layer to check.
 
@@ -75,7 +86,13 @@ def is_empty_layer(layer: QgsMapLayer) -> bool:
         bool: True if the layer is a vector layer and has no features,
         False otherwise.
     """
-    return isinstance(layer, QgsVectorLayer) and layer.featureCount() == 0
+    if not isinstance(layer, QgsVectorLayer):
+        return False
+
+    request = QgsFeatureRequest()
+    request.setLimit(1)
+    request.setFlags(QgsFeatureRequest.NoGeometry)
+    return next(layer.getFeatures(request), None) is None
 
 
 def add_location_indicator(
