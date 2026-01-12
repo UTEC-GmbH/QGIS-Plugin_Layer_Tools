@@ -194,16 +194,25 @@ def add_vector_layer_to_gpkg(
 
     if result_write[0] == QgsVectorFileWriter.WriterError.NoError:
         log_debug(
-            f"GeoPacke → Vector Layer '{layer_name}' added to GeoPackage successfully.",
+            f"GeoPackage → Vector Layer '{layer_name}' "
+            "added to GeoPackage successfully.",
             Qgis.Success,
         )
         return ActionResults(result_write, successes=[layer_name])
 
     log_debug(
-        f"GeoPacke → Failed to add vector layer '{layer_name}' to GeoPackage.",
+        f"GeoPackage → Failed to add vector layer '{layer_name}' to GeoPackage.",
         Qgis.Critical,
     )
-    return ActionResults(result_write, errors=[Issue(layer_name, result_write[1])])
+    return ActionResults(
+        result_write,
+        errors=[
+            Issue(
+                layer_name,
+                f"Failed to add vector layer to GeoPackage: {result_write[1]}",
+            )
+        ],
+    )
 
 
 def add_raster_layer_to_gpkg(
@@ -226,7 +235,14 @@ def add_raster_layer_to_gpkg(
     """
     if not isinstance(layer, QgsRasterLayer):
         return ActionResults(
-            None, errors=[Issue(layer.name(), "Layer is not a valid raster layer.")]
+            None,
+            errors=[
+                Issue(
+                    layer.name(),
+                    "Failed to add raster layer to GeoPackage: "
+                    "not a valid raster layer.",
+                )
+            ],
         )
 
     provider: QgsRasterDataProvider | None = layer.dataProvider()
@@ -234,6 +250,12 @@ def add_raster_layer_to_gpkg(
         raise_runtime_error("Could not get raster data provider.")
 
     layer_name: str = check_existing_layer(gpkg_path, layer, existing_layers)
+
+    # Ensure clean overwrite by dropping existing raster table
+    with contextlib.suppress(sqlite3.Error), sqlite3.connect(str(gpkg_path)) as conn:
+        cursor: sqlite3.Cursor = conn.cursor()
+        safe_name: str = layer_name.replace('"', '""')
+        cursor.execute(f'DROP TABLE IF EXISTS "{safe_name}"')
 
     writer = QgsRasterFileWriter(str(gpkg_path))
     writer.setOutputFormat("GPKG")
@@ -269,7 +291,12 @@ def add_raster_layer_to_gpkg(
         f"Error: {error}",
         Qgis.Critical,
     )
-    return ActionResults(None, errors=[Issue(layer_name, f"Error: {error}")])
+    return ActionResults(
+        None,
+        errors=[
+            Issue(layer_name, f"Failed to add raster layer to GeoPackage: {error}")
+        ],
+    )
 
 
 def clear_autocad_attributes(layer: QgsMapLayer, gpkg_path: Path) -> None:
@@ -337,7 +364,9 @@ def add_layers_to_gpkg(
         if "url=" in layer.source():
             log_debug(f"GeoPackage → Layer '{layer_name}' is a web service. Skipping.")
             results.result[layer] = layer_name
-            results.skips.append(Issue(layer_name, "Layer is a web service."))
+            results.skips.append(
+                Issue(layer_name, "Layer is a web service → not added to GeoPackage.")
+            )
             continue
 
         # change layer name if necessary
@@ -357,7 +386,6 @@ def add_layers_to_gpkg(
             if add_layer_result.successes:
                 results.successes.append(layer_name)
                 results.result[layer] = layer_name
-                # Update our cache so subsequent layers know about this one
                 existing_layers.add(layer_name)
                 clear_autocad_attributes(layer, gpkg_path)
             else:
@@ -375,9 +403,14 @@ def add_layers_to_gpkg(
             else:
                 results.errors.extend(raster_results.errors)
         else:
-            results.errors.append(Issue(layer_name, "Unsupported layer type."))
+            results.errors.append(
+                Issue(
+                    layer_name,
+                    "Failed to add layer to GeoPackage: Unsupported layer type.",
+                )
+            )
             log_debug(
-                f"GeoPackage → Failed to add layer '{layer_name}': "
+                f"GeoPackage → Failed to add layer '{layer_name}' to GeoPackage: "
                 f"Unsupported layer type '{layer.type()}'.",
                 Qgis.Critical,
             )
@@ -555,7 +588,9 @@ def add_layers_from_gpkg_to_project(
 
         if not gpkg_layer:
             # Layer was skipped (e.g., web layer already exists)
-            results.skips.append(Issue(layer_name, "Layer already exists."))
+            results.skips.append(
+                Issue(layer_name, "Layer already exists → not added back to project.")
+            )
             continue
 
         if not gpkg_layer.isValid():
@@ -563,7 +598,12 @@ def add_layers_from_gpkg_to_project(
             if uri:
                 msg += f"\nlooked for: {uri}"
             log_debug(msg, Qgis.Warning)
-            results.errors.append(Issue(layer_name, "Layer not found in GeoPackage."))
+            results.errors.append(
+                Issue(
+                    layer_name,
+                    "Failed to add layer to project: Layer not found in GeoPackage.",
+                )
+            )
             continue
 
         project.addMapLayer(gpkg_layer, addToLegend=False)
