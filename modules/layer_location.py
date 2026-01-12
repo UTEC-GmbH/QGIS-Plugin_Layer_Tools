@@ -15,10 +15,13 @@ from qgis.core import (
     QgsLayerTreeNode,
     QgsMapLayer,
     QgsProject,
+    QgsProviderRegistry,
     QgsVectorLayer,
 )
 from qgis.gui import QgisInterface, QgsLayerTreeView, QgsLayerTreeViewIndicator
 from qgis.PyQt.QtCore import QTimer
+
+from .general import is_empty_layer
 
 from .constants import LayerLocation
 from .context import PluginContext
@@ -44,38 +47,40 @@ def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
         LayerLocation | None: An enum member indicating the data source location,
         or None for memory layers.
     """
-    layer_source: str = os.path.normcase(layer.source())
+    prov_instance: QgsProviderRegistry | None = QgsProviderRegistry.instance()
+    if not prov_instance:
+        return None
+    decoded_uri: dict = prov_instance.decodeUri(layer.providerType(), layer.source())
+
+    # Use path from decoded URI if available, otherwise fall back to source
+    uri_path: str = decoded_uri.get("path", "")
+    if not uri_path:
+        uri_path = layer.source().split("|")[0]
+    layer_path: str = os.path.normcase(uri_path)
+
     project_gpkg_path: str = str(PluginContext.project_gpkg())
     gpkg: str = os.path.normcase(project_gpkg_path)
     project_folder: str = os.path.normcase(str(Path(project_gpkg_path).parent))
 
-    if layer_source.startswith("memory"):
+    if layer.source().startswith("memory"):
         # Memory layers get an indicator from QGIS itself, so we return None.
+        # (Checking source string is reliable for memory layers)
         return None
-    if "url=" in layer_source:
+    if (
+        "url" in decoded_uri
+        or "url=" in layer.source().lower()
+        or layer.source().lower().startswith(("http:", "https:"))
+    ):
         return LayerLocation.CLOUD
-    if gpkg in layer_source:
+    if gpkg in layer_path:
         return LayerLocation.GPKG_PROJECT
-    if project_folder in layer_source:
+    if project_folder in layer_path:
         return (
             LayerLocation.GPKG_FOLDER
-            if ".gpkg" in layer_source
+            if layer_path.endswith((".gpkg", ".sqlite"))
             else LayerLocation.FOLDER_NO_GPKG
         )
     return LayerLocation.EXTERNAL
-
-
-def is_empty_layer(layer: QgsMapLayer) -> bool:
-    """Check if a vector layer is empty.
-
-    Args:
-        layer: The layer to check.
-
-    Returns:
-        bool: True if the layer is a vector layer and has no features,
-        False otherwise.
-    """
-    return isinstance(layer, QgsVectorLayer) and layer.featureCount() == 0
 
 
 def add_location_indicator(

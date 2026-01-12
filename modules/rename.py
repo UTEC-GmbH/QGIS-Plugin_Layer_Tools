@@ -22,8 +22,8 @@ from qgis.core import (
 
 from .constants import GEOMETRY_SUFFIX_MAP, ActionResults, Issue
 from .context import PluginContext
-from .general import get_selected_layers, raise_runtime_error
-from .logs_and_errors import log_debug
+from .general import get_selected_layers, is_empty_layer
+from .logs_and_errors import log_debug, raise_runtime_error
 
 if TYPE_CHECKING:
     from qgis.core import QgsLayerTree, QgsLayerTreeNode
@@ -125,7 +125,7 @@ def handle_name_collisions(potential_renames: list[Rename]) -> list[Rename]:
             )
             for layer in layers:
                 suffix: str = (
-                    "" if layer.featureCount() == 0 else geometry_type_suffix(layer)
+                    "" if is_empty_layer(layer) else geometry_type_suffix(layer)
                 )
                 final_new_name: str = f"{name}{suffix}"
                 if layer.name() != final_new_name:
@@ -173,7 +173,9 @@ def prepare_rename_plan() -> ActionResults[list[Rename]]:
                 f"Rename → '{old_name}' → Error: layer not in layer tree.",
                 Qgis.Warning,
             )
-            potential_renames.errors.append(Issue(old_name, "not in layer tree"))
+            potential_renames.errors.append(
+                Issue(old_name, "Rename error: Layer not in layer tree.")
+            )
             continue
 
         parent: QgsLayerTreeNode | None = node.parent()
@@ -185,7 +187,9 @@ def prepare_rename_plan() -> ActionResults[list[Rename]]:
                 f"Rename → '{old_name}' → Skipped because not in a group.",
                 Qgis.Warning,
             )
-            potential_renames.skips.append(Issue(old_name, "not in a group"))
+            potential_renames.skips.append(
+                Issue(old_name, "Skipped renaming: layer not in a group")
+            )
             continue
 
         new_name: str = fix_layer_name(raw_group_name)
@@ -194,7 +198,9 @@ def prepare_rename_plan() -> ActionResults[list[Rename]]:
                 f"Rename → '{old_name}' → Skipped because invalid name.",
                 Qgis.Warning,
             )
-            potential_renames.errors.append(Issue(old_name, "invalid name"))
+            potential_renames.errors.append(
+                Issue(old_name, "Rename error: invalid name")
+            )
             continue
 
         potential_renames.result.append(Rename(layer, old_name, new_name))
@@ -250,7 +256,7 @@ def execute_rename_plan(
             results.successes.append(rename.old_name)
         except RuntimeError as e:
             # If setName fails, the layer name is unchanged.
-            results.errors.append(Issue(rename.old_name, str(e)))
+            results.errors.append(Issue(rename.old_name, f"Rename error: {e!s}"))
 
     if results.skips or results.errors:
         fails: int = len(results.skips) + len(results.errors)
@@ -328,6 +334,7 @@ def undo_rename_layers() -> ActionResults[list[Rename]]:
             results.errors.append(
                 Issue(
                     new_name,
+                    "Undo Rename error: "
                     f"Layer '{new_name}' (old name'{old_name}') not found in project.",
                 )
             )
@@ -339,6 +346,7 @@ def undo_rename_layers() -> ActionResults[list[Rename]]:
             results.skips.append(
                 Issue(
                     old_name,
+                    "Skipping Undo Rename: "
                     f"Layer was manually renamed to '{layer.name()}' "
                     "since last operation and will not be reverted.",
                 )
@@ -350,7 +358,7 @@ def undo_rename_layers() -> ActionResults[list[Rename]]:
             results.result.append(Rename(layer, new_name, old_name))
             results.successes.append(new_name)
         except RuntimeError as e:
-            results.errors.append(Issue(new_name, str(e)))
+            results.errors.append(Issue(new_name, f"Undo Rename error: {e!s}"))
 
     # Clear the history after a successful undo to prevent multiple undos.
     if results.successes or results.skips:

@@ -6,9 +6,13 @@ This module contains the general functions.
 from typing import TYPE_CHECKING
 
 from qgis.core import (
+    QgsDataProvider,
+    QgsFeatureRequest,
     QgsLayerTreeGroup,
     QgsLayerTreeLayer,
+    QgsLayerTreeNode,
     QgsMapLayer,
+    QgsProject,
     QgsVectorDataProvider,
     QgsVectorLayer,
 )
@@ -18,8 +22,7 @@ from .context import PluginContext
 from .logs_and_errors import log_debug, raise_runtime_error, raise_user_error
 
 if TYPE_CHECKING:
-    from qgis.core import QgsDataProvider, QgsLayerTreeNode
-    from qgis.gui import QgsLayerTreeView
+    from qgis.gui import QgisInterface, QgsLayerTreeView
 
 
 def get_selected_layers() -> list[QgsMapLayer]:
@@ -35,13 +38,13 @@ def get_selected_layers() -> list[QgsMapLayer]:
     """
     # fmt: off
     # ruff: noqa: E501
-    no_interface:str = QCoreApplication.translate("RuntimeError", "QGIS interface not set.")
-    no_layertree:str = QCoreApplication.translate("RuntimeError", "Could not get layer tree view.")
-    no_selection:str = QCoreApplication.translate("RuntimeError", "No layers or groups selected.")
+    no_interface: str = QCoreApplication.translate("RuntimeError", "QGIS interface not set.")
+    no_layertree: str = QCoreApplication.translate("RuntimeError", "Could not get layer tree view.")
+    no_selection: str = QCoreApplication.translate("RuntimeError", "No layers or groups selected.")
     # fmt: on
 
     try:
-        iface = PluginContext.iface()
+        iface: QgisInterface = PluginContext.iface()
     except RuntimeError:
         raise_runtime_error(no_interface)
 
@@ -67,12 +70,14 @@ def get_selected_layers() -> list[QgsMapLayer]:
             log_debug(f"Unexpected node type in selection: {type(node)}")
 
     # Sort the selected layers based on their order in the layer tree (Top to Bottom)
-    project = PluginContext.project()
-    if project and (root := project.layerTreeRoot()):
-        layer_order = root.layerOrder()
+    project: QgsProject = PluginContext.project()
+    if root := project.layerTreeRoot():
+        layer_order: list[QgsMapLayer] = root.layerOrder()
 
         # Create a mapping of layer ID to index for O(1) lookup
-        order_map = {layer.id(): i for i, layer in enumerate(layer_order)}
+        order_map: dict[str, int] = {
+            layer.id(): i for i, layer in enumerate(layer_order)
+        }
 
         # Sort selected layers based on their index in the layer order
         # Layers not in the layer order (shouldn't happen for valid layers) will be at the end
@@ -105,3 +110,25 @@ def clear_attribute_table(layer: QgsMapLayer) -> None:
     if field_indices := list(range(layer.fields().count())):
         provider.deleteAttributes(field_indices)
         layer.updateFields()
+
+
+def is_empty_layer(layer: QgsMapLayer) -> bool:
+    """Check if a vector layer is empty.
+
+    This check is optimized to return as soon as the first feature is found,
+    avoiding a full count of features which can be slow for large datasets.
+
+    Args:
+        layer: The layer to check.
+
+    Returns:
+        bool: True if the layer is a vector layer and has no features,
+        False otherwise.
+    """
+    if not isinstance(layer, QgsVectorLayer) or not layer.isValid():
+        return False
+
+    request = QgsFeatureRequest()
+    request.setLimit(1)
+    request.setFlags(QgsFeatureRequest.NoGeometry)
+    return next(layer.getFeatures(request), None) is None
