@@ -3,10 +3,22 @@
 This module contains functions for adding indicators to the QGIS file explorer.
 """
 
-import contextlib
-from typing import TYPE_CHECKING, Any
+from __future__ import annotations
 
-from qgis.core import QgsMapLayer, QgsProject
+import contextlib
+from typing import TYPE_CHECKING
+
+from qgis.core import (
+    Qgis,
+    QgsApplication,
+    QgsDataCollectionItem,
+    QgsDataItem,
+    QgsDataItemProvider,
+    QgsLayerItem,
+    QgsMapLayer,
+    QgsProject,
+    QgsProviderRegistry,
+)
 from qgis.gui import QgisInterface, QgsBrowserTreeView
 from qgis.PyQt.QtCore import (
     QCoreApplication,
@@ -24,6 +36,7 @@ from .logs_and_errors import log_debug
 if TYPE_CHECKING:
     from pathlib import Path
 
+    from qgis.core import QgsProviderSublayerDetails
     from qgis.PyQt.QtGui import QIcon
 
 
@@ -80,39 +93,121 @@ class GeopackageProxyModel(QIdentityProxyModel):
         # Trigger a refresh of the views
         self.layoutChanged.emit()
 
-    def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> Any:
+    def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> object:
         """Override data to provide custom icons."""
+        if role != Qt.DecorationRole or not index.isValid():
+            return super().data(index, role)
 
-        if role == Qt.DecorationRole and index.isValid():
-            item = index.internalPointer()
+        if not self.project_gpkg_path:
+            return super().data(index, role)
 
-            if hasattr(item, "path"):
-                item_path = item.path()
-                norm_item_path: str = str(item_path).lower().replace("\\", "/")
+        source_index = self.mapToSource(index)
+        item = self.sourceModel().data(source_index, Qt.UserRole)
 
-                # Check for Project GPKG
-                if self.project_gpkg_path and norm_item_path == self.project_gpkg_path:
-                    return self.icon_gpkg_project
+        if not isinstance(item, QgsDataItem):
+            return super().data(index, role)
 
-                # Check for Tables within Project GPKG
-                if self.project_gpkg_path and norm_item_path.startswith(
-                    self.project_gpkg_path
-                ):
-                    item_name = index.data(Qt.DisplayRole)
-                    parent_index = index.parent()
-                    if parent_index.isValid():
-                        parent_item = parent_index.internalPointer()
-                        if hasattr(parent_item, "path"):
-                            parent_path: str = (
-                                str(parent_item.path()).lower().replace("\\", "/")
-                            )
-                            if parent_path == self.project_gpkg_path:
-                                return (
-                                    self.icon_used
-                                    if item_name in self.used_layers
-                                    else self.icon_unused
-                                )
+        item_path = item.path()
+        norm_item_path: str = str(item_path).lower().replace("\\", "/")
+
+        # Check for Project GPKG
+        if norm_item_path == self.project_gpkg_path:
+            return self.icon_gpkg_project
+
+        # Check for Tables within Project GPKG
+        if norm_item_path.startswith(self.project_gpkg_path):
+            parent_source_index = source_index.parent()
+            if parent_source_index.isValid():
+                parent_item = self.sourceModel().data(parent_source_index, Qt.UserRole)
+                if isinstance(parent_item, QgsDataItem):
+                    parent_path: str = (
+                        str(parent_item.path()).lower().replace("\\", "/")
+                    )
+                    if parent_path == self.project_gpkg_path:
+                        item_name = self.sourceModel().data(
+                            source_index, Qt.DisplayRole
+                        )
+                        return (
+                            self.icon_used
+                            if item_name in self.used_layers
+                            else self.icon_unused
+                        )
+
         return super().data(index, role)
+
+
+class ProjectGpkgDataItem(QgsDataCollectionItem):
+    # pylint: disable=too-few-public-methods
+    """Data item representing the project's GeoPackage."""
+
+    def __init__(self, parent: QgsDataItem | None, path: str, gpkg_path: Path) -> None:
+        """Initialize the item."""
+        super().__init__(parent, "Project GeoPackage", path, "Project GeoPackage")
+        self.gpkg_path: Path = gpkg_path
+        self.setIcon(ICONS.gpkg_project)
+
+    def createChildren(self) -> list[QgsDataItem]:  # noqa: N802
+        """Create children items (layers) from the GeoPackage."""
+        children: list[QgsDataItem] = []
+        if not self.gpkg_path.exists():
+            return children
+
+        # Query sublayers to get details efficiently
+        registry: QgsProviderRegistry | None = QgsProviderRegistry.instance()
+        if not registry:
+            return children
+
+        sublayers: list[QgsProviderSublayerDetails] = registry.querySublayers(
+            str(self.gpkg_path)
+        )
+
+        for sub in sublayers:
+            layer_type = QgsLayerItem.LayerType.NoType
+            if sub.type() == Qgis.LayerType.Vector:
+                layer_type = QgsLayerItem.LayerType.Vector
+            elif sub.type() == Qgis.LayerType.Raster:
+                layer_type = QgsLayerItem.LayerType.Raster
+
+            item = QgsLayerItem(
+                self,
+                sub.name(),
+                sub.uri(),
+                sub.uri(),
+                layer_type,
+                sub.providerKey(),
+            )
+            children.append(item)
+        return children
+
+
+class ProjectGpkgDataItemProvider(QgsDataItemProvider):
+    """Provider to add the Project GeoPackage to the browser tree."""
+
+    def name(self) -> str:
+        """Return the provider name."""
+        return "Project GeoPackage"
+
+    def capabilities(self) -> Qgis.DataItemProviderCapabilities:
+        """Return the provider capabilities."""
+        return Qgis.DataItemProviderCapabilities(
+            Qgis.DataItemProviderCapability.NoCapabilities
+        )
+
+    def createDataItem(  # noqa: N802
+        self,
+        path: str | None,
+        parentItem: QgsDataItem | None,  # noqa: N803
+    ) -> QgsDataItem | None:
+        """Create a data item for the given path."""
+        if path:
+            return None
+
+        # Root item request
+        with contextlib.suppress(Exception):
+            gpkg_path: Path = PluginContext.project_gpkg()
+            if gpkg_path.exists():
+                return ProjectGpkgDataItem(parentItem, "project_gpkg", gpkg_path)
+        return None
 
 
 class GeopackageIndicatorManager:
@@ -123,12 +218,18 @@ class GeopackageIndicatorManager:
         self.project: QgsProject = project
         self.iface: QgisInterface = iface
         self.proxies: list[GeopackageProxyModel] = []
+        self.provider: ProjectGpkgDataItemProvider | None = None
         self._update_timer: QTimer = QTimer()
         self._update_timer.setSingleShot(True)
         self._update_timer.setInterval(200)
 
     def init_indicators(self) -> None:
         """Initialize indicators by wrapping browser models."""
+        # Register Data Item Provider
+        self.provider = ProjectGpkgDataItemProvider()
+        if registry := QgsApplication.dataItemProviderRegistry():
+            registry.addProvider(self.provider)
+
         # Find all browser docks
         browser_views: list[QgsBrowserTreeView] = [
             widget
@@ -159,11 +260,13 @@ class GeopackageIndicatorManager:
         self.project.layersRemoved.connect(self._on_layers_changed)
         self.iface.projectRead.connect(self._on_project_read)
 
-    def _on_layers_changed(self, *args) -> None:  # noqa: ANN002, ARG002
+    def _on_layers_changed(self) -> None:
         self._update_timer.start()
 
     def _on_project_read(self) -> None:
         self._update_all_indicators()
+        # Reload browser to update Project GeoPackage item
+        self.iface.reloadConnections()
 
     def _update_all_indicators(self) -> None:
         log_debug("GeoPackage Indicators → Updating indicators...")
@@ -182,6 +285,11 @@ class GeopackageIndicatorManager:
             self.project.layersAdded.disconnect(self._on_layers_changed)
             self.project.layersRemoved.disconnect(self._on_layers_changed)
             self.iface.projectRead.disconnect(self._on_project_read)
+
+        if self.provider:
+            if registry := QgsApplication.dataItemProviderRegistry():
+                registry.removeProvider(self.provider)
+            self.provider = None
 
         for proxy in self.proxies:
             view = proxy.parent()
