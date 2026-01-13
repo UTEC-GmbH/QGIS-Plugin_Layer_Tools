@@ -49,6 +49,7 @@ def log_debug(
     level: Qgis.MessageLevel = Qgis.Info,
     file_line_number: str | None = None,
     icon: str | None = None,
+    prefix: str | None = None,
 ) -> None:
     """Log a debug message.
 
@@ -64,6 +65,7 @@ def log_debug(
             Defaults to the filename and line number of the caller.
         icon: An optional icon string to prepend to the message. If None,
             a default icon based on `msg_level` will be used.
+        prefix: An optional prefix string to prepend to the message.
 
     Returns:
         None
@@ -71,7 +73,7 @@ def log_debug(
     file_line_number = file_line_number or file_line(inspect.currentframe())
 
     icon = icon or LEVEL_ICON[level]
-    message = f"{icon} {message}{file_line_number}"
+    message = f"{icon} {prefix or ''} {message}{file_line_number}"
 
     QgsMessageLog.logMessage(f"{message}", LOG_TAG, level=level)
 

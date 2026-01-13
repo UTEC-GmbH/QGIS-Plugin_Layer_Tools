@@ -15,7 +15,7 @@ from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton
 from .modules.constants import ICONS
 from .modules.context import PluginContext
 from .modules.geopackage import copy_layers_to_gpkg
-from .modules.geopackage_indicators import GeopackageIndicatorManager
+from .modules.browser import GeopackageIndicatorManager
 from .modules.layer_location import LocationIndicatorManager
 from .modules.logs_and_errors import (
     CustomRuntimeError,
