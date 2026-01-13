@@ -41,10 +41,6 @@ if TYPE_CHECKING:
 
 LOG_PREFIX: str = "Browser → "
 
-# fmt: off
-BRANCH_NAME: str = QCoreApplication.translate("Browser", "UTEC Project GeoPackage")
-# fmt: on
-
 
 class GeopackageProxyModel(QIdentityProxyModel):
     """Proxy model to override icons for the project GeoPackage and its tables."""
@@ -203,7 +199,12 @@ class ProjectGpkgDataItem(QgsDataCollectionItem):
 
     def __init__(self, parent: QgsDataItem | None, path: str, gpkg_path: Path) -> None:
         """Initialize the item."""
-        super().__init__(parent, BRANCH_NAME, path, "UTEC Project GeoPackage")
+        super().__init__(
+            parent,
+            QCoreApplication.translate("Browser", "UTEC Project GeoPackage"),
+            path,
+            "UTEC Project GeoPackage",
+        )
         self.gpkg_path: Path = gpkg_path
         self.setIcon(ICONS.browser_gpkg)
 
@@ -289,18 +290,14 @@ class ProjectGpkgDataItemProvider(QgsDataItemProvider):
             log_debug(f"createDataItem called with path='{path}'", prefix=LOG_PREFIX)
 
             # QGIS calls this with path="" (empty string) for the root item.
-            if not path or path == "project_gpkg:":
-                # Root item request
-                if self._gpkg_path.exists():
-                    log_debug(
-                        f"ProjectGpkgDataItemProvider: Creating item for {self._gpkg_path}",
-                        icon="💫",
-                        prefix=LOG_PREFIX,
-                    )
-                    # We use a colon suffix to ensure the path is treated as absolute/unique
-                    return ProjectGpkgDataItem(
-                        parentItem, "project_gpkg:", self._gpkg_path
-                    )
+            if (not path or path == "project_gpkg:") and self._gpkg_path.exists():
+                log_debug(
+                    f"ProjectGpkgDataItemProvider: Creating item for {self._gpkg_path}",
+                    icon="💫",
+                    prefix=LOG_PREFIX,
+                )
+                # We use a colon suffix to ensure the path is treated as absolute/unique
+                return ProjectGpkgDataItem(parentItem, "project_gpkg:", self._gpkg_path)
 
             return None
 

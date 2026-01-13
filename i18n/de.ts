@@ -4,7 +4,7 @@
 <context>
     <name>Browser</name>
     <message>
-        <location filename="../modules/browser.py" line="45"/>
+        <location filename="../modules/browser.py" line="202"/>
         <source>UTEC Project GeoPackage</source>
         <translation>UTEC Projekt-GeoPackage</translation>
     </message>
