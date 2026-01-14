@@ -14,7 +14,7 @@ from qgis.core import (
     QgsDataCollectionItem,
     QgsDataItem,
     QgsDataItemProvider,
-    QgsLayerItem,
+    QgsDataItemProviderRegistry,
     QgsMapLayer,
     QgsProject,
     QgsProviderRegistry,
@@ -36,7 +36,6 @@ from .logs_and_errors import CustomUserError, log_debug
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from qgis.core import QgsProviderSublayerDetails
     from qgis.PyQt.QtGui import QIcon
 
 LOG_PREFIX: str = "Browser → "
@@ -213,36 +212,49 @@ class ProjectGpkgDataItem(QgsDataCollectionItem):
         return " 1"
 
     def createChildren(self) -> list[QgsDataItem]:  # noqa: N802
-        """Create children items (layers) from the GeoPackage."""
+        """Create children items (layers) from the GeoPackage.
+
+        This method delegates the creation of child items to the native data
+        provider (usually OGR). It creates a temporary file item for the
+        GeoPackage and extracts its children (the layers). This ensures that
+        the items have the correct native behavior (icons, fields, etc.).
+        """
         children: list[QgsDataItem] = []
         if not self.gpkg_path.exists():
             return children
 
-        # Query sublayers to get details efficiently
-        registry: QgsProviderRegistry | None = QgsProviderRegistry.instance()
+        registry: QgsDataItemProviderRegistry | None = (
+            QgsApplication.dataItemProviderRegistry()
+        )
         if not registry:
             return children
 
-        sublayers: list[QgsProviderSublayerDetails] = registry.querySublayers(
-            str(self.gpkg_path)
-        )
+        # Iterate over all available providers to find one that can handle the
+        # GeoPackage and produce children (layers).
+        for provider in registry.providers():
+            # Skip our own provider to avoid recursion or confusion
+            if provider.name() == "UTEC Project GeoPackage":
+                continue
 
-        for sub in sublayers:
-            layer_type = QgsLayerItem.LayerType.NoType
-            if sub.type() == Qgis.LayerType.Vector:
-                layer_type = QgsLayerItem.LayerType.Vector
-            elif sub.type() == Qgis.LayerType.Raster:
-                layer_type = QgsLayerItem.LayerType.Raster
+            try:
+                # Create a temporary item representing the GeoPackage file itself.
+                # We pass None as parent because we only need it to generate children.
+                file_item: QgsDataItem | None = provider.createDataItem(
+                    str(self.gpkg_path), None
+                )
 
-            item = QgsLayerItem(
-                self,
-                sub.name(),
-                sub.uri(),
-                sub.uri(),
-                layer_type,
-                sub.providerKey(),
-            )
-            children.append(item)
+                if file_item:
+                    # Generate the children (layers) using the native item's logic.
+                    native_children: list[QgsDataItem] = file_item.createChildren()
+
+                    if native_children:
+                        for item in native_children:
+                            item.setParent(self)
+                            children.append(item)
+                        return children
+            except Exception:  # noqa: BLE001
+                continue
+
         return children
 
 
