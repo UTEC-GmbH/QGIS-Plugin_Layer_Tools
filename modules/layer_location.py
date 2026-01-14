@@ -114,7 +114,9 @@ def add_location_indicator(
             view.addIndicator(node, empty_indicator)
             indicators.append(empty_indicator)
             log_debug(
-                f"'{layer.name()}' → adding empty indicator...", prefix=LOG_PREFIX
+                f"'{layer.name()}' → adding empty indicator...",
+                prefix=LOG_PREFIX,
+                icon="🕳️",
             )
 
         # Add location indicator if it's not a memory layer
@@ -126,7 +128,9 @@ def add_location_indicator(
             view.addIndicator(node, location_indicator)
             indicators.append(location_indicator)
             log_debug(
-                f"'{layer.name()}' → adding location indicator...", prefix=LOG_PREFIX
+                f"'{layer.name()}' → adding location indicator...",
+                prefix=LOG_PREFIX,
+                icon="📍",
             )
 
         return indicators or None
@@ -268,7 +272,7 @@ class LocationIndicatorManager:
 
         self.location_indicators.clear()
         self.layer_locations.clear()
-        log_debug("Cleared all location indicators.", prefix=LOG_PREFIX)
+        log_debug("Cleared all location indicators.", prefix=LOG_PREFIX, icon="🧹")
 
     def _update_all_location_indicators(self) -> None:
         """Update location indicators for all layers in the project using diffs."""
@@ -378,7 +382,9 @@ class LocationIndicatorManager:
             del self.location_indicators[lid]
             if lid in self.layer_locations:
                 del self.layer_locations[lid]
-            log_debug(f"'{layer.name()}' → indicators removed.", prefix=LOG_PREFIX)
+            log_debug(
+                f"'{layer.name()}' → indicators removed.", prefix=LOG_PREFIX, icon="🧹"
+            )
 
     def _update_indicator_for_layer(self, layer_id: str) -> None:
         """Add or update a location indicator for a single layer."""
@@ -386,7 +392,9 @@ class LocationIndicatorManager:
         if not layer:
             return
 
-        log_debug(f"'{layer.name()}' → updating indicator...", prefix=LOG_PREFIX)
+        log_debug(
+            f"'{layer.name()}' → updating indicator...", prefix=LOG_PREFIX, icon="♻️"
+        )
         self._remove_indicator_for_layer(layer)
         self._add_indicator_for_layer(layer)
 

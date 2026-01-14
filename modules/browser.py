@@ -47,7 +47,6 @@ class GeopackageProxyModel(QIdentityProxyModel):
     def __init__(self, parent: QObject | None = None) -> None:
         """Initialize the proxy model."""
         super().__init__(parent)
-        log_debug("GeopackageProxyModel initialized.", icon="🐞", prefix=LOG_PREFIX)
         self.project_gpkg_path: str = ""
         self.used_layers: set[str] = set()
 
@@ -57,11 +56,7 @@ class GeopackageProxyModel(QIdentityProxyModel):
 
     def update_project_data(self) -> None:
         """Update the internal state with current project data."""
-        log_debug(
-            "GeopackageProxyModel.update_project_data called.",
-            icon="🐞",
-            prefix=LOG_PREFIX,
-        )
+
         self.project_gpkg_path = ""
         project: QgsProject | None = QgsProject.instance()
 
@@ -69,19 +64,10 @@ class GeopackageProxyModel(QIdentityProxyModel):
             with contextlib.suppress(CustomUserError, RuntimeError, ValueError):
                 path: Path = PluginContext.project_gpkg()
                 self.project_gpkg_path = str(path).lower().replace("\\", "/")
-                log_debug(
-                    f"Project GPKG path set to: {self.project_gpkg_path}",
-                    icon="🐞",
-                    prefix=LOG_PREFIX,
-                )
 
         self.used_layers.clear()
         if not project:
-            log_debug(
-                "GeopackageProxyModel.update_project_data: No project.",
-                icon="🐞",
-                prefix=LOG_PREFIX,
-            )
+            log_debug("No project found.", Qgis.Critical, prefix=LOG_PREFIX)
             return
 
         reg: QgsProviderRegistry | None = QgsProviderRegistry.instance()
@@ -91,14 +77,12 @@ class GeopackageProxyModel(QIdentityProxyModel):
         for layer in project.mapLayers().values():
             if not isinstance(layer, QgsMapLayer) or not layer.isValid():
                 log_debug(
-                    f"GeopackageProxyModel.update_project_data: "
                     f"Layer '{layer.name()}' is not valid.",
-                    icon="🐞",
+                    Qgis.Warning,
                     prefix=LOG_PREFIX,
                 )
                 continue
 
-            # Use decodeUri for robust path extraction
             decoded_uri: dict = reg.decodeUri(layer.providerType(), layer.source())
             uri_path = decoded_uri.get("path", layer.source())
             norm_source: str = str(uri_path).lower().replace("\\", "/")
@@ -124,11 +108,6 @@ class GeopackageProxyModel(QIdentityProxyModel):
                     self.used_layers.add(table_name)
 
         # Trigger a refresh of the views
-        log_debug(
-            "GeopackageProxyModel.update_project_data: refreshing views.",
-            icon="🐞",
-            prefix=LOG_PREFIX,
-        )
         self.layoutChanged.emit()
 
     def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> object:
@@ -148,26 +127,11 @@ class GeopackageProxyModel(QIdentityProxyModel):
         item_path = item.path()
         norm_item_path: str = str(item_path).lower().replace("\\", "/")
 
-        # Check for Project GPKG (Custom Item)
-        if norm_item_path == "project_gpkg:":
-            log_debug(
-                f"Icon override for Project GPKG Item: {norm_item_path}",
-                icon="🐞",
-                prefix=LOG_PREFIX,
-            )
+        if norm_item_path in ("project_gpkg:", self.project_gpkg_path):
             return self.icon_gpkg
 
-        # Check for Project GPKG
-        if norm_item_path == self.project_gpkg_path:
-            log_debug(
-                f"Icon override for Project GPKG: {norm_item_path}",
-                icon="🐞",
-                prefix=LOG_PREFIX,
-            )
-            return self.icon_gpkg
-
-        # Check for tables within the project GeoPackage (either our custom
-        # item or the standard file system item)
+        # Check for tables within the project GeoPackage
+        # (either our custom item or the standard file system item)
         parent_source_index = source_index.parent()
         if parent_source_index.isValid():
             parent_item = self.sourceModel().data(parent_source_index, Qt.UserRole)
@@ -237,22 +201,19 @@ class ProjectGpkgDataItem(QgsDataCollectionItem):
                 continue
 
             try:
-                # Create a temporary item representing the GeoPackage file itself.
-                # We pass None as parent because we only need it to generate children.
-                file_item: QgsDataItem | None = provider.createDataItem(
-                    str(self.gpkg_path), None
+                if (
+                    file_item := provider.createDataItem(str(self.gpkg_path), None)
+                ) and (native_children := file_item.createChildren()):
+                    for item in native_children:
+                        item.setParent(self)
+                        children.append(item)
+                    return children
+            except Exception as e:  # noqa: BLE001, pylint: disable=broad-except
+                log_debug(
+                    f"Error creating children for {self.gpkg_path}: {e}",
+                    Qgis.Warning,
+                    prefix=LOG_PREFIX,
                 )
-
-                if file_item:
-                    # Generate the children (layers) using the native item's logic.
-                    native_children: list[QgsDataItem] = file_item.createChildren()
-
-                    if native_children:
-                        for item in native_children:
-                            item.setParent(self)
-                            children.append(item)
-                        return children
-            except Exception:  # noqa: BLE001
                 continue
 
         return children
@@ -265,17 +226,6 @@ class ProjectGpkgDataItemProvider(QgsDataItemProvider):
         """Initialize the provider."""
         super().__init__()
         self._gpkg_path: Path = gpkg_path
-        log_debug(
-            f"ProjectGpkgDataItemProvider initialized for {gpkg_path}",
-            icon="🐞",
-            prefix=LOG_PREFIX,
-        )
-
-    def __del__(self) -> None:
-        """Log destruction."""
-        log_debug(
-            "ProjectGpkgDataItemProvider destroyed.", icon="💀", prefix=LOG_PREFIX
-        )
 
     def name(self) -> str:
         """Return the provider name."""
@@ -283,11 +233,6 @@ class ProjectGpkgDataItemProvider(QgsDataItemProvider):
 
     def capabilities(self) -> Qgis.DataItemProviderCapabilities:
         """Return the provider capabilities."""
-        log_debug(
-            "ProjectGpkgDataItemProvider.capabilities called.",
-            prefix=LOG_PREFIX,
-            icon="🐞",
-        )
         return Qgis.DataItemProviderCapabilities(
             Qgis.DataItemProviderCapability.Database
         )
@@ -299,21 +244,14 @@ class ProjectGpkgDataItemProvider(QgsDataItemProvider):
     ) -> QgsDataItem | None:
         """Create a data item for the given path."""
         try:
-            log_debug(f"createDataItem called with path='{path}'", prefix=LOG_PREFIX)
-
             # QGIS calls this with path="" (empty string) for the root item.
             if (not path or path == "project_gpkg:") and self._gpkg_path.exists():
-                log_debug(
-                    f"ProjectGpkgDataItemProvider: Creating item for {self._gpkg_path}",
-                    icon="💫",
-                    prefix=LOG_PREFIX,
-                )
                 # We use a colon suffix to ensure the path is treated as absolute/unique
                 return ProjectGpkgDataItem(parentItem, "project_gpkg:", self._gpkg_path)
 
-            return None
+            return None  # noqa: TRY300
 
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001, pylint: disable=broad-except
             log_debug(f"Error in createDataItem: {e}", icon="💀", prefix=LOG_PREFIX)
             return None
 
@@ -334,11 +272,6 @@ class GeopackageIndicatorManager:
 
     def init_indicators(self) -> None:
         """Initialize indicators by wrapping browser models."""
-        log_debug(
-            "GeopackageIndicatorManager.init_indicators called.",
-            icon="🐞",
-            prefix=LOG_PREFIX,
-        )
 
         # Connect signals
         self._update_timer.timeout.connect(self._update_all_indicators)
@@ -358,18 +291,9 @@ class GeopackageIndicatorManager:
             for widget in QCoreApplication.instance().allWidgets()
             if isinstance(widget, QgsBrowserTreeView)
         ]
-        log_debug(
-            f"Found {len(browser_views)} browser views.", icon="🐞", prefix=LOG_PREFIX
-        )
 
         for view in browser_views:
             original_model = view.model()
-            log_debug(
-                f"Processing view with model: {type(original_model)}",
-                icon="🐞",
-                prefix=LOG_PREFIX,
-            )
-
             if original_model is None:
                 continue
 
@@ -377,15 +301,9 @@ class GeopackageIndicatorManager:
                 original_model.update_project_data()
                 continue
 
-            log_debug(
-                f"Installing proxy on view with model: {original_model}",
-                prefix=LOG_PREFIX,
-                icon="🐞",
-            )
             proxy = GeopackageProxyModel(view)
             proxy.setSourceModel(original_model)
             view.setModel(proxy)
-            log_debug("Proxy model installed on view.", icon="🐞", prefix=LOG_PREFIX)
 
             proxy.update_project_data()
             self.proxies.append(proxy)
@@ -405,7 +323,7 @@ class GeopackageIndicatorManager:
         gpkg_path: Path | None = None
 
         # Check if project is saved to avoid UserError from PluginContext
-        project = QgsProject.instance()
+        project: QgsProject | None = QgsProject.instance()
         if project and project.fileName():
             with contextlib.suppress(Exception):
                 gpkg_path = PluginContext.project_gpkg()
@@ -414,7 +332,7 @@ class GeopackageIndicatorManager:
         if gpkg_path and not gpkg_path.exists():
             gpkg_path = None
 
-        new_path_str = str(gpkg_path) if gpkg_path else None
+        new_path_str: str | None = str(gpkg_path) if gpkg_path else None
 
         if new_path_str != self._current_gpkg_path:
             self._current_gpkg_path = new_path_str
@@ -431,7 +349,7 @@ class GeopackageIndicatorManager:
                 if registry := QgsApplication.dataItemProviderRegistry():
                     registry.addProvider(self.provider)
 
-            log_debug("Reloading browser connections...", prefix=LOG_PREFIX)
+            log_debug("Reloading browser connections...", prefix=LOG_PREFIX, icon="♻️")
             self.iface.reloadConnections()
 
         for proxy in self.proxies:
