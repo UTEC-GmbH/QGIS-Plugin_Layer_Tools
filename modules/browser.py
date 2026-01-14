@@ -15,6 +15,7 @@ from qgis.core import (
     QgsDataItem,
     QgsDataItemProvider,
     QgsDataItemProviderRegistry,
+    QgsLayerItem,
     QgsMapLayer,
     QgsProject,
     QgsProviderRegistry,
@@ -28,6 +29,7 @@ from qgis.PyQt.QtCore import (
     Qt,
     QTimer,
 )
+from qgis.PyQt.QtGui import QIcon, QPainter
 
 from .constants import ICONS
 from .context import PluginContext
@@ -35,8 +37,6 @@ from .logs_and_errors import CustomUserError, log_debug
 
 if TYPE_CHECKING:
     from pathlib import Path
-
-    from qgis.PyQt.QtGui import QIcon
 
 LOG_PREFIX: str = "Browser → "
 
@@ -53,6 +53,33 @@ class GeopackageProxyModel(QIdentityProxyModel):
         self.icon_gpkg: QIcon = ICONS.browser_gpkg
         self.icon_used: QIcon = ICONS.browser_used
         self.icon_unused: QIcon = ICONS.browser_unused
+        self._icon_cache: dict[str, QIcon] = {}
+
+    def _create_composite_icon(self, base_icon: QIcon, overlay_icon: QIcon) -> QIcon:
+        """Create a composite icon with an overlay."""
+        # Standard icon size in browser is usually 16x16 or 24x24
+        # We target 16x16 for the pixmap
+        size = 16
+        pixmap = base_icon.pixmap(size, size)
+
+        # If base icon is empty/invalid, just return overlay?
+        # But usually there is a generic icon.
+        if pixmap.isNull():
+            return overlay_icon
+
+        painter = QPainter(pixmap)
+
+        # Overlay size: 10x10 (small) at bottom right
+        overlay_size = 10
+        overlay_pixmap = overlay_icon.pixmap(overlay_size, overlay_size)
+
+        x = size - overlay_size
+        y = size - overlay_size
+
+        painter.drawPixmap(x, y, overlay_pixmap)
+        painter.end()
+
+        return QIcon(pixmap)
 
     def update_project_data(self) -> None:
         """Update the internal state with current project data."""
@@ -76,11 +103,6 @@ class GeopackageProxyModel(QIdentityProxyModel):
 
         for layer in project.mapLayers().values():
             if not isinstance(layer, QgsMapLayer) or not layer.isValid():
-                log_debug(
-                    f"Layer '{layer.name()}' is not valid.",
-                    Qgis.Warning,
-                    prefix=LOG_PREFIX,
-                )
                 continue
 
             decoded_uri: dict = reg.decodeUri(layer.providerType(), layer.source())
@@ -93,22 +115,74 @@ class GeopackageProxyModel(QIdentityProxyModel):
                     icon="🔗",
                     prefix=LOG_PREFIX,
                 )
-                # Try to get table name from decoded URI or source
-                table_name: str = decoded_uri.get("layerName", "")
-                if not table_name and "|layername=" in layer.source():
-                    parts: list[str] = layer.source().split("|layername=")
-                    if len(parts) > 1:
-                        table_name = parts[1].split("|")[0]
-                elif not table_name and ":" in layer.source():
-                    parts = layer.source().split(":")
-                    if len(parts) >= 3:  # noqa: PLR2004
-                        table_name = parts[-1]
-
-                if table_name:
+                if table_name := self._get_table_name(
+                    layer.source(), layer.providerType()
+                ):
                     self.used_layers.add(table_name)
 
         # Trigger a refresh of the views
         self.layoutChanged.emit()
+
+    def _get_table_name(self, uri: str, provider: str = "ogr") -> str:
+        """Extract table name from layer URI consistently."""
+        reg: QgsProviderRegistry | None = QgsProviderRegistry.instance()
+        if not reg:
+            return ""
+
+        decoded_uri: dict = reg.decodeUri(provider, uri)
+        table_name: str = decoded_uri.get("layerName", "")
+
+        if not table_name and "|layername=" in uri:
+            parts: list[str] = uri.split("|layername=")
+            if len(parts) > 1:
+                table_name = parts[1].split("|")[0]
+        elif not table_name and ":" in uri:
+            parts = uri.split(":")
+            if len(parts) >= 3:  # noqa: PLR2004
+                table_name = parts[-1]
+
+        return table_name
+
+    def _get_custom_icon(
+        self, index: QModelIndex, item: QgsDataItem | str, item_path: str
+    ) -> QIcon:
+        """Determine and return the custom icon for a layer item."""
+        is_used: bool = False
+        table_name: str = ""
+
+        # Extract table name to check usage
+        if isinstance(item, QgsLayerItem):
+            table_name = self._get_table_name(item.uri(), item.providerKey())
+        else:
+            # Fallback for strings (path) or generic QgsDataItem
+            # Try to extract table name from URI/Path
+            # Usually: /path/to.gpkg|layername=my_table
+            uri = item_path
+            table_name = self._get_table_name(uri, "ogr")
+
+        if table_name:
+            is_used = table_name in self.used_layers
+        else:
+            # Fallback to display name (least reliable)
+            item_name = self.sourceModel().data(index, Qt.DisplayRole)
+            is_used = item_name in self.used_layers
+
+        # Get the original icon (DecorationRole)
+        base_icon_variant = super().data(index, Qt.DecorationRole)
+        base_icon = (
+            base_icon_variant if isinstance(base_icon_variant, QIcon) else QIcon()
+        )
+
+        status_icon = self.icon_used if is_used else self.icon_unused
+
+        # Create cache key
+        cache_key = f"{item_path}_{is_used}"
+        if cache_key not in self._icon_cache:
+            self._icon_cache[cache_key] = self._create_composite_icon(
+                base_icon, status_icon
+            )
+
+        return self._icon_cache[cache_key]
 
     def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> object:
         """Override data to provide custom icons."""
@@ -119,39 +193,63 @@ class GeopackageProxyModel(QIdentityProxyModel):
             return super().data(index, role)
 
         source_index = self.mapToSource(index)
-        item = self.sourceModel().data(source_index, Qt.UserRole)
 
-        if not isinstance(item, QgsDataItem):
+        # Try to retrieve item (Object or String)
+        item = None
+        # method 1: dataItem() -> QgsDataItem (Best)
+        if hasattr(self.sourceModel(), "dataItem"):
+            item = self.sourceModel().dataItem(source_index)
+        # method 2: UserRole -> QgsDataItem or str (Fallback)
+        if item is None:
+            item = self.sourceModel().data(source_index, Qt.UserRole)
+
+        # Normalize item path
+        item_path: str = ""
+        if isinstance(item, QgsDataItem):
+            item_path = item.path()
+        elif isinstance(item, str):
+            item_path = item
+
+        if not item_path:
             return super().data(index, role)
 
-        item_path = item.path()
         norm_item_path: str = str(item_path).lower().replace("\\", "/")
 
-        if norm_item_path in ("project_gpkg:", self.project_gpkg_path):
-            return self.icon_gpkg
-
-        # Check for tables within the project GeoPackage
-        # (either our custom item or the standard file system item)
+        # Check for tables within the project GeoPackage FIRST
         parent_source_index = source_index.parent()
         if parent_source_index.isValid():
-            parent_item = self.sourceModel().data(parent_source_index, Qt.UserRole)
-            if isinstance(parent_item, QgsDataItem):
-                parent_path: str = str(parent_item.path()).lower().replace("\\", "/")
-                is_child_of_gpkg_file = parent_path == self.project_gpkg_path
-                is_child_of_custom_item = parent_path.startswith("project_gpkg:")
+            try:
+                # Retrieve parent item (Object or String)
+                parent_item = None
+                if hasattr(self.sourceModel(), "dataItem"):
+                    parent_item = self.sourceModel().dataItem(parent_source_index)
+                if parent_item is None:
+                    parent_item = self.sourceModel().data(
+                        parent_source_index, Qt.UserRole
+                    )
 
-                if is_child_of_gpkg_file or is_child_of_custom_item:
-                    item_name = self.sourceModel().data(source_index, Qt.DisplayRole)
-                    log_debug(
-                        f"Icon override for layer: {item_name}",
-                        icon="🐞",
-                        prefix=LOG_PREFIX,
-                    )
-                    return (
-                        self.icon_used
-                        if item_name in self.used_layers
-                        else self.icon_unused
-                    )
+                parent_path: str = ""
+                if isinstance(parent_item, QgsDataItem):
+                    parent_path = parent_item.path()
+                elif isinstance(parent_item, str):
+                    parent_path = parent_item
+
+                if parent_path:
+                    parent_path = str(parent_path).lower().replace("\\", "/")
+                    is_child_of_gpkg_file = parent_path == self.project_gpkg_path
+                    is_child_of_custom_item = parent_path.startswith("project_gpkg:")
+
+                    if is_child_of_gpkg_file or is_child_of_custom_item:
+                        with contextlib.suppress(Exception):
+                            return self._get_custom_icon(
+                                source_index, item, str(item_path)
+                            )
+            except Exception as e:  # noqa: BLE001
+                log_debug(f"Error in data(): {e}", Qgis.Critical, prefix=LOG_PREFIX)
+
+        # If not a child layer, check if it is the GPKG file itself
+        if norm_item_path in ("project_gpkg:", self.project_gpkg_path):
+            return self.icon_gpkg
 
         return super().data(index, role)
 
@@ -252,7 +350,7 @@ class ProjectGpkgDataItemProvider(QgsDataItemProvider):
             return None  # noqa: TRY300
 
         except Exception as e:  # noqa: BLE001, pylint: disable=broad-except
-            log_debug(f"Error in createDataItem: {e}", icon="💀", prefix=LOG_PREFIX)
+            log_debug(f"Error in createDataItem: {e}", Qgis.Critical, prefix=LOG_PREFIX)
             return None
 
 
@@ -318,6 +416,10 @@ class GeopackageIndicatorManager:
 
     def _update_all_indicators(self) -> None:
         log_debug("Updating indicators...", prefix=LOG_PREFIX, icon="♻️")
+
+        # Ensure we are hooked into all available browser views
+        # (Some might have initialized late)
+        self._install_proxies()
 
         # Update provider path
         gpkg_path: Path | None = None

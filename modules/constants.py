@@ -105,8 +105,12 @@ class Icons:
         self.location_unknown: QIcon = self._qicon("location_unknown.svg")
 
         self.browser_gpkg: QIcon = self._qicon("browser_gpkg.svg")
-        self.browser_used: QIcon = QgsApplication.getThemeIcon("mActionLink.svg")
-        self.browser_unused: QIcon = QgsApplication.getThemeIcon("mActionUnlink.svg")
+        self.browser_used: QIcon = QgsApplication.getThemeIcon(
+            "mActionHandleStoreFilterExpressionChecked.svg"
+        )
+        self.browser_unused: QIcon = QgsApplication.getThemeIcon(
+            "mActionHandleStoreFilterExpressionUnchecked.svg"
+        )
 
 
 ICONS = Icons()
