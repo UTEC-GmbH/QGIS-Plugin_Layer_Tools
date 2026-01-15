@@ -273,50 +273,38 @@ class GeopackageProxyModel(QIdentityProxyModel):
         return super().data(index, role)
 
 
-class WrappedProjectLayerItem(QgsDataItem):
+class WrappedProjectLayerItem(QgsLayerItem):
     """Wrapper around a native layer item to ensure unique paths."""
 
     def __init__(self, parent: QgsDataItem, native_item: QgsDataItem) -> None:
         """Initialize the wrapper."""
-        # Use QgsDataItem constructor: type, parent, name, path
+        # Use QgsLayerItem constructor
         # We use the native item's URI as the path to ensure uniqueness
 
         # Determine URI safely
         path = native_item.uri() if hasattr(native_item, "uri") else native_item.path()
         name = native_item.name()
+        uri = path
+        provider_key = (
+            native_item.providerKey() if hasattr(native_item, "providerKey") else "ogr"
+        )
+        # The QgsLayerItem constructor requires a Qgis.BrowserLayerType, not a
+        # Qgis.LayerType. The native item (likely a QgsLayerItem itself)
+        # provides a layerType() method that returns the correct enum.
+        browser_layer_type = (
+            native_item.layerType()
+            if hasattr(native_item, "layerType")
+            else Qgis.BrowserLayerType.Vector
+        )
 
         # Initialize as a Layer type
-        super().__init__(Qgis.BrowserItemType.Layer, parent, name, path)
+        super().__init__(parent, name, path, uri, browser_layer_type, provider_key)
 
         self._native_item = native_item
 
         # Set the icon immediately
         if hasattr(native_item, "icon") and not native_item.icon().isNull():
             self.setIcon(native_item.icon())
-
-    def uri(self) -> str:
-        """Return the URI of the native item."""
-        return (
-            self._native_item.uri()
-            if hasattr(self._native_item, "uri")
-            else self.path()
-        )
-
-    def providerKey(self) -> str:  # noqa: N802
-        """Return the provider key."""
-        return (
-            self._native_item.providerKey()
-            if hasattr(self._native_item, "providerKey")
-            else "ogr"
-        )
-
-    def mapLayerType(self):  # noqa: N802
-        """Return the layer type."""
-        return (
-            self._native_item.mapLayerType()
-            if hasattr(self._native_item, "mapLayerType")
-            else Qgis.LayerType.Vector
-        )
 
     def hasChildren(self) -> bool:  # noqa: N802
         """Delegate hasChildren to native item."""
@@ -396,11 +384,22 @@ class ProjectGpkgDataItem(QgsDataCollectionItem):
                     self._provider_item = file_item
 
                     for item in native_children:
-                        with contextlib.suppress(Exception):
-                            item.setParent(self)
+                        try:
+                            # The native item should not be reparented.
+                            # The WrappedProjectLayerItem is correctly parented
+                            # to `self` in its constructor. Reparenting the
+                            # native item can cause issues with the native
+                            # provider's internal state management.
                             children.append(WrappedProjectLayerItem(self, item))
+                        except Exception as e:
+                            log_debug(
+                                f"Failed to wrap native item '{item.name()}': {e}",
+                                Qgis.Critical,
+                                prefix=LOG_PREFIX,
+                            )
+
                     return children
-            except Exception as e:  # noqa: BLE001, pylint: disable=broad-except
+            except Exception as e:  # pylint: disable=broad-except
                 log_debug(
                     f"Error creating children for {self.gpkg_path}: {e}",
                     Qgis.Warning,
