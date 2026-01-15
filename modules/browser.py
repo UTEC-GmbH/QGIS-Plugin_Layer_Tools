@@ -46,7 +46,11 @@ class GeopackageProxyModel(QIdentityProxyModel):
     """Proxy model to override icons for the project GeoPackage and its tables."""
 
     def __init__(self, parent: QObject | None = None) -> None:
-        """Initialize the proxy model."""
+        """Initialize the proxy model.
+
+        Args:
+            parent: The parent object.
+        """
         super().__init__(parent)
         self.project_gpkg_path: str = ""
         self.used_layers: set[str] = set()
@@ -57,7 +61,15 @@ class GeopackageProxyModel(QIdentityProxyModel):
         self._icon_cache: dict[str, QIcon] = {}
 
     def _create_composite_icon(self, base_icon: QIcon, overlay_icon: QIcon) -> QIcon:
-        """Create a composite icon with an overlay."""
+        """Create a composite icon with an overlay.
+
+        Args:
+            base_icon: The base icon.
+            overlay_icon: The icon to overlay on the base icon.
+
+        Returns:
+            QIcon: The composite icon.
+        """
         size = 32
 
         # Use QImage for software rendering - safer than QPixmap in some contexts
@@ -69,15 +81,12 @@ class GeopackageProxyModel(QIdentityProxyModel):
         painter.setRenderHint(QPainter.SmoothPixmapTransform)
 
         try:
-            # Draw base icon
-            # Use 'QIcon.Mode.Normal' and 'QIcon.State.Off' explicitly if needed,
-            # but simple pixmap() is usually enough
             base_pixmap = base_icon.pixmap(size, size)
             if not base_pixmap.isNull():
                 painter.drawPixmap(0, 0, base_pixmap)
 
             # Draw overlay icon
-            overlay_size = 26
+            overlay_size = 24
             overlay_pixmap = overlay_icon.pixmap(overlay_size, overlay_size)
 
             if not overlay_pixmap.isNull():
@@ -91,25 +100,28 @@ class GeopackageProxyModel(QIdentityProxyModel):
         return QIcon(QPixmap.fromImage(image))
 
     def update_project_data(self) -> None:
-        """Update the internal state with current project data."""
+        """Update the internal state with current project data.
+
+        This method refreshes the list of used layers and the project GeoPackage path.
+        """
+
+        reg: QgsProviderRegistry | None = QgsProviderRegistry.instance()
+        if not reg:
+            log_debug("No provider registry found.", Qgis.Critical, prefix=LOG_PREFIX)
+            return
+
+        project: QgsProject | None = QgsProject.instance()
+        if not project:
+            log_debug("No project found.", Qgis.Critical, prefix=LOG_PREFIX)
+            return
 
         self.project_gpkg_path = ""
-        project: QgsProject | None = QgsProject.instance()
-
         if project and project.fileName():
             with contextlib.suppress(CustomUserError, RuntimeError, ValueError):
                 path: Path = PluginContext.project_gpkg()
                 self.project_gpkg_path = str(path).lower().replace("\\", "/")
 
         self.used_layers.clear()
-        if not project:
-            log_debug("No project found.", Qgis.Critical, prefix=LOG_PREFIX)
-            return
-
-        reg: QgsProviderRegistry | None = QgsProviderRegistry.instance()
-        if not reg:
-            return
-
         for layer in project.mapLayers().values():
             if not isinstance(layer, QgsMapLayer) or not layer.isValid():
                 continue
@@ -133,7 +145,15 @@ class GeopackageProxyModel(QIdentityProxyModel):
         self.layoutChanged.emit()
 
     def _get_table_name(self, uri: str, provider: str = "ogr") -> str:
-        """Extract table name from layer URI consistently."""
+        """Extract table name from layer URI consistently.
+
+        Args:
+            uri: The layer URI.
+            provider: The provider key (default: "ogr").
+
+        Returns:
+            str: The extracted table name or an empty string.
+        """
         reg: QgsProviderRegistry | None = QgsProviderRegistry.instance()
         if not reg:
             return ""
@@ -155,20 +175,27 @@ class GeopackageProxyModel(QIdentityProxyModel):
     def _get_custom_icon(
         self, index: QModelIndex, item: QgsDataItem | str, item_path: str
     ) -> QIcon:
-        """Determine and return the custom icon for a layer item."""
-        # Enable logging to debug icon issues
+        """Determine and return the custom icon for a layer item.
+
+        Args:
+            index: The model index of the item.
+            item: The data item or string representation.
+            item_path: The path of the item.
+
+        Returns:
+            QIcon: The custom icon indicating usage status.
+        """
 
         is_used: bool = False
         table_name: str = ""
 
-        # Extract table name to check usage
         if isinstance(item, QgsLayerItem):
             table_name = self._get_table_name(item.uri(), item.providerKey())
         else:
             # Fallback for strings (path) or generic QgsDataItem
             # Try to extract table name from URI/Path
             # Usually: /path/to.gpkg|layername=my_table
-            uri = item_path
+            uri: str = item_path
             table_name = self._get_table_name(uri, "ogr")
 
         if table_name:
@@ -180,7 +207,6 @@ class GeopackageProxyModel(QIdentityProxyModel):
             is_used = item_name in self.used_layers
 
         # Get the original icon (DecorationRole)
-        # Prioritize data() from source model as it is the source of truth for the view
         base_icon_variant = super().data(index, Qt.DecorationRole)
         base_icon = (
             base_icon_variant if isinstance(base_icon_variant, QIcon) else QIcon()
@@ -194,7 +220,7 @@ class GeopackageProxyModel(QIdentityProxyModel):
         # Create cache key
         # Include base_icon cache key to handle icon updates (e.g. generic -> specific)
         base_key = base_icon.cacheKey()
-        cache_key = f"{item_path}_{is_used}_{base_key}"
+        cache_key: str = f"{item_path}_{is_used}_{base_key}"
         if cache_key not in self._icon_cache:
             self._icon_cache[cache_key] = self._create_composite_icon(
                 base_icon, status_icon
@@ -202,70 +228,101 @@ class GeopackageProxyModel(QIdentityProxyModel):
 
         return self._icon_cache[cache_key]
 
-    def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> object:
-        """Override data to provide custom icons."""
-        if role != Qt.DecorationRole or not index.isValid():
-            return super().data(index, role)
+    def _get_item_from_index(self, index: QModelIndex) -> QgsDataItem | str | None:
+        """Retrieve the data item or path string from a model index.
 
-        if not self.project_gpkg_path:
+        Args:
+            index: The model index.
+
+        Returns:
+            QgsDataItem | str | None: The data item, its path string, or None.
+        """
+        model = self.sourceModel()
+        if hasattr(model, "dataItem") and (item := model.dataItem(index)):
+            return item
+        return model.data(index, Qt.UserRole)
+
+    def _get_raw_path(self, item: QgsDataItem | str | None) -> str:
+        """Extract the raw path from a data item.
+
+        Args:
+            item: The data item or path string.
+
+        Returns:
+            str: The raw path string.
+        """
+        if isinstance(item, QgsDataItem):
+            return item.path()
+        return item if isinstance(item, str) else ""
+
+    def _get_normalized_path(self, item: QgsDataItem | str | None) -> str:
+        """Extract and normalize the path from a data item.
+
+        Args:
+            item: The data item or path string.
+
+        Returns:
+            str: The normalized path string (lowercase, forward slashes).
+        """
+        raw_path: str = self._get_raw_path(item)
+        return raw_path.lower().replace("\\", "/") if raw_path else ""
+
+    def _is_gpkg_child(self, source_index: QModelIndex) -> bool:
+        """Check if the item at source_index is a child of the project GeoPackage.
+
+        Args:
+            source_index: The source model index.
+
+        Returns:
+            bool: True if the item is a child of the project GeoPackage,
+                False otherwise.
+        """
+        parent_index = source_index.parent()
+        if not parent_index.isValid():
+            return False
+
+        parent_item: QgsDataItem | str | None = self._get_item_from_index(parent_index)
+        parent_path: str = self._get_normalized_path(parent_item)
+
+        return parent_path == self.project_gpkg_path or parent_path.startswith(
+            "project_gpkg:"
+        )
+
+    def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> object:
+        """Override data to provide custom icons.
+
+        Args:
+            index: The model index.
+            role: The data role.
+
+        Returns:
+            object: The data for the given role.
+        """
+        if (
+            role != Qt.DecorationRole
+            or not index.isValid()
+            or not self.project_gpkg_path
+        ):
             return super().data(index, role)
 
         source_index = self.mapToSource(index)
+        item: QgsDataItem | str | None = self._get_item_from_index(source_index)
+        raw_path: str = self._get_raw_path(item)
 
-        # Try to retrieve item (Object or String)
-        item = None
-        # method 1: dataItem() -> QgsDataItem (Best)
-        if hasattr(self.sourceModel(), "dataItem"):
-            item = self.sourceModel().dataItem(source_index)
-
-        # method 2: UserRole -> QgsDataItem or str (Fallback)
-        if item is None:
-            item = self.sourceModel().data(source_index, Qt.UserRole)
-
-        # Normalize item path
-        item_path: str = ""
-        if isinstance(item, QgsDataItem):
-            item_path = item.path()
-        elif isinstance(item, str):
-            item_path = item
-
-        if not item_path:
+        if not raw_path:
             return super().data(index, role)
 
-        norm_item_path: str = str(item_path).lower().replace("\\", "/")
-
         # Check for tables within the project GeoPackage FIRST
-        parent_source_index = source_index.parent()
-        if parent_source_index.isValid():
-            try:
-                # Retrieve parent item (Object or String)
-                parent_item = None
-                if hasattr(self.sourceModel(), "dataItem"):
-                    parent_item = self.sourceModel().dataItem(parent_source_index)
-                if parent_item is None:
-                    parent_item = self.sourceModel().data(
-                        parent_source_index, Qt.UserRole
-                    )
-
-                parent_path: str = ""
-                if isinstance(parent_item, QgsDataItem):
-                    parent_path = parent_item.path()
-                elif isinstance(parent_item, str):
-                    parent_path = parent_item
-
-                if parent_path:
-                    parent_path = str(parent_path).lower().replace("\\", "/")
-                    is_child_of_gpkg_file = parent_path == self.project_gpkg_path
-                    is_child_of_custom_item = parent_path.startswith("project_gpkg:")
-
-                    if is_child_of_gpkg_file or is_child_of_custom_item:
-                        with contextlib.suppress(Exception):
-                            return self._get_custom_icon(index, item, str(item_path))
-            except Exception as e:  # noqa: BLE001, pylint: disable=broad-except
-                log_debug(f"Error in data(): {e}", Qgis.Critical, prefix=LOG_PREFIX)
+        try:
+            if self._is_gpkg_child(source_index):
+                with contextlib.suppress(Exception):
+                    return self._get_custom_icon(index, item, raw_path)
+        except Exception as e:  # noqa: BLE001, pylint: disable=broad-except
+            log_debug(f"Error in data(): {e}", Qgis.Critical, prefix=LOG_PREFIX)
 
         # If not a child layer, check if it is the GPKG file itself
-        if norm_item_path in ("project_gpkg:", self.project_gpkg_path):
+        norm_path: str = raw_path.lower().replace("\\", "/")
+        if norm_path in ("project_gpkg:", self.project_gpkg_path):
             return self.icon_gpkg
 
         return super().data(index, role)
@@ -275,20 +332,22 @@ class WrappedProjectLayerItem(QgsLayerItem):
     """Wrapper around a native layer item to ensure unique paths."""
 
     def __init__(self, parent: QgsDataItem, native_item: QgsDataItem) -> None:
-        """Initialize the wrapper."""
-        # Use QgsLayerItem constructor
-        # We use the native item's URI as the path to ensure uniqueness
+        """Initialize the wrapper.
 
+        Args:
+            parent: The parent data item.
+            native_item: The native data item to wrap.
+        """
         # Determine URI safely
-        path = native_item.uri() if hasattr(native_item, "uri") else native_item.path()
-        name = native_item.name()
-        uri = path
-        provider_key = (
+        path: str = (
+            native_item.uri() if hasattr(native_item, "uri") else native_item.path()
+        )
+        name: str = native_item.name()
+        uri: str = path
+        provider_key: str = (
             native_item.providerKey() if hasattr(native_item, "providerKey") else "ogr"
         )
-        # The QgsLayerItem constructor requires a Qgis.BrowserLayerType, not a
-        # Qgis.LayerType. The native item (likely a QgsLayerItem itself)
-        # provides a layerType() method that returns the correct enum.
+
         browser_layer_type = (
             native_item.layerType()
             if hasattr(native_item, "layerType")
@@ -298,34 +357,58 @@ class WrappedProjectLayerItem(QgsLayerItem):
         # Initialize as a Layer type
         super().__init__(parent, name, path, uri, browser_layer_type, provider_key)
 
-        self._native_item = native_item
+        self._native_item: QgsDataItem = native_item
 
         # Set the icon immediately
         if hasattr(native_item, "icon") and not native_item.icon().isNull():
             self.setIcon(native_item.icon())
 
     def hasChildren(self) -> bool:  # noqa: N802
-        """Delegate hasChildren to native item."""
+        """Delegate hasChildren to native item.
+
+        Returns:
+            bool: True if the item has children, False otherwise.
+        """
         return self._native_item.hasChildren()
 
     def createChildren(self) -> list[QgsDataItem]:  # noqa: N802
-        """Delegate createChildren to native item."""
+        """Delegate createChildren to native item.
+
+        Returns:
+            list[QgsDataItem]: The list of child items.
+        """
         return self._native_item.createChildren()
 
     def mimeUri(self) -> QgsMimeDataUtils.Uri:  # noqa: N802
-        """Delegate mimeUri to native item for Drag&Drop."""
+        """Delegate mimeUri to native item for Drag&Drop.
+
+        Returns:
+            QgsMimeDataUtils.Uri: The MIME URI of the item.
+        """
         return self._native_item.mimeUri()
 
     def capabilities2(self) -> Qgis.BrowserItemCapabilities:
-        """Delegate capabilities to native item (crucial for Drag&Drop)."""
+        """Delegate capabilities to native item (crucial for Drag&Drop).
+
+        Returns:
+            Qgis.BrowserItemCapabilities: The capabilities of the item.
+        """
         return self._native_item.capabilities2()
 
-    def capabilities(self):
-        """Delegate legacy capabilities."""
+    def capabilities(self):  # noqa: ANN201
+        """Delegate legacy capabilities.
+
+        Returns:
+            The legacy capabilities of the item.
+        """
         return self._native_item.capabilities()
 
-    def flags(self):
-        """Delegate flags (essential for Drag&Drop)."""
+    def flags(self):  # noqa: ANN201
+        """Delegate flags (essential for Drag&Drop).
+
+        Returns:
+            The flags of the item.
+        """
         return self._native_item.flags()
 
 
@@ -333,7 +416,13 @@ class ProjectGpkgDataItem(QgsDataCollectionItem):
     """Data item representing the project's GeoPackage."""
 
     def __init__(self, parent: QgsDataItem | None, path: str, gpkg_path: Path) -> None:
-        """Initialize the item."""
+        """Initialize the item.
+
+        Args:
+            parent: The parent data item.
+            path: The path of the item.
+            gpkg_path: The path to the GeoPackage file.
+        """
         super().__init__(
             parent,
             QCoreApplication.translate("Browser", "UTEC Project GeoPackage"),
@@ -345,8 +434,31 @@ class ProjectGpkgDataItem(QgsDataCollectionItem):
         self._provider_item: QgsDataItem | None = None
 
     def sortKey(self) -> object:  # noqa: N802
-        """Return a sort key to position this item after Project Home."""
+        """Return a sort key to position this item after Project Home.
+
+        Returns:
+            object: The sort key.
+        """
         return " 1"
+
+    def _wrap_item(self, item: QgsDataItem) -> WrappedProjectLayerItem | None:
+        """Safely wrap a native data item.
+
+        Args:
+            item: The native data item to wrap.
+
+        Returns:
+            WrappedProjectLayerItem | None: The wrapped item or None if wrapping failed.
+        """
+        try:
+            return WrappedProjectLayerItem(self, item)
+        except Exception as e:  # noqa: BLE001, pylint: disable=broad-except
+            log_debug(
+                f"Failed to wrap native item '{item.name()}': {e}",
+                Qgis.Critical,
+                prefix=LOG_PREFIX,
+            )
+            return None
 
     def createChildren(self) -> list[QgsDataItem]:  # noqa: N802
         """Create children items (layers) from the GeoPackage.
@@ -355,6 +467,9 @@ class ProjectGpkgDataItem(QgsDataCollectionItem):
         provider (usually OGR). It creates a temporary file item for the
         GeoPackage and extracts its children (the layers). This ensures that
         the items have the correct native behavior (icons, fields, etc.).
+
+        Returns:
+            list[QgsDataItem]: A list of wrapped child data items.
         """
         children: list[QgsDataItem] = []
         if not self.gpkg_path.exists():
@@ -381,23 +496,13 @@ class ProjectGpkgDataItem(QgsDataCollectionItem):
                     # to prevent GC/Connection closing
                     self._provider_item = file_item
 
-                    for item in native_children:
-                        try:
-                            # The native item should not be reparented.
-                            # The WrappedProjectLayerItem is correctly parented
-                            # to `self` in its constructor. Reparenting the
-                            # native item can cause issues with the native
-                            # provider's internal state management.
-                            children.append(WrappedProjectLayerItem(self, item))
-                        except Exception as e:
-                            log_debug(
-                                f"Failed to wrap native item '{item.name()}': {e}",
-                                Qgis.Critical,
-                                prefix=LOG_PREFIX,
-                            )
+                    return [
+                        wrapped
+                        for item in native_children
+                        if (wrapped := self._wrap_item(item))
+                    ]
 
-                    return children
-            except Exception as e:  # pylint: disable=broad-except
+            except Exception as e:  # pylint: disable=broad-except  # noqa: BLE001
                 log_debug(
                     f"Error creating children for {self.gpkg_path}: {e}",
                     Qgis.Warning,
@@ -412,16 +517,28 @@ class ProjectGpkgDataItemProvider(QgsDataItemProvider):
     """Provider to add the Project GeoPackage to the browser tree."""
 
     def __init__(self, gpkg_path: Path) -> None:
-        """Initialize the provider."""
+        """Initialize the provider.
+
+        Args:
+            gpkg_path: The path to the project GeoPackage.
+        """
         super().__init__()
         self._gpkg_path: Path = gpkg_path
 
     def name(self) -> str:
-        """Return the provider name."""
+        """Return the provider name.
+
+        Returns:
+            str: The provider name.
+        """
         return "UTEC Project GeoPackage"
 
     def capabilities(self) -> Qgis.DataItemProviderCapabilities:
-        """Return the provider capabilities."""
+        """Return the provider capabilities.
+
+        Returns:
+            Qgis.DataItemProviderCapabilities: The provider capabilities.
+        """
         return Qgis.DataItemProviderCapabilities(
             Qgis.DataItemProviderCapability.Database
         )
@@ -431,7 +548,15 @@ class ProjectGpkgDataItemProvider(QgsDataItemProvider):
         path: str | None,
         parentItem: QgsDataItem | None,  # noqa: N803
     ) -> QgsDataItem | None:
-        """Create a data item for the given path."""
+        """Create a data item for the given path.
+
+        Args:
+            path: The path for the data item.
+            parentItem: The parent data item.
+
+        Returns:
+            QgsDataItem | None: The created data item or None.
+        """
         try:
             # QGIS calls this with path="" (empty string) for the root item.
             if (not path or path == "project_gpkg:") and self._gpkg_path.exists():
@@ -449,7 +574,12 @@ class GeopackageIndicatorManager:
     """Manages the insertion of the proxy model into QGIS Browser Docks."""
 
     def __init__(self, project: QgsProject, iface: QgisInterface) -> None:
-        """Initialize the manager."""
+        """Initialize the manager.
+
+        Args:
+            project: The QGIS project instance.
+            iface: The QGIS interface instance.
+        """
         self.project: QgsProject = project
         self.iface: QgisInterface = iface
         self.proxies: list[GeopackageProxyModel] = []
@@ -498,14 +628,17 @@ class GeopackageIndicatorManager:
             self.proxies.append(proxy)
 
     def _on_layers_changed(self) -> None:
+        """Handle layer addition or removal events."""
         self._update_timer.start()
 
     def _on_project_read(self) -> None:
+        """Handle project read event."""
         self._update_all_indicators()
         # Reload browser to update Project GeoPackage item
         self.iface.reloadConnections()
 
     def _update_all_indicators(self) -> None:
+        """Update all indicators and the project GeoPackage provider."""
         log_debug("Updating indicators...", prefix=LOG_PREFIX, icon="♻️")
 
         # Ensure we are hooked into all available browser views
