@@ -77,12 +77,12 @@ class GeopackageProxyModel(QIdentityProxyModel):
                 painter.drawPixmap(0, 0, base_pixmap)
 
             # Draw overlay icon
-            overlay_size = 20
+            overlay_size = 26
             overlay_pixmap = overlay_icon.pixmap(overlay_size, overlay_size)
 
             if not overlay_pixmap.isNull():
-                x = size - overlay_size
-                y = size - overlay_size
+                x: int = size - overlay_size
+                y: int = size - overlay_size
                 painter.drawPixmap(x, y, overlay_pixmap)
 
         finally:
@@ -121,7 +121,7 @@ class GeopackageProxyModel(QIdentityProxyModel):
             if self.project_gpkg_path and self.project_gpkg_path == norm_source:
                 log_debug(
                     f"Layer '{layer.name()}' is used in the current project.",
-                    icon="🔗",
+                    icon="⭐",
                     prefix=LOG_PREFIX,
                 )
                 if table_name := self._get_table_name(
@@ -180,23 +180,21 @@ class GeopackageProxyModel(QIdentityProxyModel):
             is_used = item_name in self.used_layers
 
         # Get the original icon (DecorationRole)
-        # BEST PRACTICE: Retrieve the icon directly from the QgsDataItem if possible.
-        # This avoids any confusion with proxy indices or model defaults.
-        base_icon = QIcon()
-        if isinstance(item, QgsDataItem):
-            base_icon = item.icon()
+        # Prioritize data() from source model as it is the source of truth for the view
+        base_icon_variant = super().data(index, Qt.DecorationRole)
+        base_icon = (
+            base_icon_variant if isinstance(base_icon_variant, QIcon) else QIcon()
+        )
 
-        # Fallback to model data if item.icon() failed or item is not a QgsDataItem
-        if base_icon.isNull():
-            base_icon_variant = super().data(index, Qt.DecorationRole)
-            base_icon = (
-                base_icon_variant if isinstance(base_icon_variant, QIcon) else QIcon()
-            )
+        if base_icon.isNull() and isinstance(item, QgsDataItem):
+            base_icon = item.icon()
 
         status_icon = self.icon_used if is_used else self.icon_unused
 
         # Create cache key
-        cache_key = f"{item_path}_{is_used}"
+        # Include base_icon cache key to handle icon updates (e.g. generic -> specific)
+        base_key = base_icon.cacheKey()
+        cache_key = f"{item_path}_{is_used}_{base_key}"
         if cache_key not in self._icon_cache:
             self._icon_cache[cache_key] = self._create_composite_icon(
                 base_icon, status_icon
