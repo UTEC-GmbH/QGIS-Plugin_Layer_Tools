@@ -4,9 +4,10 @@ name=UTEC Layer Tools (dev)
 version=1.0
 changelog=
     Version 1.0:
-    - ✨ Neue Funktion: "Projekt GeoPackage"
-        - Das Projekt-GeoPackage wird mit einem Symbol versehen, damit es leichter zu finden ist
-        - Layer im Projekt-GeoPackage bekommen Symbole, um zu erkennen, welche im Projekt verwendet werden
+    - ✨ Neue Funktion: "UTEC Projekt-GeoPackage" im QGIS Browser
+        - Das Projekt-GeoPackage wird mit einem Symbol versehen, damit es leichter zu finden und zu verwalten (aufzuräumen) ist
+        - Das Projekt-GeoPackage bekommt einen eigenen Abschnitt im Browser
+        - Layer im Projekt-GeoPackage bekommen Sternchen, um anzuzeigen, welche im aktuellen Projekt verwendet werden
     - interne Verbesserungen zur Leistungsoptimierung und zur Verwendung von Ressourcen (icons)
     - Überarbeitung der Benachrichtigungen nach Durchlauf
     

@@ -4,7 +4,7 @@
 <context>
     <name>Browser</name>
     <message>
-        <location filename="../modules/browser.py" line="202"/>
+        <location filename="../modules/browser.py" line="426"/>
         <source>UTEC Project GeoPackage</source>
         <translation>UTEC Projekt-GeoPackage</translation>
     </message>
@@ -12,37 +12,37 @@
 <context>
     <name>LayerLocation</name>
     <message>
-        <location filename="../modules/constants.py" line="120"/>
+        <location filename="../modules/constants.py" line="124"/>
         <source>&lt;p&gt;🔗&lt;b&gt;Cloud Layer&lt;/b&gt;🔗&lt;/p&gt;This layer is from a cloud-based service or database.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</source>
         <translation>&lt;p&gt;🔗&lt;b&gt;Cloud Layer&lt;/b&gt;🔗&lt;/p&gt;Dieser Layer wird online oder von einer Datenbank bezogen.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="124"/>
+        <location filename="../modules/constants.py" line="128"/>
         <source>&lt;p&gt;❓&lt;b&gt;Empty Layer&lt;/b&gt;❓&lt;/p&gt;This Layer does not contain any objects.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</source>
         <translation>&lt;p&gt;❓&lt;b&gt;Layer leer&lt;/b&gt;❓&lt;/p&gt;Dieser Layer enthält keine Objekte.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="128"/>
+        <location filename="../modules/constants.py" line="132"/>
         <source>&lt;p&gt;💥💥💥&lt;b&gt;Caution&lt;/b&gt;💥💥💥&lt;/p&gt;This layer is stored outside the project folder. Please move to the project folder.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</source>
         <translation>&lt;p&gt;💥💥💥&lt;b&gt;Vorsicht&lt;/b&gt;💥💥💥&lt;/p&gt;Dieser Layer ist nicht im Projektordner abgespeichert. Bitte in den Projektordner verschieben.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="132"/>
+        <location filename="../modules/constants.py" line="136"/>
         <source>&lt;p&gt;⚠️&lt;b&gt;Layer in Project Folder but not GeoPackage&lt;/b&gt;⚠️&lt;/p&gt;This layer is stored in the project folder, but not in a GeoPackage. Consider saving to the Project-GeoPackage (a GeoPackage with the same name as the project file).&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</source>
         <translation>&lt;p&gt;⚠️&lt;b&gt;Layer im Projektordner, aber nicht in einem GeoPackage&lt;/b&gt;⚠️&lt;/p&gt;Dieser Layer ist im Projektordner, aber nicht in einem GeoPackage abgespeichert. Falls möglich und sinnvoll sollte er in das Projekt-Geopackage (ein GeoPackage mit dem gleichen Namen wie die Projektdatei) verschoben werden.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="136"/>
+        <location filename="../modules/constants.py" line="140"/>
         <source>&lt;p&gt;⚠️&lt;b&gt;Layer in GeoPackge in Project Folder&lt;/b&gt;⚠️&lt;/p&gt;This layer is stored in a GeoPackage in the project folder, but not in the Project-GeoPackage. Consider saving to the Project-GeoPackage (a GeoPackage with the same name as the project file).&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</source>
         <translation>&lt;p&gt;⚠️&lt;b&gt;Layer in einem GeoPackge im Projektordner&lt;/b&gt;⚠️&lt;/p&gt;Dieser Layer ist in einem GeoPackage im Projektordner, aber nicht im Projekt-GeoPackage abgespeichert. Falls möglich und sinnvoll sollte er in das Projekt-Geopackage (ein GeoPackage mit dem gleichen Namen wie die Projektdatei) verschoben werden.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="140"/>
+        <location filename="../modules/constants.py" line="144"/>
         <source>&lt;p&gt;👍&lt;b&gt;Layer in Project-Geopackage&lt;/b&gt;👍&lt;/p&gt;This layer is stored in the Project-GeoPackage (a GeoPackage with the same name as the project file).&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</source>
         <translation>&lt;p&gt;👍&lt;b&gt;Layer im Projekt-Geopackage&lt;/b&gt;👍&lt;/p&gt;Dieser Layer ist im Projekt-GeoPackage (ein GeoPackage mit dem gleichen Namen wie die Projektdatei) abgespeichert.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="144"/>
+        <location filename="../modules/constants.py" line="148"/>
         <source>&lt;p&gt;❓&lt;b&gt;Data Source Unknown&lt;/b&gt;❓&lt;/p&gt;The data source of this Layer could not be determined.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</source>
         <translation>&lt;p&gt;❓&lt;b&gt;Datenquelle Unbekannt&lt;/b&gt;❓&lt;/p&gt;Die Quelle der Daten dieses Layers konnten nicht ermittelt werden.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</translation>
     </message>
