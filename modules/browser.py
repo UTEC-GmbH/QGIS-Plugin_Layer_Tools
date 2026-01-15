@@ -17,6 +17,7 @@ from qgis.core import (
     QgsDataItemProviderRegistry,
     QgsLayerItem,
     QgsMapLayer,
+    QgsMimeDataUtils,
     QgsProject,
     QgsProviderRegistry,
 )
@@ -29,7 +30,7 @@ from qgis.PyQt.QtCore import (
     Qt,
     QTimer,
 )
-from qgis.PyQt.QtGui import QIcon, QPainter
+from qgis.PyQt.QtGui import QIcon, QImage, QPainter, QPixmap
 
 from .constants import ICONS
 from .context import PluginContext
@@ -57,29 +58,37 @@ class GeopackageProxyModel(QIdentityProxyModel):
 
     def _create_composite_icon(self, base_icon: QIcon, overlay_icon: QIcon) -> QIcon:
         """Create a composite icon with an overlay."""
-        # Standard icon size in browser is usually 16x16 or 24x24
-        # We target 16x16 for the pixmap
-        size = 16
-        pixmap = base_icon.pixmap(size, size)
+        size = 32
 
-        # If base icon is empty/invalid, just return overlay?
-        # But usually there is a generic icon.
-        if pixmap.isNull():
-            return overlay_icon
+        # Use QImage for software rendering - safer than QPixmap in some contexts
+        image = QImage(size, size, QImage.Format_ARGB32_Premultiplied)
+        image.fill(Qt.transparent)
 
-        painter = QPainter(pixmap)
+        painter = QPainter(image)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.SmoothPixmapTransform)
 
-        # Overlay size: 10x10 (small) at bottom right
-        overlay_size = 10
-        overlay_pixmap = overlay_icon.pixmap(overlay_size, overlay_size)
+        try:
+            # Draw base icon
+            # Use 'QIcon.Mode.Normal' and 'QIcon.State.Off' explicitly if needed,
+            # but simple pixmap() is usually enough
+            base_pixmap = base_icon.pixmap(size, size)
+            if not base_pixmap.isNull():
+                painter.drawPixmap(0, 0, base_pixmap)
 
-        x = size - overlay_size
-        y = size - overlay_size
+            # Draw overlay icon
+            overlay_size = 20
+            overlay_pixmap = overlay_icon.pixmap(overlay_size, overlay_size)
 
-        painter.drawPixmap(x, y, overlay_pixmap)
-        painter.end()
+            if not overlay_pixmap.isNull():
+                x = size - overlay_size
+                y = size - overlay_size
+                painter.drawPixmap(x, y, overlay_pixmap)
 
-        return QIcon(pixmap)
+        finally:
+            painter.end()
+
+        return QIcon(QPixmap.fromImage(image))
 
     def update_project_data(self) -> None:
         """Update the internal state with current project data."""
@@ -147,6 +156,8 @@ class GeopackageProxyModel(QIdentityProxyModel):
         self, index: QModelIndex, item: QgsDataItem | str, item_path: str
     ) -> QIcon:
         """Determine and return the custom icon for a layer item."""
+        # Enable logging to debug icon issues
+
         is_used: bool = False
         table_name: str = ""
 
@@ -164,14 +175,23 @@ class GeopackageProxyModel(QIdentityProxyModel):
             is_used = table_name in self.used_layers
         else:
             # Fallback to display name (least reliable)
-            item_name = self.sourceModel().data(index, Qt.DisplayRole)
+            # Use super().data() because 'index' is a Proxy Index
+            item_name = super().data(index, Qt.DisplayRole)
             is_used = item_name in self.used_layers
 
         # Get the original icon (DecorationRole)
-        base_icon_variant = super().data(index, Qt.DecorationRole)
-        base_icon = (
-            base_icon_variant if isinstance(base_icon_variant, QIcon) else QIcon()
-        )
+        # BEST PRACTICE: Retrieve the icon directly from the QgsDataItem if possible.
+        # This avoids any confusion with proxy indices or model defaults.
+        base_icon = QIcon()
+        if isinstance(item, QgsDataItem):
+            base_icon = item.icon()
+
+        # Fallback to model data if item.icon() failed or item is not a QgsDataItem
+        if base_icon.isNull():
+            base_icon_variant = super().data(index, Qt.DecorationRole)
+            base_icon = (
+                base_icon_variant if isinstance(base_icon_variant, QIcon) else QIcon()
+            )
 
         status_icon = self.icon_used if is_used else self.icon_unused
 
@@ -199,6 +219,7 @@ class GeopackageProxyModel(QIdentityProxyModel):
         # method 1: dataItem() -> QgsDataItem (Best)
         if hasattr(self.sourceModel(), "dataItem"):
             item = self.sourceModel().dataItem(source_index)
+
         # method 2: UserRole -> QgsDataItem or str (Fallback)
         if item is None:
             item = self.sourceModel().data(source_index, Qt.UserRole)
@@ -241,10 +262,8 @@ class GeopackageProxyModel(QIdentityProxyModel):
 
                     if is_child_of_gpkg_file or is_child_of_custom_item:
                         with contextlib.suppress(Exception):
-                            return self._get_custom_icon(
-                                source_index, item, str(item_path)
-                            )
-            except Exception as e:  # noqa: BLE001
+                            return self._get_custom_icon(index, item, str(item_path))
+            except Exception as e:  # noqa: BLE001, pylint: disable=broad-except
                 log_debug(f"Error in data(): {e}", Qgis.Critical, prefix=LOG_PREFIX)
 
         # If not a child layer, check if it is the GPKG file itself
@@ -254,7 +273,76 @@ class GeopackageProxyModel(QIdentityProxyModel):
         return super().data(index, role)
 
 
-# pylint: disable=too-few-public-methods
+class WrappedProjectLayerItem(QgsDataItem):
+    """Wrapper around a native layer item to ensure unique paths."""
+
+    def __init__(self, parent: QgsDataItem, native_item: QgsDataItem) -> None:
+        """Initialize the wrapper."""
+        # Use QgsDataItem constructor: type, parent, name, path
+        # We use the native item's URI as the path to ensure uniqueness
+
+        # Determine URI safely
+        path = native_item.uri() if hasattr(native_item, "uri") else native_item.path()
+        name = native_item.name()
+
+        # Initialize as a Layer type
+        super().__init__(Qgis.BrowserItemType.Layer, parent, name, path)
+
+        self._native_item = native_item
+
+        # Set the icon immediately
+        if hasattr(native_item, "icon") and not native_item.icon().isNull():
+            self.setIcon(native_item.icon())
+
+    def uri(self) -> str:
+        """Return the URI of the native item."""
+        return (
+            self._native_item.uri()
+            if hasattr(self._native_item, "uri")
+            else self.path()
+        )
+
+    def providerKey(self) -> str:  # noqa: N802
+        """Return the provider key."""
+        return (
+            self._native_item.providerKey()
+            if hasattr(self._native_item, "providerKey")
+            else "ogr"
+        )
+
+    def mapLayerType(self):  # noqa: N802
+        """Return the layer type."""
+        return (
+            self._native_item.mapLayerType()
+            if hasattr(self._native_item, "mapLayerType")
+            else Qgis.LayerType.Vector
+        )
+
+    def hasChildren(self) -> bool:  # noqa: N802
+        """Delegate hasChildren to native item."""
+        return self._native_item.hasChildren()
+
+    def createChildren(self) -> list[QgsDataItem]:  # noqa: N802
+        """Delegate createChildren to native item."""
+        return self._native_item.createChildren()
+
+    def mimeUri(self) -> QgsMimeDataUtils.Uri:  # noqa: N802
+        """Delegate mimeUri to native item for Drag&Drop."""
+        return self._native_item.mimeUri()
+
+    def capabilities2(self) -> Qgis.BrowserItemCapabilities:
+        """Delegate capabilities to native item (crucial for Drag&Drop)."""
+        return self._native_item.capabilities2()
+
+    def capabilities(self):
+        """Delegate legacy capabilities."""
+        return self._native_item.capabilities()
+
+    def flags(self):
+        """Delegate flags (essential for Drag&Drop)."""
+        return self._native_item.flags()
+
+
 class ProjectGpkgDataItem(QgsDataCollectionItem):
     """Data item representing the project's GeoPackage."""
 
@@ -268,6 +356,7 @@ class ProjectGpkgDataItem(QgsDataCollectionItem):
         )
         self.gpkg_path: Path = gpkg_path
         self.setIcon(ICONS.browser_gpkg)
+        self._provider_item: QgsDataItem | None = None
 
     def sortKey(self) -> object:  # noqa: N802
         """Return a sort key to position this item after Project Home."""
@@ -302,9 +391,14 @@ class ProjectGpkgDataItem(QgsDataCollectionItem):
                 if (
                     file_item := provider.createDataItem(str(self.gpkg_path), None)
                 ) and (native_children := file_item.createChildren()):
+                    # Keep a reference to the provider item
+                    # to prevent GC/Connection closing
+                    self._provider_item = file_item
+
                     for item in native_children:
-                        item.setParent(self)
-                        children.append(item)
+                        with contextlib.suppress(Exception):
+                            item.setParent(self)
+                            children.append(WrappedProjectLayerItem(self, item))
                     return children
             except Exception as e:  # noqa: BLE001, pylint: disable=broad-except
                 log_debug(
