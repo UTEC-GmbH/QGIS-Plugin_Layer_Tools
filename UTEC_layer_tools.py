@@ -15,6 +15,7 @@ from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton
 from .modules.constants import ICONS
 from .modules.context import PluginContext
 from .modules.geopackage import copy_layers_to_gpkg
+from .modules.browser import GeopackageIndicatorManager
 from .modules.layer_location import LocationIndicatorManager
 from .modules.logs_and_errors import (
     CustomRuntimeError,
@@ -53,6 +54,7 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         self.plugin_icon: QIcon = ICONS.main_icon
         self.translator: QTranslator | None = None
         self.indicator_manager: LocationIndicatorManager | None = None
+        self.gpkg_indicator_manager: GeopackageIndicatorManager | None = None
 
         # Read metadata to get the plugin name for UI elements
         self.plugin_name: str = "UTEC Layer Tools (dev)"
@@ -252,6 +254,12 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         self.indicator_manager = LocationIndicatorManager(self.project, self.iface)
         self.indicator_manager.init_indicators()
 
+        # Initialize and connect the geopackage indicator manager
+        self.gpkg_indicator_manager = GeopackageIndicatorManager(
+            self.project, self.iface
+        )
+        self.gpkg_indicator_manager.init_indicators()
+
     def unload(self) -> None:
         """Plugin unload method.
 
@@ -261,6 +269,10 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         if self.indicator_manager:
             self.indicator_manager.unload()
             self.indicator_manager = None
+
+        if self.gpkg_indicator_manager:
+            self.gpkg_indicator_manager.unload()
+            self.gpkg_indicator_manager = None
 
         # Remove toolbar icons for all actions
         for action in self.actions:

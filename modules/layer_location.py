@@ -21,14 +21,15 @@ from qgis.core import (
 from qgis.gui import QgisInterface, QgsLayerTreeView, QgsLayerTreeViewIndicator
 from qgis.PyQt.QtCore import QTimer
 
-from .general import is_empty_layer
-
 from .constants import LayerLocation
 from .context import PluginContext
+from .general import is_empty_layer
 from .logs_and_errors import log_debug
 
 if TYPE_CHECKING:
     from collections.abc import Callable
+
+LOG_PREFIX = "Location Indicators → "
 
 
 def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
@@ -113,7 +114,9 @@ def add_location_indicator(
             view.addIndicator(node, empty_indicator)
             indicators.append(empty_indicator)
             log_debug(
-                f"Location Indicators → '{layer.name()}' → adding empty indicator..."
+                f"'{layer.name()}' → adding empty indicator...",
+                prefix=LOG_PREFIX,
+                icon="🕳️",
             )
 
         # Add location indicator if it's not a memory layer
@@ -125,7 +128,9 @@ def add_location_indicator(
             view.addIndicator(node, location_indicator)
             indicators.append(location_indicator)
             log_debug(
-                f"Location Indicators → '{layer.name()}' → adding location indicator..."
+                f"'{layer.name()}' → adding location indicator...",
+                prefix=LOG_PREFIX,
+                icon="📍",
             )
 
         return indicators or None
@@ -267,7 +272,7 @@ class LocationIndicatorManager:
 
         self.location_indicators.clear()
         self.layer_locations.clear()
-        log_debug("Location Indicators → Cleared all location indicators.")
+        log_debug("Cleared all location indicators.", prefix=LOG_PREFIX, icon="🧹")
 
     def _update_all_location_indicators(self) -> None:
         """Update location indicators for all layers in the project using diffs."""
@@ -377,7 +382,9 @@ class LocationIndicatorManager:
             del self.location_indicators[lid]
             if lid in self.layer_locations:
                 del self.layer_locations[lid]
-            log_debug(f"Location Indicators → '{layer.name()}' → indicators removed.")
+            log_debug(
+                f"'{layer.name()}' → indicators removed.", prefix=LOG_PREFIX, icon="🧹"
+            )
 
     def _update_indicator_for_layer(self, layer_id: str) -> None:
         """Add or update a location indicator for a single layer."""
@@ -385,7 +392,9 @@ class LocationIndicatorManager:
         if not layer:
             return
 
-        log_debug(f"Location Indicators → '{layer.name()}' → updating indicator...")
+        log_debug(
+            f"'{layer.name()}' → updating indicator...", prefix=LOG_PREFIX, icon="♻️"
+        )
         self._remove_indicator_for_layer(layer)
         self._add_indicator_for_layer(layer)
 
@@ -443,16 +452,18 @@ class LocationIndicatorManager:
             return
 
         log_debug(
-            f"Location Indicators → '{layer.name()}' → "
-            "Layer modified, queueing indicator update..."
+            f"'{layer.name()}' → Layer modified, queueing indicator update...",
+            prefix=LOG_PREFIX,
+            icon="♻️",
         )
         QTimer.singleShot(0, lambda: self._update_indicator_for_layer(layer_id))
 
     def _on_project_read(self) -> None:
         """Handle the projectRead signal after a project is loaded."""
         log_debug(
-            "Location Indicators → Project loaded, "
-            "setting up all indicators and signals."
+            "Project loaded, setting up all indicators and signals.",
+            prefix=LOG_PREFIX,
+            icon="🚀",
         )
         self._update_all_location_indicators()
 
@@ -460,7 +471,9 @@ class LocationIndicatorManager:
         """Handle the layer tree model's reset signal, e.g., on reorder."""
 
         log_debug(
-            "Location Indicators → Layer tree reset detected, updating all indicators."
+            "Layer tree reset detected, updating all indicators.",
+            prefix=LOG_PREFIX,
+            icon="♻️",
         )
         self._update_all_location_indicators()
 

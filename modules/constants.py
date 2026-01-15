@@ -9,7 +9,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Generic, TypeVar
 
-from qgis.core import Qgis, QgsMapLayer
+from qgis.core import Qgis, QgsApplication, QgsMapLayer
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 
@@ -103,6 +103,14 @@ class Icons:
         self.location_gpkg_folder: QIcon = self._qicon("location_gpkg_folder.svg")
         self.location_gpkg_project: QIcon = self._qicon("location_gpkg_project.svg")
         self.location_unknown: QIcon = self._qicon("location_unknown.svg")
+
+        self.browser_gpkg: QIcon = self._qicon("browser_gpkg.svg")
+        self.browser_used: QIcon = QgsApplication.getThemeIcon(
+            "mActionHandleStoreFilterExpressionChecked.svg"
+        )
+        self.browser_unused: QIcon = QgsApplication.getThemeIcon(
+            "mActionHandleStoreFilterExpressionUnchecked.svg"
+        )
 
 
 ICONS = Icons()
