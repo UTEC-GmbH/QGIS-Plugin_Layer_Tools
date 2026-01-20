@@ -9,13 +9,18 @@ from typing import TYPE_CHECKING
 from qgis.core import Qgis, QgsProject
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QSettings, QTranslator
-from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton
+from qgis.PyQt.QtGui import QAction, QIcon
+from qgis.PyQt.QtWidgets import QMenu, QToolButton
 
+# try:
+#     from qgis.PyQt.QtGui import QAction
+# except ImportError:
+#     from qgis.PyQt.QtWidgets import QAction
+
+from .modules.browser import GeopackageIndicatorManager
 from .modules.constants import ICONS
 from .modules.context import PluginContext
 from .modules.geopackage import copy_layers_to_gpkg
-from .modules.browser import GeopackageIndicatorManager
 from .modules.layer_location import LocationIndicatorManager
 from .modules.logs_and_errors import (
     CustomRuntimeError,
@@ -57,7 +62,7 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         self.gpkg_indicator_manager: GeopackageIndicatorManager | None = None
 
         # Read metadata to get the plugin name for UI elements
-        self.plugin_name: str = "UTEC Layer Tools (dev)"
+        self.plugin_name: str = "UTEC Layer Tools QGIS 4.0 (dev)"
         metadata_path: Path = self.plugin_dir / "metadata.txt"
         if metadata_path.exists():
             config = configparser.ConfigParser()
@@ -246,7 +251,7 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         toolbar_button.setIcon(self.plugin_icon)
         toolbar_button.setToolTip(self.plugin_name)
         toolbar_button.setMenu(self.plugin_menu)
-        toolbar_button.setPopupMode(QToolButton.InstantPopup)
+        toolbar_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
         toolbar_action = self.iface.addToolBarWidget(toolbar_button)
         self.actions.append(toolbar_action)
 

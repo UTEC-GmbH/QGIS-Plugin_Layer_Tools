@@ -9,7 +9,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Generic, TypeVar
 
-from qgis.core import Qgis, QgsApplication, QgsMapLayer
+from qgis.core import Qgis, QgsApplication
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 
@@ -20,9 +20,9 @@ GEOMETRY_SUFFIX_MAP: dict[Qgis.GeometryType, str] = {
 }
 
 LAYER_TYPES: dict = {
-    QgsMapLayer.VectorLayer: "VectorLayer",
-    QgsMapLayer.RasterLayer: "RasterLayer",
-    QgsMapLayer.PluginLayer: "PluginLayer",
+    Qgis.LayerType.Vector: "VectorLayer",
+    Qgis.LayerType.Raster: "RasterLayer",
+    Qgis.LayerType.Plugin: "PluginLayer",
 }
 
 

@@ -186,7 +186,9 @@ def add_vector_layer_to_gpkg(
     options = QgsVectorFileWriter.SaveVectorOptions()
     options.driverName = "GPKG"
     options.layerName = check_existing_layer(gpkg_path, layer, existing_layers)
-    options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
+    options.actionOnExistingFile = (
+        QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteLayer
+    )
 
     result_write: tuple = QgsVectorFileWriter.writeAsVectorFormatV3(
         layer, str(gpkg_path), project.transformContext(), options

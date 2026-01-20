@@ -1,8 +1,13 @@
 [general]
-name=UTEC Layer Tools (dev)
+name=UTEC Layer Tools QGIS 4.0 (dev)
+supportsQt6=True
 
-version=1.0
+version=1.1
 changelog=
+    Version 1.1
+    - Kompatibilität mit QGIS 4.0
+
+
     Version 1.0:
     - ✨ Neue Funktion: "UTEC Projekt-GeoPackage" im QGIS Browser
         - Das Projekt-GeoPackage wird mit einem Symbol versehen, damit es leichter zu finden und zu verwalten (aufzuräumen) ist
@@ -10,7 +15,6 @@ changelog=
         - Layer im Projekt-GeoPackage bekommen Sternchen, um anzuzeigen, welche im aktuellen Projekt verwendet werden
     - interne Verbesserungen zur Leistungsoptimierung und zur Verwendung von Ressourcen (icons)
     - Überarbeitung der Benachrichtigungen nach Durchlauf
-    
 
     Version 0.9:
     - Aktualisierung der Symbole zur Datenquelle bei Änderungen am Layer (z.B. wenn Objekte zu einem leeren Layer hinzugefügt werden)
@@ -52,7 +56,7 @@ changelog=
     - erster Release
 
 description=Verschiedene Werkzeuge zur Darstellung, Benennung und zum Speichern von Layern. 
-qgisMinimumVersion=3.0
+qgisMinimumVersion=3.40
 author=Florian Ludwig
 email=immerse-vowel-dole@duck.com
 icon=resources/icons/main_icon.svg
@@ -61,7 +65,7 @@ download_url_base=file:////dc1/netz$/Software/QGIS_Plugins_UTEC
 [release]
 # The name of the root directory inside the .zip file.
 # This should match the plugin's package name.
-plugin_package_name = UTEC_Layer_Tools
+plugin_package_name = UTEC_Layer_Tools_QGIS_4.0
 
 # Files and directories to include in the plugin package.
 files_to_package =

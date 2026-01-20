@@ -73,12 +73,12 @@ class GeopackageProxyModel(QIdentityProxyModel):
         size = 32
 
         # Use QImage for software rendering - safer than QPixmap in some contexts
-        image = QImage(size, size, QImage.Format_ARGB32_Premultiplied)
-        image.fill(Qt.transparent)
+        image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
+        image.fill(Qt.GlobalColor.transparent)
 
         painter = QPainter(image)
-        painter.setRenderHint(QPainter.Antialiasing)
-        painter.setRenderHint(QPainter.SmoothPixmapTransform)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
         try:
             base_pixmap = base_icon.pixmap(size, size)
@@ -203,11 +203,11 @@ class GeopackageProxyModel(QIdentityProxyModel):
         else:
             # Fallback to display name (least reliable)
             # Use super().data() because 'index' is a Proxy Index
-            item_name = super().data(index, Qt.DisplayRole)
+            item_name = super().data(index, Qt.ItemDataRole.DisplayRole)
             is_used = item_name in self.used_layers
 
         # Get the original icon (DecorationRole)
-        base_icon_variant = super().data(index, Qt.DecorationRole)
+        base_icon_variant = super().data(index, Qt.ItemDataRole.DecorationRole)
         base_icon = (
             base_icon_variant if isinstance(base_icon_variant, QIcon) else QIcon()
         )
@@ -240,7 +240,7 @@ class GeopackageProxyModel(QIdentityProxyModel):
         model = self.sourceModel()
         if hasattr(model, "dataItem") and (item := model.dataItem(index)):
             return item
-        return model.data(index, Qt.UserRole)
+        return model.data(index, Qt.ItemDataRole.UserRole)
 
     def _get_raw_path(self, item: QgsDataItem | str | None) -> str:
         """Extract the raw path from a data item.
@@ -288,7 +288,9 @@ class GeopackageProxyModel(QIdentityProxyModel):
             "project_gpkg:"
         )
 
-    def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> object:
+    def data(
+        self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole
+    ) -> object:
         """Override data to provide custom icons.
 
         Args:
@@ -299,7 +301,7 @@ class GeopackageProxyModel(QIdentityProxyModel):
             object: The data for the given role.
         """
         if (
-            role != Qt.DecorationRole
+            role != Qt.ItemDataRole.DecorationRole
             or not index.isValid()
             or not self.project_gpkg_path
         ):
