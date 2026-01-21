@@ -111,3 +111,16 @@ class PluginContext:
              Path: The Path object to the GeoPackage.
         """
         return cls.project_path().with_suffix(".gpkg")
+
+    @classmethod
+    def is_dark_theme(cls) -> bool:
+        """Check if QGIS is running with a dark theme.
+
+        Returns:
+            bool: True if the theme is dark, False otherwise.
+        """
+        iface: QgisInterface = cls.iface()
+        window = iface.mainWindow()
+        bg_color = window.palette().color(window.backgroundRole())  # pyright: ignore[reportOptionalMemberAccess]
+
+        return bg_color.value() < 128  # noqa: PLR2004

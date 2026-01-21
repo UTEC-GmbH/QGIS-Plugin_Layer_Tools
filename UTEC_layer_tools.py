@@ -12,11 +12,6 @@ from qgis.PyQt.QtCore import QCoreApplication, QObject, QSettings, QTranslator
 from qgis.PyQt.QtGui import QAction, QIcon
 from qgis.PyQt.QtWidgets import QMenu, QToolButton
 
-# try:
-#     from qgis.PyQt.QtGui import QAction
-# except ImportError:
-#     from qgis.PyQt.QtWidgets import QAction
-
 from .modules.browser import GeopackageIndicatorManager
 from .modules.constants import ICONS
 from .modules.context import PluginContext
@@ -190,24 +185,6 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         )
         self.plugin_menu.addAction(rename_action)
 
-        # Add an action for undoing the last rename
-        # fmt: off
-        # ruff: noqa: E501
-        button: str = QCoreApplication.translate("Menu_Button", "Undo Last Rename")
-        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Undo Last Rename</b></p><p><span style='font-weight:normal; font-style:normal;'>Undoes the most recent layer renaming operation performed by this plugin.</span></p>")
-        #                                                                <p><b>Letzte Umbenennung Rückgängig Machen</b></p><p><span style='font-weight:normal; font-style:normal;'>Die letzte Umbenennung, die von diesem Plugin ausgeführt wurde, wird rückgängig gemacht.</span></p>
-        # fmt: on
-        undo_rename_action = self.add_action(
-            icon=ICONS.main_menu_undo,
-            button_text=button,
-            callback=self.undo_last_rename,
-            parent=self.iface.mainWindow(),
-            add_to_menu=False,  # Added to custom menu
-            add_to_toolbar=False,
-            tool_tip=tool_tip_text,
-        )
-        self.plugin_menu.addAction(undo_rename_action)
-
         # Add an action for renaming and moving layers
         # fmt: off
         # ruff: noqa: E501
@@ -225,6 +202,24 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
             tool_tip=tool_tip_text,
         )
         self.plugin_menu.addAction(rename_copy_action)
+
+        # Add an action for undoing the last rename
+        # fmt: off
+        # ruff: noqa: E501
+        button: str = QCoreApplication.translate("Menu_Button", "Undo Last Rename")
+        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Undo Last Rename</b></p><p><span style='font-weight:normal; font-style:normal;'>Undoes the most recent layer renaming operation performed by this plugin.</span></p>")
+        #                                                                <p><b>Letzte Umbenennung Rückgängig Machen</b></p><p><span style='font-weight:normal; font-style:normal;'>Die letzte Umbenennung, die von diesem Plugin ausgeführt wurde, wird rückgängig gemacht.</span></p>
+        # fmt: on
+        undo_rename_action = self.add_action(
+            icon=ICONS.main_menu_undo,
+            button_text=button,
+            callback=self.undo_last_rename,
+            parent=self.iface.mainWindow(),
+            add_to_menu=False,  # Added to custom menu
+            add_to_toolbar=False,
+            tool_tip=tool_tip_text,
+        )
+        self.plugin_menu.addAction(undo_rename_action)
 
         # Add an action for preparing layers for shipping
         # fmt: off

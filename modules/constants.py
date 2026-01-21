@@ -9,9 +9,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Generic, TypeVar
 
-from qgis.core import Qgis, QgsApplication
+from qgis.core import Qgis, QgsApplication, QgsSvgCache
 from qgis.PyQt.QtCore import QCoreApplication
-from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtGui import QColor, QIcon, QPixmap
 
 GEOMETRY_SUFFIX_MAP: dict[Qgis.GeometryType, str] = {
     Qgis.GeometryType.Line: "l",
@@ -74,35 +74,55 @@ class Icons:
     """Holds plugin icons."""
 
     @staticmethod
-    def _qicon(filename: str) -> QIcon:
+    def _qicon(
+        filename: str,
+        *,
+        dynamic: bool = False,
+        dark: str = "#1c274c",
+        light: str = "#738ad5",
+    ) -> QIcon:
         """Load an icon from the icons directory.
 
         Args:
             filename: The name of the icon file (including extension).
+            dynamic: Whether to load the icon dynamically (default: False).
+            dark: The color to use for the dark theme (default: "#1c274c").
+            light: The color to use for the light theme (default: "#738ad5").
 
         Returns:
             QIcon: The loaded QIcon object.
         """
-        return QIcon(str(ICONS_PATH / filename))
+
+        if not dynamic:
+            return QIcon(str(ICONS_PATH / filename))
+
+        # pylint: disable=import-outside-toplevel
+        from .context import PluginContext  # noqa: PLC0415
+
+        is_dark: bool = PluginContext.is_dark_theme()
+
+        fill_colour: QColor = QColor(light) if is_dark else QColor(dark)
+        stroke_colour: QColor = QColor(dark) if is_dark else QColor(light)
+
+        svg_chache: QgsSvgCache | None = QgsApplication.svgCache()
+        if svg_chache is None:
+            return QIcon(str(ICONS_PATH / filename))
+        icon, _ = svg_chache.svgAsImage(
+            str(ICONS_PATH / filename), 48, fill_colour, stroke_colour, 1, 1
+        )
+
+        return QIcon(QPixmap.fromImage(icon))
 
     def __init__(self) -> None:
         """Initialize the icons."""
 
         self.main_icon: QIcon = self._qicon("main_icon.svg")
 
-        self.main_menu_copy: QIcon = self._qicon("main_menu_copy.svg")
-        self.main_menu_rename_copy: QIcon = self._qicon("main_menu_rename_copy.svg")
-        self.main_menu_rename: QIcon = self._qicon("main_menu_rename.svg")
-        self.main_menu_send: QIcon = self._qicon("main_menu_send.svg")
-        self.main_menu_undo: QIcon = self._qicon("main_menu_undo.svg")
-
-        self.location_cloud: QIcon = self._qicon("location_cloud.svg")
         self.location_empty: QIcon = self._qicon("location_empty.svg")
         self.location_external: QIcon = self._qicon("location_external.svg")
         self.location_folder_no_gpkg: QIcon = self._qicon("location_folder_no_gpkg.svg")
         self.location_gpkg_folder: QIcon = self._qicon("location_gpkg_folder.svg")
         self.location_gpkg_project: QIcon = self._qicon("location_gpkg_project.svg")
-        self.location_unknown: QIcon = self._qicon("location_unknown.svg")
 
         self.browser_gpkg: QIcon = self._qicon("browser_gpkg.svg")
         self.browser_used: QIcon = QgsApplication.getThemeIcon(
@@ -111,6 +131,41 @@ class Icons:
         self.browser_unused: QIcon = QgsApplication.getThemeIcon(
             "mActionHandleStoreFilterExpressionUnchecked.svg"
         )
+
+    @property
+    def main_menu_copy(self) -> QIcon:
+        """Return the copy icon, dynamically colored for the current theme."""
+        return self._qicon("main_menu_copy.svg", dynamic=True)
+
+    @property
+    def main_menu_rename_copy(self) -> QIcon:
+        """Return the rename+copy icon, dynamically colored for the current theme."""
+        return self._qicon("main_menu_rename_copy.svg", dynamic=True)
+
+    @property
+    def main_menu_rename(self) -> QIcon:
+        """Return the rename icon, dynamically colored for the current theme."""
+        return self._qicon("main_menu_rename.svg", dynamic=True)
+
+    @property
+    def main_menu_send(self) -> QIcon:
+        """Return the send icon, dynamically colored for the current theme."""
+        return self._qicon("main_menu_send.svg", dynamic=True)
+
+    @property
+    def main_menu_undo(self) -> QIcon:
+        """Return the undo icon, dynamically colored for the current theme."""
+        return self._qicon("main_menu_undo.svg", dynamic=True)
+
+    @property
+    def location_cloud(self) -> QIcon:
+        """Return the cloud icon, dynamically colored for the current theme."""
+        return self._qicon("location_cloud.svg", dynamic=True)
+
+    @property
+    def location_unknown(self) -> QIcon:
+        """Return the unknown icon, dynamically colored for the current theme."""
+        return self._qicon("location_unknown.svg", dynamic=True)
 
 
 ICONS = Icons()
@@ -122,49 +177,51 @@ class LayerLocation(Enum):
     # fmt: off
     # ruff: noqa: E501
     CLOUD = (
-        ICONS.location_cloud,
+        lambda: ICONS.location_cloud,
         lambda: QCoreApplication.translate("LayerLocation", "<p>🔗<b>Cloud Layer</b>🔗</p>This layer is from a cloud-based service or database.<br><i>(Plugin: UTEC Layer Tools)</i>"),
     )
     EMPTY = (
-        ICONS.location_empty,
+        lambda: ICONS.location_empty,
         lambda: QCoreApplication.translate("LayerLocation", "<p>❓<b>Empty Layer</b>❓</p>This Layer does not contain any objects.<br><i>(Plugin: UTEC Layer Tools)</i>"),
     )
     EXTERNAL = (
-        ICONS.location_external,
+        lambda: ICONS.location_external,
         lambda: QCoreApplication.translate("LayerLocation", "<p>💥💥💥<b>Caution</b>💥💥💥</p>This layer is stored outside the project folder. Please move to the project folder.<br><i>(Plugin: UTEC Layer Tools)</i>"),
     )
     FOLDER_NO_GPKG = (
-        ICONS.location_folder_no_gpkg,
+        lambda: ICONS.location_folder_no_gpkg,
         lambda: QCoreApplication.translate("LayerLocation", "<p>⚠️<b>Layer in Project Folder but not GeoPackage</b>⚠️</p>This layer is stored in the project folder, but not in a GeoPackage. Consider saving to the Project-GeoPackage (a GeoPackage with the same name as the project file).<br><i>(Plugin: UTEC Layer Tools)</i>"),
     )
     GPKG_FOLDER = (
-        ICONS.location_gpkg_folder,
+        lambda: ICONS.location_gpkg_folder,
         lambda: QCoreApplication.translate("LayerLocation", "<p>⚠️<b>Layer in GeoPackge in Project Folder</b>⚠️</p>This layer is stored in a GeoPackage in the project folder, but not in the Project-GeoPackage. Consider saving to the Project-GeoPackage (a GeoPackage with the same name as the project file).<br><i>(Plugin: UTEC Layer Tools)</i>"),
     )
     GPKG_PROJECT = (
-        ICONS.location_gpkg_project,
+        lambda: ICONS.location_gpkg_project,
         lambda: QCoreApplication.translate("LayerLocation", "<p>👍<b>Layer in Project-Geopackage</b>👍</p>This layer is stored in the Project-GeoPackage (a GeoPackage with the same name as the project file).<br><i>(Plugin: UTEC Layer Tools)</i>"),
     )
     UNKNOWN = (
-        ICONS.location_unknown,
+        lambda: ICONS.location_unknown,
         lambda: QCoreApplication.translate("LayerLocation", "<p>❓<b>Data Source Unknown</b>❓</p>The data source of this Layer could not be determined.<br><i>(Plugin: UTEC Layer Tools)</i>"),
     )
     # fmt: on
 
-    def __init__(self, icon: QIcon, tooltip_factory: Callable[[], str]) -> None:
+    def __init__(
+        self, icon_factory: Callable[[], QIcon], tooltip_factory: Callable[[], str]
+    ) -> None:
         """Initialize the enum member.
 
         Args:
-            icon: The icon associated with the layer location.
+            icon_factory: A callable that returns the icon associated with the layer location.
             tooltip_factory: A callable that returns the translated tooltip text.
         """
-        self._icon: QIcon = icon
+        self._icon_factory: Callable[[], QIcon] = icon_factory
         self._tooltip_factory: Callable[[], str] = tooltip_factory
 
     @property
     def icon(self) -> QIcon:
         """Return the icon for this location."""
-        return self._icon
+        return self._icon_factory()
 
     @property
     def tooltip(self) -> str:
