@@ -10,7 +10,12 @@ from qgis.core import Qgis, QgsProject
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QSettings, QTranslator
 from qgis.PyQt.QtGui import QIcon
-from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton
+from qgis.PyQt.QtWidgets import QMenu, QToolButton
+
+try:
+    from qgis.PyQt.QtWidgets import QAction
+except ImportError:
+    from qgis.PyQt.QtGui import QAction
 
 from .modules.browser import GeopackageIndicatorManager
 from .modules.constants import ICONS

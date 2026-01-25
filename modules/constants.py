@@ -119,10 +119,10 @@ class Icons:
         fill_colour: QColor = QColor(light) if is_dark else QColor(dark)
         stroke_colour: QColor = QColor(dark) if is_dark else QColor(light)
 
-        svg_chache: QgsSvgCache | None = QgsApplication.svgCache()
-        if svg_chache is None:
+        svg_cache: QgsSvgCache | None = QgsApplication.svgCache()
+        if svg_cache is None:
             return QIcon(str(ICONS_PATH / filename))
-        icon = svg_chache.svgAsImage(
+        icon = svg_cache.svgAsImage(
             str(ICONS_PATH / filename), 48, fill_colour, stroke_colour, 1, 1
         )[0]
 
