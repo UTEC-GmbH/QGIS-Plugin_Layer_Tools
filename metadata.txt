@@ -6,7 +6,8 @@ version=1.1
 changelog=
     Version 1.1
     - Kompatibilität mit QGIS 4.0
-    - neue Symbole (die hoffentlich auf hellem, sowie dunklem Hintergrund deutlich sind)
+    - dynamische Symbole (die hoffentlich auf hellem, sowie dunklem Hintergrund deutlich sind)
+    - bugfix: Fehler beim Erstennen eines neuen Projekts - bevor es abgespeichert ist
 
 
     Version 1.0:

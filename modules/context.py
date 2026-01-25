@@ -4,14 +4,14 @@ This module contains the PluginContext class, which serves as a centralized
 access point for shared plugin objects such as the QGIS interface, the
 current project, and the plugin directory.
 """
+# pylint: disable=import-outside-toplevel
+# ruff: noqa: PLC0415, PLR2004
 
 from pathlib import Path
 
 from qgis.core import Qgis, QgsProject
 from qgis.gui import QgisInterface, QgsMessageBar
 from qgis.PyQt.QtCore import QT_VERSION_STR, QCoreApplication
-
-from .logs_and_errors import raise_runtime_error, raise_user_error
 
 
 class PluginContext:
@@ -41,6 +41,8 @@ class PluginContext:
         Raises:
             CustomRuntimeError: If the context has not been initialized.
         """
+        from .logs_and_errors import raise_runtime_error
+
         if cls._iface is None:
             raise_runtime_error("PluginContext not initialized with iface.")
         return cls._iface
@@ -55,7 +57,9 @@ class PluginContext:
         Raises:
             CustomRuntimeError: If no QGIS project is currently open.
         """
-        project = QgsProject.instance()
+        from .logs_and_errors import raise_runtime_error
+
+        project: QgsProject | None = QgsProject.instance()
         if project is None:
             raise_runtime_error("No QGIS project is currently open.")
         return project
@@ -79,6 +83,8 @@ class PluginContext:
         Raises:
             CustomRuntimeError: If the context has not been initialized.
         """
+        from .logs_and_errors import raise_runtime_error
+
         if cls._plugin_dir is None:
             raise_runtime_error("PluginContext not initialized with plugin_dir.")
         return cls._plugin_dir
@@ -91,6 +97,8 @@ class PluginContext:
             Path: The path to the current QGIS project file
                 (e.g., 'C:\project\my_project.qgz').
         """
+        from .logs_and_errors import raise_user_error
+
         project: QgsProject = cls.project()
         project_path: str = project.fileName()
         if not project_path:
@@ -123,7 +131,7 @@ class PluginContext:
         window = iface.mainWindow()
         bg_color = window.palette().color(window.backgroundRole())  # pyright: ignore[reportOptionalMemberAccess]
 
-        return bg_color.value() < 128  # noqa: PLR2004
+        return bg_color.value() < 128
 
     @staticmethod
     def is_qgis4() -> bool:
@@ -132,7 +140,7 @@ class PluginContext:
         Returns:
             bool: True if running on QGIS 4 or newer, False otherwise.
         """
-        return Qgis.QGIS_VERSION_INT // 10000 == 4  # noqa: PLR2004
+        return Qgis.QGIS_VERSION_INT // 10000 >= 4
 
     @staticmethod
     def is_qt6() -> bool:
@@ -141,4 +149,4 @@ class PluginContext:
         Returns:
             bool: True if running on Qt 6 or newer, False otherwise.
         """
-        return int(QT_VERSION_STR.split(".")[0]) == 6  # noqa: PLR2004
+        return int(QT_VERSION_STR.split(".")[0]) >= 6

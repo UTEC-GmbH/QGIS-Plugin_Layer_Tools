@@ -9,21 +9,39 @@ from enum import Enum
 from pathlib import Path
 from typing import Generic, TypeVar
 
-from qgis.core import Qgis, QgsApplication, QgsSvgCache
+from qgis.core import Qgis, QgsApplication, QgsMapLayer, QgsSvgCache, QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QColor, QIcon, QPixmap
 
-GEOMETRY_SUFFIX_MAP: dict[Qgis.GeometryType, str] = {
-    Qgis.GeometryType.Line: "l",
-    Qgis.GeometryType.Point: "pt",
-    Qgis.GeometryType.Polygon: "pg",
-}
+from .context import PluginContext
 
-LAYER_TYPES: dict = {
-    Qgis.LayerType.Vector: "VectorLayer",
-    Qgis.LayerType.Raster: "RasterLayer",
-    Qgis.LayerType.Plugin: "PluginLayer",
-}
+GEOMETRY_SUFFIX_MAP: dict = {}
+LAYER_TYPES: dict = {}
+
+if PluginContext.is_qgis4():
+    GEOMETRY_SUFFIX_MAP = {
+        Qgis.GeometryType.Line: "l",
+        Qgis.GeometryType.Point: "pt",
+        Qgis.GeometryType.Polygon: "pg",
+    }
+
+    LAYER_TYPES = {
+        Qgis.LayerType.Vector: "VectorLayer",
+        Qgis.LayerType.Raster: "RasterLayer",
+        Qgis.LayerType.Plugin: "PluginLayer",
+    }
+else:
+    GEOMETRY_SUFFIX_MAP = {
+        QgsWkbTypes.LineGeometry: "l",
+        QgsWkbTypes.PointGeometry: "pt",
+        QgsWkbTypes.PolygonGeometry: "pg",
+    }
+
+    LAYER_TYPES = {
+        QgsMapLayer.VectorLayer: "VectorLayer",
+        QgsMapLayer.RasterLayer: "RasterLayer",
+        QgsMapLayer.PluginLayer: "PluginLayer",
+    }
 
 
 @dataclass
@@ -95,9 +113,6 @@ class Icons:
 
         if not dynamic:
             return QIcon(str(ICONS_PATH / filename))
-
-        # pylint: disable=import-outside-toplevel
-        from .context import PluginContext  # noqa: PLC0415
 
         is_dark: bool = PluginContext.is_dark_theme()
 
