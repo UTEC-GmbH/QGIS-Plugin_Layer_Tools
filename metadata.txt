@@ -1,5 +1,5 @@
 [general]
-name=UTEC Layer Tools QGIS 4.0 (dev)
+name=UTEC Layer Tools (dev)
 supportsQt6=True
 
 version=1.1
@@ -66,7 +66,7 @@ download_url_base=file:////dc1/netz$/Software/QGIS_Plugins_UTEC
 [release]
 # The name of the root directory inside the .zip file.
 # This should match the plugin's package name.
-plugin_package_name = UTEC_Layer_Tools_QGIS_4.0
+plugin_package_name = UTEC_Layer_Tools
 
 # Files and directories to include in the plugin package.
 files_to_package =

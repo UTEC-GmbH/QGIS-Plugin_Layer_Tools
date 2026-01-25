@@ -41,6 +41,20 @@ if TYPE_CHECKING:
 
 LOG_PREFIX: str = "Browser → "
 
+if PluginContext.is_qt6():
+    DISPLAY_ROLE = Qt.ItemDataRole.DisplayRole
+    DECORATION_ROLE = Qt.ItemDataRole.DecorationRole
+    USER_ROLE = Qt.ItemDataRole.UserRole
+else:
+    DISPLAY_ROLE = Qt.DisplayRole
+    DECORATION_ROLE = Qt.DecorationRole
+    USER_ROLE = Qt.UserRole
+
+if PluginContext.is_qgis4():
+    BROWSER_LAYER_TYPE_VECTOR = Qgis.BrowserLayerType.Vector
+else:
+    BROWSER_LAYER_TYPE_VECTOR = QgsLayerItem.LayerType.Vector
+
 
 class GeopackageProxyModel(QIdentityProxyModel):
     """Proxy model to override icons for the project GeoPackage and its tables."""
@@ -73,8 +87,14 @@ class GeopackageProxyModel(QIdentityProxyModel):
         size = 32
 
         # Use QImage for software rendering - safer than QPixmap in some contexts
-        image = QImage(size, size, QImage.Format.Format_ARGB32_Premultiplied)
-        image.fill(Qt.GlobalColor.transparent)
+        if PluginContext.is_qt6():
+            fmt = QImage.Format.Format_ARGB32_Premultiplied
+            color = Qt.GlobalColor.transparent
+        else:
+            fmt = QImage.Format_ARGB32_Premultiplied
+            color = Qt.transparent
+        image = QImage(size, size, fmt)
+        image.fill(color)
 
         painter = QPainter(image)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -203,11 +223,11 @@ class GeopackageProxyModel(QIdentityProxyModel):
         else:
             # Fallback to display name (least reliable)
             # Use super().data() because 'index' is a Proxy Index
-            item_name = super().data(index, Qt.ItemDataRole.DisplayRole)
+            item_name = super().data(index, DISPLAY_ROLE)
             is_used = item_name in self.used_layers
 
         # Get the original icon (DecorationRole)
-        base_icon_variant = super().data(index, Qt.ItemDataRole.DecorationRole)
+        base_icon_variant = super().data(index, DECORATION_ROLE)
         base_icon = (
             base_icon_variant if isinstance(base_icon_variant, QIcon) else QIcon()
         )
@@ -240,7 +260,7 @@ class GeopackageProxyModel(QIdentityProxyModel):
         model = self.sourceModel()
         if hasattr(model, "dataItem") and (item := model.dataItem(index)):
             return item
-        return model.data(index, Qt.ItemDataRole.UserRole)
+        return model.data(index, USER_ROLE)
 
     def _get_raw_path(self, item: QgsDataItem | str | None) -> str:
         """Extract the raw path from a data item.
@@ -288,9 +308,7 @@ class GeopackageProxyModel(QIdentityProxyModel):
             "project_gpkg:"
         )
 
-    def data(
-        self, index: QModelIndex, role: int = Qt.ItemDataRole.DisplayRole
-    ) -> object:
+    def data(self, index: QModelIndex, role: int = DISPLAY_ROLE) -> object:
         """Override data to provide custom icons.
 
         Args:
@@ -300,11 +318,7 @@ class GeopackageProxyModel(QIdentityProxyModel):
         Returns:
             object: The data for the given role.
         """
-        if (
-            role != Qt.ItemDataRole.DecorationRole
-            or not index.isValid()
-            or not self.project_gpkg_path
-        ):
+        if role != DECORATION_ROLE or not index.isValid() or not self.project_gpkg_path:
             return super().data(index, role)
 
         source_index = self.mapToSource(index)
@@ -353,7 +367,7 @@ class WrappedProjectLayerItem(QgsLayerItem):
         browser_layer_type = (
             native_item.layerType()
             if hasattr(native_item, "layerType")
-            else Qgis.BrowserLayerType.Vector
+            else BROWSER_LAYER_TYPE_VECTOR
         )
 
         # Initialize as a Layer type

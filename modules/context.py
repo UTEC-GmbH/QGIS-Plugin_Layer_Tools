@@ -7,9 +7,9 @@ current project, and the plugin directory.
 
 from pathlib import Path
 
-from qgis.core import QgsProject
+from qgis.core import Qgis, QgsProject
 from qgis.gui import QgisInterface, QgsMessageBar
-from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtCore import QT_VERSION_STR, QCoreApplication
 
 from .logs_and_errors import raise_runtime_error, raise_user_error
 
@@ -124,3 +124,21 @@ class PluginContext:
         bg_color = window.palette().color(window.backgroundRole())  # pyright: ignore[reportOptionalMemberAccess]
 
         return bg_color.value() < 128  # noqa: PLR2004
+
+    @staticmethod
+    def is_qgis4() -> bool:
+        """Check if running on QGIS 4.
+
+        Returns:
+            bool: True if running on QGIS 4 or newer, False otherwise.
+        """
+        return Qgis.QGIS_VERSION_INT // 10000 == 4  # noqa: PLR2004
+
+    @staticmethod
+    def is_qt6() -> bool:
+        """Check if running on Qt 6.
+
+        Returns:
+            bool: True if running on Qt 6 or newer, False otherwise.
+        """
+        return int(QT_VERSION_STR.split(".")[0]) == 6  # noqa: PLR2004

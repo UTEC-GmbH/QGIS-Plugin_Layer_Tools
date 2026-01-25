@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING
 from qgis.core import Qgis, QgsProject
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QSettings, QTranslator
-from qgis.PyQt.QtGui import QAction, QIcon
-from qgis.PyQt.QtWidgets import QMenu, QToolButton
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QAction, QMenu, QToolButton
 
 from .modules.browser import GeopackageIndicatorManager
 from .modules.constants import ICONS
@@ -57,7 +57,7 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         self.gpkg_indicator_manager: GeopackageIndicatorManager | None = None
 
         # Read metadata to get the plugin name for UI elements
-        self.plugin_name: str = "UTEC Layer Tools QGIS 4.0 (dev)"
+        self.plugin_name: str = "UTEC Layer Tools (dev)"
         metadata_path: Path = self.plugin_dir / "metadata.txt"
         if metadata_path.exists():
             config = configparser.ConfigParser()
@@ -246,7 +246,10 @@ class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
         toolbar_button.setIcon(self.plugin_icon)
         toolbar_button.setToolTip(self.plugin_name)
         toolbar_button.setMenu(self.plugin_menu)
-        toolbar_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        if PluginContext.is_qt6():
+            toolbar_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        else:
+            toolbar_button.setPopupMode(QToolButton.InstantPopup)
         toolbar_action = self.iface.addToolBarWidget(toolbar_button)
         self.actions.append(toolbar_action)
 

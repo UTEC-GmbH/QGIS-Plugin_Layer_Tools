@@ -107,9 +107,9 @@ class Icons:
         svg_chache: QgsSvgCache | None = QgsApplication.svgCache()
         if svg_chache is None:
             return QIcon(str(ICONS_PATH / filename))
-        icon, _ = svg_chache.svgAsImage(
+        icon = svg_chache.svgAsImage(
             str(ICONS_PATH / filename), 48, fill_colour, stroke_colour, 1, 1
-        )
+        )[0]
 
         return QIcon(QPixmap.fromImage(icon))
 
