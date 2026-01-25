@@ -8,6 +8,7 @@ changelog=
     - Kompatibilität mit QGIS 4.0
     - dynamische Symbole (die hoffentlich auf hellem, sowie dunklem Hintergrund deutlich sind)
     - bugfix: Fehler beim Erstennen eines neuen Projekts - bevor es abgespeichert ist
+    - bugfix: Fehler beim Entfernen des Plugins
 
 
     Version 1.0:

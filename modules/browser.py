@@ -717,7 +717,7 @@ class GeopackageIndicatorManager:
             self.provider = None
 
         for proxy in self.proxies:
-            view = proxy.parent()
+            view = QObject.parent(proxy)
             if isinstance(view, QgsBrowserTreeView):
                 source = proxy.sourceModel()
                 view.setModel(source)
