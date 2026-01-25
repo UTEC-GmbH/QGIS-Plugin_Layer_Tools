@@ -24,7 +24,7 @@ from qgis.PyQt.QtCore import QTimer
 from .constants import LayerLocation
 from .context import PluginContext
 from .general import is_empty_layer
-from .logs_and_errors import log_debug
+from .logs_and_errors import CustomUserError, log_debug
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -49,8 +49,21 @@ def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
         or None for memory layers.
     """
     prov_instance: QgsProviderRegistry | None = QgsProviderRegistry.instance()
-    if not prov_instance:
+    project: QgsProject | None = QgsProject.instance()
+
+    if (
+        not prov_instance
+        or not project
+        or not project.fileName()
+        or layer.source().startswith("memory")
+    ):
         return None
+
+    try:
+        project_gpkg_path: str = str(PluginContext.project_gpkg())
+    except (CustomUserError, RuntimeError):
+        return None
+
     decoded_uri: dict = prov_instance.decodeUri(layer.providerType(), layer.source())
 
     # Use path from decoded URI if available, otherwise fall back to source
@@ -59,14 +72,9 @@ def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
         uri_path = layer.source().split("|")[0]
     layer_path: str = os.path.normcase(uri_path)
 
-    project_gpkg_path: str = str(PluginContext.project_gpkg())
     gpkg: str = os.path.normcase(project_gpkg_path)
     project_folder: str = os.path.normcase(str(Path(project_gpkg_path).parent))
 
-    if layer.source().startswith("memory"):
-        # Memory layers get an indicator from QGIS itself, so we return None.
-        # (Checking source string is reliable for memory layers)
-        return None
     if (
         "url" in decoded_uri
         or "url=" in layer.source().lower()
