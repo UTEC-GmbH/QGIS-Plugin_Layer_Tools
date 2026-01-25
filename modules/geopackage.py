@@ -186,13 +186,23 @@ def add_vector_layer_to_gpkg(
     options = QgsVectorFileWriter.SaveVectorOptions()
     options.driverName = "GPKG"
     options.layerName = check_existing_layer(gpkg_path, layer, existing_layers)
-    options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
+    if PluginContext.is_qgis4():
+        options.actionOnExistingFile = (
+            QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteLayer
+        )
+    else:
+        options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
 
     result_write: tuple = QgsVectorFileWriter.writeAsVectorFormatV3(
         layer, str(gpkg_path), project.transformContext(), options
     )
 
-    if result_write[0] == QgsVectorFileWriter.WriterError.NoError:
+    if PluginContext.is_qgis4():
+        success = result_write[0] == QgsVectorFileWriter.WriterError.NoError
+    else:
+        success = result_write[0] == QgsVectorFileWriter.NoError
+
+    if success:
         log_debug(
             f"GeoPackage → Vector Layer '{layer_name}' "
             "added to GeoPackage successfully.",
@@ -279,7 +289,12 @@ def add_raster_layer_to_gpkg(
         project.transformContext(),
     )
 
-    if error == QgsRasterFileWriter.WriterError.NoError:
+    if PluginContext.is_qgis4():
+        success = error == QgsRasterFileWriter.WriterError.NoError
+    else:
+        success = error == QgsRasterFileWriter.NoError
+
+    if success:
         log_debug(
             f"GeoPackage → Raster Layer '{layer_name}' added to GeoPackage.",
             Qgis.Success,

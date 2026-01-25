@@ -28,9 +28,7 @@ from defusedxml import ElementTree as DefET
 # --- Logger ---
 def setup_logging() -> None:
     """Configure the module's logger to print to the console."""
-    handler: logging.StreamHandler[logging.TextIO | configparser.Any] = (
-        logging.StreamHandler(sys.stdout)
-    )
+    handler: logging.StreamHandler = logging.StreamHandler(sys.stdout)
     formatter = logging.Formatter("%(message)s")
     handler.setFormatter(formatter)
     logger.handlers.clear()
@@ -62,6 +60,7 @@ class PluginMetadata(TypedDict):
     author: str
     email: str
     url_base: str
+    supports_qt6: str
 
 
 class ReleaseScriptError(Exception):
@@ -103,6 +102,7 @@ def get_plugin_metadata() -> PluginMetadata:
             "author": config.get("general", "author"),
             "email": config.get("general", "email"),
             "url_base": config.get("general", "download_url_base"),
+            "supports_qt6": config.get("general", "supportsQt6"),
         }
     except configparser.NoSectionError as e:
         msg = f"Could not find required section '[{e.section}]' in {metadata_path}."

@@ -1,8 +1,15 @@
 [general]
 name=UTEC Layer Tools (dev)
+supportsQt6=True
 
-version=1.0
+version=1.1
 changelog=
+    Version 1.1
+    - Kompatibilität mit QGIS 4.0
+    - dynamische Symbole (die hoffentlich auf hellem, sowie dunklem Hintergrund deutlich sind)
+    - bugfix: Fehler beim Erstennen eines neuen Projekts - bevor es abgespeichert ist
+
+
     Version 1.0:
     - ✨ Neue Funktion: "UTEC Projekt-GeoPackage" im QGIS Browser
         - Das Projekt-GeoPackage wird mit einem Symbol versehen, damit es leichter zu finden und zu verwalten (aufzuräumen) ist
@@ -10,7 +17,6 @@ changelog=
         - Layer im Projekt-GeoPackage bekommen Sternchen, um anzuzeigen, welche im aktuellen Projekt verwendet werden
     - interne Verbesserungen zur Leistungsoptimierung und zur Verwendung von Ressourcen (icons)
     - Überarbeitung der Benachrichtigungen nach Durchlauf
-    
 
     Version 0.9:
     - Aktualisierung der Symbole zur Datenquelle bei Änderungen am Layer (z.B. wenn Objekte zu einem leeren Layer hinzugefügt werden)
@@ -52,7 +58,7 @@ changelog=
     - erster Release
 
 description=Verschiedene Werkzeuge zur Darstellung, Benennung und zum Speichern von Layern. 
-qgisMinimumVersion=3.0
+qgisMinimumVersion=3.40
 author=Florian Ludwig
 email=immerse-vowel-dole@duck.com
 icon=resources/icons/main_icon.svg
