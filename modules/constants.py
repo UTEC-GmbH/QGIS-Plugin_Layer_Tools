@@ -6,14 +6,16 @@ This module contains shared constants and enumerations used across the plugin.
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from pathlib import Path
-from typing import Generic, TypeVar
+from typing import TYPE_CHECKING, Generic, TypeVar
 
 from qgis.core import Qgis, QgsApplication, QgsMapLayer, QgsSvgCache, QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtGui import QColor, QIcon, QPixmap
 
 from .context import PluginContext
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 GEOMETRY_SUFFIX_MAP: dict = {}
 LAYER_TYPES: dict = {}
@@ -83,10 +85,6 @@ class ActionResults(Generic[T]):
     errors: list[Issue] = field(default_factory=list)
 
 
-RESOURCES_PATH: Path = Path(__file__).parent.parent / "resources"
-ICONS_PATH: Path = RESOURCES_PATH / "icons"
-
-
 # pylint: disable=too-few-public-methods
 class Icons:
     """Holds plugin icons."""
@@ -110,9 +108,10 @@ class Icons:
         Returns:
             QIcon: The loaded QIcon object.
         """
+        icons_path: Path = PluginContext.icons_path()
 
         if not dynamic:
-            return QIcon(str(ICONS_PATH / filename))
+            return QIcon(str(icons_path / filename))
 
         is_dark: bool = PluginContext.is_dark_theme()
 
@@ -121,31 +120,56 @@ class Icons:
 
         svg_cache: QgsSvgCache | None = QgsApplication.svgCache()
         if svg_cache is None:
-            return QIcon(str(ICONS_PATH / filename))
+            return QIcon(str(icons_path / filename))
         icon = svg_cache.svgAsImage(
-            str(ICONS_PATH / filename), 48, fill_colour, stroke_colour, 1, 1
+            str(icons_path / filename), 48, fill_colour, stroke_colour, 1, 1
         )[0]
 
         return QIcon(QPixmap.fromImage(icon))
 
     def __init__(self) -> None:
         """Initialize the icons."""
-
-        self.main_icon: QIcon = self._qicon("main_icon.svg")
-
-        self.location_empty: QIcon = self._qicon("location_empty.svg")
-        self.location_external: QIcon = self._qicon("location_external.svg")
-        self.location_folder_no_gpkg: QIcon = self._qicon("location_folder_no_gpkg.svg")
-        self.location_gpkg_folder: QIcon = self._qicon("location_gpkg_folder.svg")
-        self.location_gpkg_project: QIcon = self._qicon("location_gpkg_project.svg")
-
-        self.browser_gpkg: QIcon = self._qicon("browser_gpkg.svg")
         self.browser_used: QIcon = QgsApplication.getThemeIcon(
             "mActionHandleStoreFilterExpressionChecked.svg"
         )
         self.browser_unused: QIcon = QgsApplication.getThemeIcon(
             "mActionHandleStoreFilterExpressionUnchecked.svg"
         )
+
+    @property
+    def main_icon(self) -> QIcon:
+        """Return the main plugin icon."""
+        return self._qicon("main_icon.svg")
+
+    @property
+    def location_empty(self) -> QIcon:
+        """Return the 'empty' location icon."""
+        return self._qicon("location_empty.svg")
+
+    @property
+    def location_external(self) -> QIcon:
+        """Return the 'external' location icon."""
+        return self._qicon("location_external.svg")
+
+    @property
+    def location_folder_no_gpkg(self) -> QIcon:
+        """Return the 'folder but not gpkg' location icon."""
+        return self._qicon("location_folder_no_gpkg.svg")
+
+    @property
+    def location_gpkg_folder(self) -> QIcon:
+        """Return the 'gpkg in folder' location icon."""
+        return self._qicon("location_gpkg_folder.svg")
+
+    @property
+    def location_gpkg_project(self) -> QIcon:
+        """Return the 'project gpkg' location icon."""
+        return self._qicon("location_gpkg_project.svg")
+
+    @property
+    def browser_gpkg(self) -> QIcon:
+        """Return the browser gpkg icon."""
+        return self._qicon("browser_gpkg.svg")
 
     @property
     def main_menu_copy(self) -> QIcon:

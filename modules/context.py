@@ -90,6 +90,24 @@ class PluginContext:
         return cls._plugin_dir
 
     @classmethod
+    def resources_path(cls) -> Path:
+        """Get the resources directory path.
+
+        Returns:
+            Path: The absolute path to the resources directory.
+        """
+        return cls.plugin_dir() / "resources"
+
+    @classmethod
+    def icons_path(cls) -> Path:
+        """Get the icons directory path.
+
+        Returns:
+            Path: The absolute path to the icons directory.
+        """
+        return cls.resources_path() / "icons"
+
+    @classmethod
     def project_path(cls) -> Path:
         r"""Get the file path of the current QGIS project.
 
