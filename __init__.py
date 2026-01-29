@@ -3,9 +3,11 @@
 This script initializes the plugin, making it known to QGIS.
 """
 
+# pylint: disable=invalid-name, import-outside-toplevel
+# ruff: noqa: ANN001, ANN201, N802, PLC0415
 
-# noinspection PyPep8Naming
-def classFactory(iface):  # pylint: disable=invalid-name  # noqa: ANN001, ANN201, N802
+
+def classFactory(iface):
     """Load the UTECLayerTools plugin class from the UTEC_layer_tools module.
 
     Args:
@@ -14,7 +16,7 @@ def classFactory(iface):  # pylint: disable=invalid-name  # noqa: ANN001, ANN201
     Returns:
         UTECLayerTools: An instance of the plugin class.
     """
-    # pylint: disable=import-outside-toplevel
-    from .UTEC_layer_tools import UTECLayerTools  # noqa: PLC0415
+
+    from .UTEC_layer_tools import UTECLayerTools
 
     return UTECLayerTools(iface)

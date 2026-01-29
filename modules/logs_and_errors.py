@@ -13,14 +13,13 @@ from qgis.PyQt.QtCore import QCoreApplication
 
 from .constants import Issue
 
+LOG_TAG: str = "Plugin: UTEC Layer Tools"
 LEVEL_ICON: dict[Qgis.MessageLevel, str] = {
     Qgis.Success: "🎉",
     Qgis.Info: "💡",
     Qgis.Warning: "💥",
     Qgis.Critical: "💀",
 }
-
-LOG_TAG: str = "Plugin: UTEC Layer Tools"
 
 
 def file_line(frame: FrameType | None) -> str:

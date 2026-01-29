@@ -38,7 +38,7 @@ if TYPE_CHECKING:
     from modules.constants import ActionResults
 
 
-class UTECLayerTools(QObject):  # pylint: disable=too-many-instance-attributes
+class UTECLayerTools(QObject):
     """QGIS Plugin for actions on layers."""
 
     def __init__(self, iface: QgisInterface) -> None:

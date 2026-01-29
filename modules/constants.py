@@ -142,6 +142,31 @@ class Icons:
         return self._qicon("main_icon.svg")
 
     @property
+    def main_menu_copy(self) -> QIcon:
+        """Return the copy icon, dynamically colored for the current theme."""
+        return self._qicon("main_menu_copy.svg", dynamic=True)
+
+    @property
+    def main_menu_rename_copy(self) -> QIcon:
+        """Return the rename+copy icon, dynamically colored for the current theme."""
+        return self._qicon("main_menu_rename_copy.svg", dynamic=True)
+
+    @property
+    def main_menu_rename(self) -> QIcon:
+        """Return the rename icon, dynamically colored for the current theme."""
+        return self._qicon("main_menu_rename.svg", dynamic=True)
+
+    @property
+    def main_menu_send(self) -> QIcon:
+        """Return the send icon, dynamically colored for the current theme."""
+        return self._qicon("main_menu_send.svg", dynamic=True)
+
+    @property
+    def main_menu_undo(self) -> QIcon:
+        """Return the undo icon, dynamically colored for the current theme."""
+        return self._qicon("main_menu_undo.svg", dynamic=True)
+
+    @property
     def location_empty(self) -> QIcon:
         """Return the 'empty' location icon."""
         return self._qicon("location_empty.svg")
@@ -170,31 +195,6 @@ class Icons:
     def browser_gpkg(self) -> QIcon:
         """Return the browser gpkg icon."""
         return self._qicon("browser_gpkg.svg")
-
-    @property
-    def main_menu_copy(self) -> QIcon:
-        """Return the copy icon, dynamically colored for the current theme."""
-        return self._qicon("main_menu_copy.svg", dynamic=True)
-
-    @property
-    def main_menu_rename_copy(self) -> QIcon:
-        """Return the rename+copy icon, dynamically colored for the current theme."""
-        return self._qicon("main_menu_rename_copy.svg", dynamic=True)
-
-    @property
-    def main_menu_rename(self) -> QIcon:
-        """Return the rename icon, dynamically colored for the current theme."""
-        return self._qicon("main_menu_rename.svg", dynamic=True)
-
-    @property
-    def main_menu_send(self) -> QIcon:
-        """Return the send icon, dynamically colored for the current theme."""
-        return self._qicon("main_menu_send.svg", dynamic=True)
-
-    @property
-    def main_menu_undo(self) -> QIcon:
-        """Return the undo icon, dynamically colored for the current theme."""
-        return self._qicon("main_menu_undo.svg", dynamic=True)
 
     @property
     def location_cloud(self) -> QIcon:
