@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+
+<svg
+   height="800px"
+   width="800px"
+   version="1.1"
+   id="Layer_1"
+   viewBox="0 0 504 504"
+   xml:space="preserve"
+   sodipodi:docname="location_external.svg"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+   id="defs5" /><sodipodi:namedview
+   id="namedview5"
+   pagecolor="#ffffff"
+   bordercolor="#000000"
+   borderopacity="0.25"
+   inkscape:showpageshadow="2"
+   inkscape:pageopacity="0.0"
+   inkscape:pagecheckerboard="0"
+   inkscape:deskcolor="#d1d1d1"
+   inkscape:zoom="1.41625"
+   inkscape:cx="399.64695"
+   inkscape:cy="400"
+   inkscape:window-width="2560"
+   inkscape:window-height="1351"
+   inkscape:window-x="-9"
+   inkscape:window-y="-4"
+   inkscape:window-maximized="1"
+   inkscape:current-layer="Layer_1" />
+
+<g
+   id="g2">
+	
+	
+</g>
+
+
+<g
+   id="g5"
+   transform="matrix(0.91601059,0,0,0.91601059,21.165331,21.165331)"><polygon
+     style="fill:#a41f11;fill-opacity:1"
+     points="152.4,4 357.2,4 502,148.8 502,353.6 357.2,500 152.4,500 10,353.6 10,148.8 "
+     id="polygon1" /><path
+     style="fill:#f4efef"
+     d="m 254,325.6 c -10.8,0 -20,-8.8 -20,-19.6 V 133.2 c 0,-10.8 9.2,-19.6 20,-19.6 10.8,0 20,8.8 20,19.6 V 306 c 0,10.8 -9.2,19.6 -20,19.6 z"
+     id="path1" /><path
+     style="fill:#f4efef"
+     d="m 254,388.4 c -5.2,0 -10.4,-2 -14,-5.6 -3.6,-3.6 -5.6,-8.8 -5.6,-14 0,-5.2 2,-10.4 5.6,-14 3.6,-3.6 8.8,-5.6 14,-5.6 5.2,0 10.4,2 14,5.6 3.6,3.6 5.6,8.8 5.6,14 0,5.2 -2,10.4 -5.6,14 -3.6,3.6 -8.8,5.6 -14,5.6 z"
+     id="path2" /><path
+     d="m 250,329.6 c -13.2,0 -24,-10.8 -24,-23.6 V 133.2 c 0,-13.2 10.8,-23.6 24,-23.6 13.2,0 24,10.8 24,23.6 V 306 c 0,13.2 -10.8,23.6 -24,23.6 z m 0,-212 c -8.8,0 -16,7.2 -16,15.6 V 306 c 0,8.4 7.2,15.6 16,15.6 8.8,0 16,-7.2 16,-15.6 V 133.2 c 0,-8.4 -7.2,-15.6 -16,-15.6 z"
+     id="path3" /><path
+     d="m 250,392.4 c -6.4,0 -12.4,-2.4 -16.8,-6.8 -4.4,-4.4 -6.8,-10.4 -6.8,-16.8 0,-6.4 2.4,-12.4 6.8,-16.8 4.4,-4.4 10.4,-6.8 16.8,-6.8 6,0 12.4,2.4 16.8,6.8 4.4,4.4 6.8,10.4 6.8,16.8 0,6.4 -2.4,12.4 -6.8,16.8 -4.4,4.4 -10.4,6.8 -16.8,6.8 z m 0,-39.2 c -4,0 -8,1.6 -11.2,4.8 -2.8,2.8 -4.4,6.8 -4.4,11.2 0,4 1.6,8 4.4,11.2 2.8,2.8 6.8,4.4 11.2,4.4 4,0 8,-1.6 11.2,-4.4 2.8,-2.8 4.4,-6.8 4.4,-11.2 0,-4 -1.6,-8 -4.4,-11.2 -3.2,-3.2 -7.2,-4.8 -11.2,-4.8 z"
+     id="path4" /><path
+     d="M 357.2,504 H 152.4 c -1.2,0 -2,-0.4 -2.8,-1.2 L 3.2,356.4 C 2.4,355.6 2,354.8 2,353.6 V 148.8 c 0,-1.2 0.4,-2 1.2,-2.8 L 149.6,1.2 C 150.4,0.4 151.2,0 152.4,0 h 204.8 c 1.2,0 2,0.4 2.8,1.2 L 500.8,146 c 0.8,0.8 1.2,1.6 1.2,2.8 v 204.8 c 0,1.2 -0.4,2 -1.2,2.8 L 360,502.8 c -0.8,0.8 -1.6,1.2 -2.8,1.2 z M 154,496 H 355.6 L 494,352 V 150.4 L 355.6,8 H 154 L 10,150.4 V 352 Z"
+     id="path5" /></g>
+</svg>
