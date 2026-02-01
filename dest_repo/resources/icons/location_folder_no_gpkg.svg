@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+
+<svg
+   height="800px"
+   width="800px"
+   version="1.1"
+   id="Layer_1"
+   viewBox="0 0 512 512"
+   xml:space="preserve"
+   sodipodi:docname="location_folder_no_gpkg.svg"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+   id="defs7" /><sodipodi:namedview
+   id="namedview7"
+   pagecolor="#ffffff"
+   bordercolor="#000000"
+   borderopacity="0.25"
+   inkscape:showpageshadow="2"
+   inkscape:pageopacity="0.0"
+   inkscape:pagecheckerboard="0"
+   inkscape:deskcolor="#d1d1d1"
+   inkscape:zoom="0.088515625"
+   inkscape:cx="-4332.5684"
+   inkscape:cy="112.9744"
+   inkscape:window-width="2407"
+   inkscape:window-height="1220"
+   inkscape:window-x="2670"
+   inkscape:window-y="43"
+   inkscape:window-maximized="0"
+   inkscape:current-layer="Layer_1" />
+<path
+   style="fill:#780800;stroke-width:0.956582;fill-opacity:1"
+   d="m 185.06516,91.306075 v 0 c 0,-11.846314 -9.60408,-21.449443 -21.44944,-21.449443 H 51.773085 c -11.845357,0 -21.449443,9.604085 -21.449443,21.449443 V 417.07876 c 0,11.84631 9.604086,21.44944 21.449443,21.44944 H 423.30005 c 11.84631,0 21.44944,-9.60409 21.44944,-21.44944 V 134.20592 c 0,-11.84632 -9.60313,-21.44945 -21.44944,-21.44945 H 206.51461 c -11.84727,0 -21.44945,-9.60312 -21.44945,-21.450395 z"
+   id="path1-9"
+   inkscape:label="folder - back" /><path
+   style="fill:#ad180a;stroke-width:0.956582;fill-opacity:1"
+   d="M 479.04296,168.06319 H 108.84374 c -9.836539,0 -18.413255,6.69129 -20.805667,16.23224 L 30.978901,411.86156 c -3.395867,13.54233 6.845302,26.66664 20.804706,26.66664 H 421.98284 c 9.83653,0 18.41325,-6.69129 20.80566,-16.2332 l 57.05917,-227.56708 c 3.39587,-13.54042 -6.84434,-26.66473 -20.80471,-26.66473 z"
+   id="path2-4"
+   inkscape:label="folder - front" />
+</svg>

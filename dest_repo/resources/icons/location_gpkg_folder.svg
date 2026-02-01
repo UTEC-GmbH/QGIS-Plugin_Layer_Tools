@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
+
+<svg
+   height="800px"
+   width="800px"
+   version="1.1"
+   id="Layer_1"
+   viewBox="0 0 512 512"
+   xml:space="preserve"
+   sodipodi:docname="location_gpkg_folder.svg"
+   inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+   id="defs7" /><sodipodi:namedview
+   id="namedview7"
+   pagecolor="#ffffff"
+   bordercolor="#000000"
+   borderopacity="0.25"
+   inkscape:showpageshadow="2"
+   inkscape:pageopacity="0.0"
+   inkscape:pagecheckerboard="0"
+   inkscape:deskcolor="#d1d1d1"
+   inkscape:zoom="0.088515625"
+   inkscape:cx="-209.00265"
+   inkscape:cy="-869.90291"
+   inkscape:window-width="2407"
+   inkscape:window-height="1220"
+   inkscape:window-x="2670"
+   inkscape:window-y="43"
+   inkscape:window-maximized="0"
+   inkscape:current-layer="Layer_1" />
+<path
+   style="fill:#b28119;fill-opacity:1"
+   d="m 161.765,75.48 v 0 c 0,-12.384 -10.04,-22.423 -22.423,-22.423 H 22.423 C 10.04,53.057 0,63.097 0,75.48 v 340.559 c 0,12.384 10.04,22.423 22.423,22.423 h 388.39 c 12.384,0 22.423,-10.04 22.423,-22.423 V 120.327 c 0,-12.384 -10.039,-22.423 -22.423,-22.423 H 184.188 c -12.385,0 -22.423,-10.039 -22.423,-22.424 z"
+   id="path1-9"
+   inkscape:label="folder - back"
+   transform="matrix(0.95658221,0,0,0.95658221,27.027081,20.910842)" /><path
+   style="fill:#f0c64d;stroke-width:0.956582;fill-opacity:1"
+   d="M 474.07972,170.47624 H 103.88049 c -9.83653,0 -18.41325,6.69129 -20.80566,16.23225 L 26.015656,414.27461 c -3.395867,13.54234 6.845302,26.66663 20.804706,26.66663 H 417.01959 c 9.83653,0 18.41325,-6.69128 20.80566,-16.2332 l 57.05917,-227.56708 c 3.39587,-13.54042 -6.84434,-26.66473 -20.8047,-26.66472 z"
+   id="path2-4"
+   inkscape:label="folder - front" />
+</svg>
