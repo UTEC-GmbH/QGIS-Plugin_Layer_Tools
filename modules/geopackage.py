@@ -15,6 +15,7 @@ from qgis.core import (
     QgsLayerTree,
     QgsMapLayer,
     QgsProject,
+    QgsProviderRegistry,
     QgsRasterDataProvider,
     QgsRasterFileWriter,
     QgsRasterLayer,
@@ -24,6 +25,7 @@ from qgis.core import (
     QgsWkbTypes,
 )
 from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtWidgets import QMessageBox
 
 from .constants import GEOMETRY_SUFFIX_MAP, LAYER_TYPES, ActionResults, Issue
 from .context import PluginContext
@@ -342,6 +344,108 @@ def clear_autocad_attributes(layer: QgsMapLayer, gpkg_path: Path) -> None:
         )
 
 
+def _get_gpkg_layer_dependencies(gpkg_path: Path) -> dict[str, list[str]]:
+    """Get a mapping of GeoPackage tables to project layers that use them.
+
+    Args:
+        gpkg_path: The path to the GeoPackage.
+
+    Returns:
+        dict[str, list[str]]: A dictionary where keys are table names and
+        values are lists of layer names in the current project that source
+        that table.
+    """
+    dependencies: dict[str, list[str]] = {}
+    project: QgsProject = PluginContext.project()
+    registry: QgsProviderRegistry | None = QgsProviderRegistry.instance()
+
+    if not registry:
+        return dependencies
+
+    norm_gpkg_path: str = str(gpkg_path).lower().replace("\\", "/")
+
+    for layer in project.mapLayers().values():
+        if not layer.isValid():
+            continue
+
+        decoded: dict = registry.decodeUri(layer.providerType(), layer.source())
+        uri_path: str = decoded.get("path", "")
+
+        if not uri_path:
+            # Fallback for some providers or if decode fails to find path
+            uri_path = layer.source().split("|")[0]
+
+        if str(uri_path).lower().replace("\\", "/") == norm_gpkg_path:
+            table_name: str = decoded.get("layerName", "")
+            if not table_name and "|layername=" in layer.source():
+                with contextlib.suppress(IndexError):
+                    table_name = layer.source().split("|layername=")[1].split("|")[0]
+
+            if table_name:
+                dependencies.setdefault(table_name, []).append(layer.name())
+
+    return dependencies
+
+
+def _confirm_overwrites(
+    layers: list[QgsMapLayer], gpkg_path: Path, existing_layers: set[str]
+) -> bool:
+    """Check for overwrites and ask user for confirmation if necessary.
+
+    Args:
+        layers: The list of layers to be added.
+        gpkg_path: The path to the GeoPackage.
+        existing_layers: A set of existing layer names in the GeoPackage.
+
+    Returns:
+        bool: True if the operation should proceed, False otherwise.
+    """
+    potential_overwrites: set[str] = set()
+
+    for layer in layers:
+        if "url=" in layer.source():
+            continue
+
+        # Determine the name the layer will have in the GPKG
+        target_name: str = check_existing_layer(gpkg_path, layer, existing_layers)
+
+        if target_name in existing_layers:
+            potential_overwrites.add(target_name)
+
+    if not potential_overwrites:
+        return True
+
+    # Found overwrites, check dependencies
+    dependencies: dict[str, list[str]] = _get_gpkg_layer_dependencies(gpkg_path)
+
+    msg: str = QCoreApplication.translate(
+        "GeoPackage", "The following layers in the GeoPackage will be overwritten:"
+    )
+    msg += "\n"
+
+    for table in sorted(potential_overwrites):
+        msg += f"\n• {table}"
+        if deps := dependencies.get(table):
+            dep_str: str = ", ".join(deps[:3])
+            if len(deps) > 3:
+                dep_str += ", ..."
+
+            usage_text = QCoreApplication.translate("GeoPackage", "used by")
+            msg += f" ({usage_text}: {dep_str})"
+
+    msg += "\n\n" + QCoreApplication.translate("GeoPackage", "Do you want to continue?")
+
+    reply = QMessageBox.question(
+        PluginContext.iface().mainWindow(),
+        QCoreApplication.translate("GeoPackage", "Overwrite Warning"),
+        msg,
+        QMessageBox.Yes | QMessageBox.No,
+        QMessageBox.No,
+    )
+
+    return reply == QMessageBox.Yes
+
+
 def add_layers_to_gpkg(
     layers: list[QgsMapLayer] | None = None, gpkg_path: Path | None = None
 ) -> ActionResults[dict[QgsMapLayer, str]]:
@@ -367,10 +471,15 @@ def add_layers_to_gpkg(
     if layers is None:
         layers = get_selected_layers()
 
-    results: ActionResults[dict[QgsMapLayer, str]] = ActionResults({})
-
     # Pre-fetch existing layer names to avoid repeated DB connections
     existing_layers: set[str] = get_gpkg_layer_names(gpkg_path)
+
+    if not _confirm_overwrites(layers, gpkg_path, existing_layers):
+        return ActionResults(
+            {}, errors=[Issue("User Cancelled", "Operation cancelled by user.")]
+        )
+
+    results: ActionResults[dict[QgsMapLayer, str]] = ActionResults({})
 
     for layer in layers:
         layer_name: str = layer.name()
