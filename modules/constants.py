@@ -206,6 +206,66 @@ class Icons:
         """Return the unknown icon, dynamically colored for the current theme."""
         return self._qicon("location_unknown.svg", dynamic=True)
 
+    @property
+    def location_multi_1(self) -> QIcon:
+        """Return the 'multi 1' location icon."""
+        return self._qicon("location_multi_1.svg")
+
+    @property
+    def location_multi_2(self) -> QIcon:
+        """Return the 'multi 2' location icon."""
+        return self._qicon("location_multi_2.svg")
+
+    @property
+    def location_multi_3(self) -> QIcon:
+        """Return the 'multi 3' location icon."""
+        return self._qicon("location_multi_3.svg")
+
+    @property
+    def location_multi_4(self) -> QIcon:
+        """Return the 'multi 4' location icon."""
+        return self._qicon("location_multi_4.svg")
+
+    @property
+    def location_multi_5(self) -> QIcon:
+        """Return the 'multi 5' location icon."""
+        return self._qicon("location_multi_5.svg")
+
+    @property
+    def location_multi_6(self) -> QIcon:
+        """Return the 'multi 6' location icon."""
+        return self._qicon("location_multi_6.svg")
+
+    @property
+    def location_multi_7(self) -> QIcon:
+        """Return the 'multi 7' location icon."""
+        return self._qicon("location_multi_7.svg")
+
+    @property
+    def location_multi_8(self) -> QIcon:
+        """Return the 'multi 8' location icon."""
+        return self._qicon("location_multi_8.svg")
+
+    @property
+    def location_multi_9(self) -> QIcon:
+        """Return the 'multi 9' location icon."""
+        return self._qicon("location_multi_9.svg")
+
+    def get_multi_icon(self, index: int) -> QIcon:
+        """Return a multi icon by index (0-4)."""
+        icons = [
+            self.location_multi_1,
+            self.location_multi_2,
+            self.location_multi_3,
+            self.location_multi_4,
+            self.location_multi_5,
+            self.location_multi_6,
+            self.location_multi_7,
+            self.location_multi_8,
+            self.location_multi_9,
+        ]
+        return icons[index % 5]
+
 
 ICONS = Icons()
 

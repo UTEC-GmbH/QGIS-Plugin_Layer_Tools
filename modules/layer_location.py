@@ -21,7 +21,7 @@ from qgis.core import (
 from qgis.gui import QgisInterface, QgsLayerTreeView, QgsLayerTreeViewIndicator
 from qgis.PyQt.QtCore import QTimer
 
-from .constants import LayerLocation
+from .constants import ICONS, LayerLocation
 from .context import PluginContext
 from .general import is_empty_layer
 from .logs_and_errors import CustomUserError, log_debug
@@ -30,6 +30,28 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 LOG_PREFIX = "Location Indicators → "
+
+
+def get_layer_source_path(layer: QgsMapLayer) -> str | None:
+    """Extract the normalized source path of a layer.
+
+    Args:
+        layer: The QGIS map layer.
+
+    Returns:
+        str | None: The normalized source path or None if not applicable.
+    """
+    prov_instance: QgsProviderRegistry | None = QgsProviderRegistry.instance()
+    if not prov_instance or layer.source().startswith("memory"):
+        return None
+
+    decoded_uri: dict = prov_instance.decodeUri(layer.providerType(), layer.source())
+
+    # Use path from decoded URI if available, otherwise fall back to source
+    uri_path: str = decoded_uri.get("path", "")
+    if not uri_path:
+        uri_path = layer.source().split("|")[0]
+    return os.path.normcase(uri_path)
 
 
 def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
@@ -66,11 +88,8 @@ def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
 
     decoded_uri: dict = prov_instance.decodeUri(layer.providerType(), layer.source())
 
-    # Use path from decoded URI if available, otherwise fall back to source
-    uri_path: str = decoded_uri.get("path", "")
-    if not uri_path:
-        uri_path = layer.source().split("|")[0]
-    layer_path: str = os.path.normcase(uri_path)
+    # Use helper to get path
+    layer_path: str = get_layer_source_path(layer) or ""
 
     gpkg: str = os.path.normcase(project_gpkg_path)
     project_folder: str = os.path.normcase(str(Path(project_gpkg_path).parent))
@@ -93,7 +112,10 @@ def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
 
 
 def add_location_indicator(
-    project: QgsProject, iface: QgisInterface, layer: QgsMapLayer
+    project: QgsProject,
+    iface: QgisInterface,
+    layer: QgsMapLayer,
+    multi_info: tuple[int, list[str]] | None = None,
 ) -> list[QgsLayerTreeViewIndicator] | None:
     """Add a location indicator for a single layer to the layer tree view.
 
@@ -101,6 +123,7 @@ def add_location_indicator(
         project: The QGIS project instance.
         iface: The QGIS interface instance.
         layer: The layer to add an indicator for.
+        multi_info: Optional tuple of (icon_index, list_of_shared_layer_names).
 
     Returns:
         list[QgsLayerTreeViewIndicator] | None: A list of added indicators
@@ -141,6 +164,39 @@ def add_location_indicator(
                 icon="📍",
             )
 
+        # Add multi indicator if applicable
+        if multi_info:
+            idx, shared_names = multi_info
+            multi_indicator = QgsLayerTreeViewIndicator()
+            multi_indicator.setIcon(ICONS.get_multi_icon(idx))
+
+            source_path = get_layer_source_path(layer)
+
+            # Attempt to append layer name to source path for clarity
+            prov_reg = QgsProviderRegistry.instance()
+            decoded = prov_reg.decodeUri(layer.providerType(), layer.source())
+            if layer_name := decoded.get("layerName", ""):
+                source_path = f"{source_path} : {layer_name}"
+            elif "|layername=" in layer.source():
+                with contextlib.suppress(IndexError):
+                    layer_name = layer.source().split("|layername=")[1].split("|")[0]
+                    source_path = f"{source_path} : {layer_name}"
+
+            names_list = "".join(f"<li>{n}</li>" for n in shared_names)
+            tooltip = (
+                "<p><b>Shared Data Source</b></p>"
+                f"<p>Source: {source_path}</p>"
+                f"<p>Used by:</p><ul>{names_list}</ul>"
+            )
+            multi_indicator.setToolTip(tooltip)
+            view.addIndicator(node, multi_indicator)
+            indicators.append(multi_indicator)
+            log_debug(
+                f"'{layer.name()}' → adding multi indicator...",
+                prefix=LOG_PREFIX,
+                icon="🔗",
+            )
+
         return indicators or None
 
     return None
@@ -159,10 +215,11 @@ class LocationIndicatorManager:
         self.project: QgsProject = project
         self.iface: QgisInterface = iface
         self.location_indicators: dict[str, list[QgsLayerTreeViewIndicator]] = {}
-        # Cache stores (LocationType, TreeNodeObject) to detect node recreation
+        # Cache stores (LocationType, TreeNodeObject, MultiInfo)
         self.layer_locations: dict[
-            str, tuple[LayerLocation | None, QgsLayerTreeNode | None]
+            str, tuple[LayerLocation | None, QgsLayerTreeNode | None, tuple | None]
         ] = {}
+        self.shared_groups: dict[str, tuple[int, list[str]]] = {}
         self._model_reset_handler: Callable[[], None] | None = None
         self._tree_change_handler: Callable[..., None] | None = None
         self._layout_changed_handler: Callable[[], None] | None = None
@@ -289,6 +346,7 @@ class LocationIndicatorManager:
             return
 
         visible_layer_ids: set[str] = self._get_visible_layer_ids(root)
+        self._calculate_shared_groups(visible_layer_ids)
         self._update_indicators_for_visible_layers(visible_layer_ids)
         self._cleanup_removed_layers(visible_layer_ids)
 
@@ -299,6 +357,40 @@ class LocationIndicatorManager:
             if layer_node and (layer := layer_node.layer()):
                 visible_layer_ids.add(layer.id())
         return visible_layer_ids
+
+    def _calculate_shared_groups(self, visible_layer_ids: set[str]) -> None:
+        """Calculate groups of layers sharing the same source."""
+        self.shared_groups.clear()
+        # Key is (normalized_path, layer_name)
+        source_map: dict[tuple[str, str], list[QgsMapLayer]] = {}
+        prov_registry = QgsProviderRegistry.instance()
+
+        for lid in visible_layer_ids:
+            if (layer := self.project.mapLayer(lid)) and (
+                path := get_layer_source_path(layer)
+            ):
+                # Extract sub-layer name (table name)
+                decoded = prov_registry.decodeUri(layer.providerType(), layer.source())
+                layer_name = decoded.get("layerName", "")
+
+                if not layer_name and "|layername=" in layer.source():
+                    with contextlib.suppress(IndexError):
+                        layer_name = (
+                            layer.source().split("|layername=")[1].split("|")[0]
+                        )
+
+                source_map.setdefault((path, layer_name), []).append(layer)
+
+        # Sort groups by source path to ensure deterministic icon assignment
+        sorted_sources = sorted(
+            (key, layers) for key, layers in source_map.items() if len(layers) > 1
+        )
+
+        for i, (_, layers) in enumerate(sorted_sources):
+            icon_idx = i % 5
+            layer_names = sorted(l.name() for l in layers)
+            for layer in layers:
+                self.shared_groups[layer.id()] = (icon_idx, layer_names)
 
     def _update_indicators_for_visible_layers(
         self, visible_layer_ids: set[str]
@@ -315,21 +407,29 @@ class LocationIndicatorManager:
             layer_node: QgsLayerTreeLayer | None = root.findLayer(lid)
 
             new_location: LayerLocation | None = get_layer_location(layer)
-            # Check if we already have this state (Location AND Node identity)
+            multi_info: tuple[int, list[str]] | None = self.shared_groups.get(lid)
+
+            # Check if we already have this state
             cached_state: (
-                tuple[LayerLocation | None, QgsLayerTreeNode | None] | None
+                tuple[LayerLocation | None, QgsLayerTreeNode | None, tuple | None]
+                | None
             ) = self.layer_locations.get(lid)
+
             cached_location: LayerLocation | None = (
                 cached_state[0] if cached_state else None
             )
             cached_node: QgsLayerTreeNode | None = (
                 cached_state[1] if cached_state else None
             )
+            cached_multi: tuple | None = (
+                cached_state[2] if cached_state and len(cached_state) > 2 else None
+            )
 
-            # If location type matches AND it's the same tree node object, skip update
+            # If state matches, skip update
             if (
                 new_location == cached_location
                 and layer_node == cached_node
+                and multi_info == cached_multi
                 and (lid in self.location_indicators or new_location is None)
             ):
                 continue
@@ -342,8 +442,8 @@ class LocationIndicatorManager:
                 # _add_indicator_for_layer will update the cache with new node
                 self._add_indicator_for_layer(layer)
             else:
-                # Update cache for None location
-                self.layer_locations[lid] = (None, layer_node)
+                # Update cache for None location (and potentially None multi_info)
+                self.layer_locations[lid] = (None, layer_node, multi_info)
 
     def _cleanup_removed_layers(self, visible_layer_ids: set[str]) -> None:
         """Remove indicators for layers no longer in the tree.
@@ -425,7 +525,11 @@ class LocationIndicatorManager:
         root: QgsLayerTree | None = self.project.layerTreeRoot()
         node: QgsLayerTreeLayer | None = root.findLayer(lid) if root else None
 
-        self.layer_locations[lid] = (get_layer_location(layer), node)
+        self.layer_locations[lid] = (
+            get_layer_location(layer),
+            node,
+            self.shared_groups.get(lid),
+        )
 
         self._connect_layer_signals(layer)
 
@@ -435,7 +539,11 @@ class LocationIndicatorManager:
         if layer_id in self.location_indicators:
             return
 
-        if indicators := add_location_indicator(self.project, self.iface, layer):
+        multi_info = self.shared_groups.get(layer_id)
+
+        if indicators := add_location_indicator(
+            self.project, self.iface, layer, multi_info
+        ):
             self._layer_location_cache(indicators, layer_id, layer)
 
     def _connect_layer_signals(self, layer: QgsMapLayer) -> None:
