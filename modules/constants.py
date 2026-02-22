@@ -9,8 +9,8 @@ from enum import Enum
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 from qgis.core import Qgis, QgsApplication, QgsMapLayer, QgsSvgCache, QgsWkbTypes
-from qgis.PyQt.QtCore import QCoreApplication
-from qgis.PyQt.QtGui import QColor, QIcon, QPixmap
+from qgis.PyQt.QtCore import QCoreApplication, QRectF, Qt
+from qgis.PyQt.QtGui import QColor, QFont, QIcon, QImage, QPainter, QPixmap
 
 from .context import PluginContext
 
@@ -135,6 +135,7 @@ class Icons:
         self.browser_unused: QIcon = QgsApplication.getThemeIcon(
             "mActionHandleStoreFilterExpressionUnchecked.svg"
         )
+        self._multi_icon_cache: dict[int, QIcon] = {}
 
     @property
     def main_icon(self) -> QIcon:
@@ -205,6 +206,58 @@ class Icons:
     def location_unknown(self) -> QIcon:
         """Return the unknown icon, dynamically colored for the current theme."""
         return self._qicon("location_unknown.svg", dynamic=True)
+
+    def _create_numbered_icon(self, number: int) -> QIcon:
+        """Create a dynamic icon with a number on top of a base icon."""
+        if number in self._multi_icon_cache:
+            return self._multi_icon_cache[number]
+
+        base_icon = self._qicon("location_multi.svg")
+        size = 32
+
+        if PluginContext.is_qt6():
+            fmt = QImage.Format.Format_ARGB32_Premultiplied
+            color = Qt.GlobalColor.transparent
+            align = Qt.AlignmentFlag.AlignCenter
+        else:
+            fmt = QImage.Format_ARGB32_Premultiplied
+            color = Qt.transparent
+            align = Qt.AlignCenter
+
+        image = QImage(size, size, fmt)
+        image.fill(color)
+
+        painter = QPainter(image)
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+
+            base_pixmap = base_icon.pixmap(size, size)
+            if not base_pixmap.isNull():
+                painter.drawPixmap(0, 0, base_pixmap)
+
+            font = QFont()
+            font.setBold(True)
+            font.setPixelSize(int(size * 0.8))
+            painter.setFont(font)
+            text_color = QColor("#000000")
+            text_color.setAlpha(150)  # 0-255 (0 = transparent, 255 = opaque)
+            painter.setPen(text_color)
+
+            rect = QRectF(0, 0, size, size)
+            painter.drawText(rect, align, str(number))
+
+        finally:
+            painter.end()
+
+        icon = QIcon(QPixmap.fromImage(image))
+        self._multi_icon_cache[number] = icon
+        return icon
+
+    def get_multi_icon(self, index: int) -> QIcon:
+        """Return a multi icon by index."""
+        return self._create_numbered_icon(index + 1)
 
 
 ICONS = Icons()
