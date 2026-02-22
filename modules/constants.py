@@ -9,8 +9,8 @@ from enum import Enum
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 from qgis.core import Qgis, QgsApplication, QgsMapLayer, QgsSvgCache, QgsWkbTypes
-from qgis.PyQt.QtCore import QCoreApplication
-from qgis.PyQt.QtGui import QColor, QIcon, QPixmap
+from qgis.PyQt.QtCore import QCoreApplication, QRectF, Qt
+from qgis.PyQt.QtGui import QColor, QFont, QIcon, QImage, QPainter, QPixmap
 
 from .context import PluginContext
 
@@ -135,6 +135,7 @@ class Icons:
         self.browser_unused: QIcon = QgsApplication.getThemeIcon(
             "mActionHandleStoreFilterExpressionUnchecked.svg"
         )
+        self._multi_icon_cache: dict[int, QIcon] = {}
 
     @property
     def main_icon(self) -> QIcon:
@@ -206,65 +207,57 @@ class Icons:
         """Return the unknown icon, dynamically colored for the current theme."""
         return self._qicon("location_unknown.svg", dynamic=True)
 
-    @property
-    def location_multi_1(self) -> QIcon:
-        """Return the 'multi 1' location icon."""
-        return self._qicon("location_multi_1.svg")
+    def _create_numbered_icon(self, number: int) -> QIcon:
+        """Create a dynamic icon with a number on top of a base icon."""
+        if number in self._multi_icon_cache:
+            return self._multi_icon_cache[number]
 
-    @property
-    def location_multi_2(self) -> QIcon:
-        """Return the 'multi 2' location icon."""
-        return self._qicon("location_multi_2.svg")
+        base_icon = self._qicon("location_multi.svg")
+        size = 32
 
-    @property
-    def location_multi_3(self) -> QIcon:
-        """Return the 'multi 3' location icon."""
-        return self._qicon("location_multi_3.svg")
+        if PluginContext.is_qt6():
+            fmt = QImage.Format.Format_ARGB32_Premultiplied
+            color = Qt.GlobalColor.transparent
+            align = Qt.AlignmentFlag.AlignCenter
+        else:
+            fmt = QImage.Format_ARGB32_Premultiplied
+            color = Qt.transparent
+            align = Qt.AlignCenter
 
-    @property
-    def location_multi_4(self) -> QIcon:
-        """Return the 'multi 4' location icon."""
-        return self._qicon("location_multi_4.svg")
+        image = QImage(size, size, fmt)
+        image.fill(color)
 
-    @property
-    def location_multi_5(self) -> QIcon:
-        """Return the 'multi 5' location icon."""
-        return self._qicon("location_multi_5.svg")
+        painter = QPainter(image)
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setRenderHint(QPainter.RenderHint.TextAntialiasing)
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
-    @property
-    def location_multi_6(self) -> QIcon:
-        """Return the 'multi 6' location icon."""
-        return self._qicon("location_multi_6.svg")
+            base_pixmap = base_icon.pixmap(size, size)
+            if not base_pixmap.isNull():
+                painter.drawPixmap(0, 0, base_pixmap)
 
-    @property
-    def location_multi_7(self) -> QIcon:
-        """Return the 'multi 7' location icon."""
-        return self._qicon("location_multi_7.svg")
+            font = QFont()
+            font.setBold(True)
+            font.setPixelSize(int(size * 0.8))
+            painter.setFont(font)
+            text_color = QColor("#000000")
+            text_color.setAlpha(150)  # 0-255 (0 = transparent, 255 = opaque)
+            painter.setPen(text_color)
 
-    @property
-    def location_multi_8(self) -> QIcon:
-        """Return the 'multi 8' location icon."""
-        return self._qicon("location_multi_8.svg")
+            rect = QRectF(0, 0, size, size)
+            painter.drawText(rect, align, str(number))
 
-    @property
-    def location_multi_9(self) -> QIcon:
-        """Return the 'multi 9' location icon."""
-        return self._qicon("location_multi_9.svg")
+        finally:
+            painter.end()
+
+        icon = QIcon(QPixmap.fromImage(image))
+        self._multi_icon_cache[number] = icon
+        return icon
 
     def get_multi_icon(self, index: int) -> QIcon:
-        """Return a multi icon by index (0-4)."""
-        icons = [
-            self.location_multi_1,
-            self.location_multi_2,
-            self.location_multi_3,
-            self.location_multi_4,
-            self.location_multi_5,
-            self.location_multi_6,
-            self.location_multi_7,
-            self.location_multi_8,
-            self.location_multi_9,
-        ]
-        return icons[index % 5]
+        """Return a multi icon by index."""
+        return self._create_numbered_icon(index + 1)
 
 
 ICONS = Icons()

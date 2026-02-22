@@ -5,7 +5,7 @@
    width="24"
    version="1.1"
    id="svg18"
-   sodipodi:docname="location_multi_5.svg"
+   sodipodi:docname="location_multi.svg"
    inkscape:version="1.4.2 (f4327f4, 2025-05-13)"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
@@ -26,8 +26,8 @@
      inkscape:cy="8.4518311"
      inkscape:window-width="2560"
      inkscape:window-height="1351"
-     inkscape:window-x="2551"
-     inkscape:window-y="-9"
+     inkscape:window-x="-9"
+     inkscape:window-y="-4"
      inkscape:window-maximized="1"
      inkscape:current-layer="g16" />
   <defs
@@ -51,16 +51,5 @@
        d="m 6.6327639,21.832143 c -2.475822,0.04097 -4.645174,1.1027 -5.520266,3.684924 -0.86833562,2.562284 1.029111,7.187616 5.211566,5.130684 6.9466821,-3.416378 6.9432231,0.846298 8.6798931,0.846298 2.142202,0 4.339947,-1.493011 4.339947,-3.402825 0,-1.70819 0.08467,-3.343783 -0.871621,-4.284384 -1.73667,-1.70819 -2.612274,0.867394 -7.281667,-1.040243 C 9.7024789,22.158633 8.1182579,21.807561 6.6327639,21.832143 Z"
        style="fill:#72b072;fill-rule:evenodd;stroke:#41433f;stroke-width:0.878;stroke-linecap:round;stroke-linejoin:round"
        id="path4" />
-    <text
-       xml:space="preserve"
-       style="font-weight:bold;font-size:28.5399px;font-family:'Century Gothic';-inkscape-font-specification:'Century Gothic Bold';text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#9932cc;stroke:#ffffff;stroke-width:0.433397;stroke-linecap:round;paint-order:stroke fill markers"
-       x="24.265047"
-       y="29.991753"
-       id="text1"><tspan
-         sodipodi:role="line"
-         id="tspan1"
-         x="24.265047"
-         y="29.991753"
-         style="direction:rtl;stroke-width:0.433397">5</tspan></text>
   </g>
 </svg>

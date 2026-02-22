@@ -380,6 +380,10 @@ def _get_gpkg_layer_dependencies(gpkg_path: Path) -> dict[str, list[str]]:
             if not table_name and "|layername=" in layer.source():
                 with contextlib.suppress(IndexError):
                     table_name = layer.source().split("|layername=")[1].split("|")[0]
+            elif not table_name and ":" in layer.source():
+                parts = layer.source().split(":")
+                if len(parts) >= 3:  # noqa: PLR2004
+                    table_name = parts[-1]
 
             if table_name:
                 dependencies.setdefault(table_name, []).append(layer.name())
@@ -391,6 +395,9 @@ def _confirm_overwrites(
     layers: list[QgsMapLayer], gpkg_path: Path, existing_layers: set[str]
 ) -> bool:
     """Check for overwrites and ask user for confirmation if necessary.
+
+    Confirmation is only requested if a layer that is about to be overwritten
+    is currently used as a data source by a layer in the project.
 
     Args:
         layers: The list of layers to be added.
@@ -415,25 +422,30 @@ def _confirm_overwrites(
     if not potential_overwrites:
         return True
 
-    # Found overwrites, check dependencies
+    # Found overwrites, check which ones are used as dependencies in the project
     dependencies: dict[str, list[str]] = _get_gpkg_layer_dependencies(gpkg_path)
+    used_overwrites: set[str] = {
+        table for table in potential_overwrites if table in dependencies
+    }
 
-    msg: str = QCoreApplication.translate(
-        "GeoPackage", "The following layers in the GeoPackage will be overwritten:"
+    if not used_overwrites:
+        return True
+
+    # fmt: off
+    msg: str = QCoreApplication.translate("GeoPackage", "The following layers in the project's GeoPackage are currently in use in the project and will be overwritten:\n",  # noqa: E501
     )
-    msg += "\n"
+    # fmt: on
 
-    for table in sorted(potential_overwrites):
+    for table in sorted(used_overwrites):
         msg += f"\n• {table}"
         if deps := dependencies.get(table):
-            dep_str: str = ", ".join(deps[:3])
-            if len(deps) > 3:
-                dep_str += ", ..."
-
+            dep_str: str = ", ".join(deps)
             usage_text = QCoreApplication.translate("GeoPackage", "used by")
             msg += f" ({usage_text}: {dep_str})"
 
-    msg += "\n\n" + QCoreApplication.translate("GeoPackage", "Do you want to continue?")
+    # fmt: off
+    msg += QCoreApplication.translate("GeoPackage", "\n\nThis can lead to to unexpected results (especially if used by multiple layers). \n\nDo you want to continue?")  # noqa: E501
+    # fmt: on
 
     reply = QMessageBox.question(
         PluginContext.iface().mainWindow(),
@@ -466,8 +478,8 @@ def add_layers_to_gpkg(
     if gpkg_path is None:
         gpkg_path = PluginContext.project_gpkg()
 
-    if not gpkg_path.exists():
-        raise_runtime_error(f"GeoPackage does not exist at '{gpkg_path}'")
+    create_gpkg(gpkg_path)
+
     if layers is None:
         layers = get_selected_layers()
 
