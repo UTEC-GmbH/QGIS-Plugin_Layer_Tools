@@ -2,14 +2,19 @@
 name=UTEC Layer Tools (dev)
 supportsQt6=True
 
-version=1.1
+version=1.2
 changelog=
-    Version 1.1
+    Version 1.2:
+    - ✨ Neuer Indikator für Layer, die die gleiche Datenquelle benutzen.
+    - ✨ Warnung, falls Layer im Projekt-GeoPackage, die in Benutzung sind, überschrieben werden.
+    - 🐞 Bugfix: Das Projekt-GeoPackage wird erzeugt, falls es noch nicht existiert. (Beim Kopieren von Layern ins GeoPackage)
+
+
+    Version 1.1:
     - Kompatibilität mit QGIS 4.0
     - dynamische Symbole (die hoffentlich auf hellem, sowie dunklem Hintergrund deutlich sind)
     - bugfix: Fehler beim Erstennen eines neuen Projekts - bevor es abgespeichert ist
     - bugfix: Fehler beim Entfernen des Plugins
-
 
     Version 1.0:
     - ✨ Neue Funktion: "UTEC Projekt-GeoPackage" im QGIS Browser
