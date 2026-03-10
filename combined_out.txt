@@ -1,0 +1,24 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.12, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\fl\Documents\Python\QGIS-Plugin_Layer_Tools\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+PyQt6 6.8.0 -- Qt runtime 6.8.1 -- Qt compiled 6.8.1
+rootdir: C:\Users\fl\Documents\Python\QGIS-Plugin_Layer_Tools
+configfile: pyproject.toml
+plugins: cov-7.0.0, qgis-2.1.0, qt-4.5.0, mock-3.15.1
+collecting ... collected 2 items / 1 error
+
+=================================== ERRORS ====================================
+__________ ERROR collecting tests/qgis/test_shipping_integration.py ___________
+ImportError while importing test module 'C:\Users\fl\Documents\Python\QGIS-Plugin_Layer_Tools\tests\qgis\test_shipping_integration.py'.
+Hint: make sure your test modules/packages have valid Python names.
+Traceback:
+C:\OSGeo4W\apps\Python312\Lib\importlib\__init__.py:90: in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\qgis\test_shipping_integration.py:12: in <module>
+    from modules.logs_and_errors import ActionResults
+E   ImportError: cannot import name 'ActionResults' from 'modules.logs_and_errors' (C:\Users\fl\Documents\Python\QGIS-Plugin_Layer_Tools\modules\logs_and_errors.py)
+=========================== short test summary info ===========================
+ERROR tests/qgis/test_shipping_integration.py
+!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!
+============================== 1 error in 0.17s ===============================

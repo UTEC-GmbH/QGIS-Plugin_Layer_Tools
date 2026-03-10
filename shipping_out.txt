@@ -1,0 +1,180 @@
+============================= test session starts =============================
+platform win32 -- Python 3.12.12, pytest-9.0.2, pluggy-1.6.0 -- C:\Users\fl\Documents\Python\QGIS-Plugin_Layer_Tools\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+PyQt6 6.8.0 -- Qt runtime 6.8.1 -- Qt compiled 6.8.1
+rootdir: C:\Users\fl\Documents\Python\QGIS-Plugin_Layer_Tools
+configfile: pyproject.toml
+plugins: cov-7.0.0, qgis-2.1.0, qt-4.5.0, mock-3.15.1
+collecting ... collected 2 items
+
+tests/qgis/test_shipping_integration.py::TestShippingIntegration::test_prepare_layers_for_shipping FAILED [ 50%]
+tests/qgis/test_shipping_integration.py::TestShippingIntegration::test_prepare_layers_no_mock FAILED [100%]
+
+================================== FAILURES ===================================
+__________ TestShippingIntegration.test_prepare_layers_for_shipping ___________
+
+self = <tests.qgis.test_shipping_integration.TestShippingIntegration object at 0x0000021A1AD31550>
+qgis_iface = <pytest_qgis.qgis_interface.QgisInterface object at 0x0000021A67B73430>
+tmp_path = WindowsPath('C:/Users/fl/AppData/Local/Temp/pytest-of-fl/pytest-34/test_prepare_layers_for_shippi0')
+
+    def test_prepare_layers_for_shipping(
+        self, qgis_iface: QgisInterface, tmp_path: Path
+    ) -> None:
+        """Test the full flow of preparing layers for shipping."""
+        # 1. Setup project with a vector layer and save it
+        project = QgsProject.instance()
+        project.clear()
+        project_path = tmp_path / "shipping_project.qgs"
+        project.setFileName(str(project_path))
+    
+        layer = QgsVectorLayer("Point?field=id:integer", "shipping_layer", "memory")
+        project.addMapLayer(layer)
+        project.write()
+    
+        # Select the layer
+        qgis_iface.setActiveLayer(layer)
+    
+        # 2. Mock PluginContext project_path to return our tmp project
+        with (
+            patch("modules.shipping.get_selected_layers") as mock_selected,
+            patch("modules.shipping.create_gpkg") as mock_create,
+            patch("modules.shipping.add_layers_to_gpkg") as mock_add_to,
+            patch("modules.shipping.add_layers_from_gpkg_to_project") as mock_add_from,
+            patch("modules.shipping.PluginContext.project_path") as mock_p_path,
+        ):
+            mock_selected.return_value = [layer]
+            mock_p_path.return_value = project_path
+            # Need to mock this to avoid real project manipulation
+            mock_add_from.return_value = None
+    
+>           prepare_layers_for_shipping()
+
+tests\qgis\test_shipping_integration.py:48: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+    def prepare_layers_for_shipping() -> ActionResults[None]:
+        """Prepare selected layers for shipping.
+    
+        Creates a subfolder in the project directory, generates a GeoPackage
+        containing the selected layers, and creates a companion .qgz project file
+        with the same styling and layout properties.
+    
+        Returns:
+            ActionResults: An object containing the results of the operation.
+        """
+        # Get current project and interface to copy properties from
+        original_project: QgsProject = PluginContext.project()
+    
+        layers: list[QgsMapLayer] = get_selected_layers()
+    
+        shipping_folder_name: str = QCoreApplication.translate("Shipping", "Shipping")
+        project_path: Path = PluginContext.project_path()
+        shipping_dir: Path = project_path.parent / shipping_folder_name
+        shipping_dir.mkdir(exist_ok=True)
+    
+        # Use local time for the filename
+        date_str: str = datetime.now().astimezone().strftime("%Y_%m_%d")
+        base_name: str = f"{project_path.stem}_{date_str}"
+    
+        # Create a GeoPackage and add the layers to it
+        gpkg_path: Path = create_gpkg(
+            shipping_dir / f"{base_name}.gpkg", delete_existing=True
+        )
+        results: ActionResults[dict] = add_layers_to_gpkg(
+            layers=layers, gpkg_path=gpkg_path
+        )
+    
+        if not results.successes:
+            return ActionResults(
+                result=None,
+                processed=results.processed,
+                successes=results.successes,
+                skips=results.skips,
+                errors=results.errors,
+            )
+    
+        # Create Shipping Project file
+        qgz_path: Path = shipping_dir / f"{base_name}.qgz"
+        shipping_project = QgsProject()
+        shipping_project.setFileName(str(qgz_path))
+        _copy_project_properties(original_project, shipping_project)
+    
+        project_results: ActionResults[None] = add_layers_from_gpkg_to_project(
+            gpkg_path=gpkg_path,
+            project=shipping_project,
+            layers=list(reversed(layers)),
+            layer_mapping=results.result,
+        )
+    
+        # Set initial map extent to the current view of the original project
+        iface: QgisInterface | None = PluginContext.iface()
+        if iface and (current_canvas := iface.mapCanvas()):
+            _set_map_extent(current_canvas, shipping_project)
+    
+        # Save the shipping project
+        shipping_project.write()
+        log_debug(f"Created shipping project: {qgz_path}", Qgis.Success)
+    
+        return ActionResults(
+            result=None,
+            processed=results.processed,
+            successes=results.successes,
+>           skips=results.skips + project_results.skips,
+                                  ^^^^^^^^^^^^^^^^^^^^^
+            errors=results.errors + project_results.errors,
+        )
+E       AttributeError: 'NoneType' object has no attribute 'skips'
+
+modules\shipping.py:179: AttributeError
+---------------------------- Captured Qt messages -----------------------------
+QtWarningMsg: QMetaEnum::keysToValue: empty keys string.
+QtWarningMsg: QMetaEnum::keysToValue: empty keys string.
+_____________ TestShippingIntegration.test_prepare_layers_no_mock _____________
+
+self = <tests.qgis.test_shipping_integration.TestShippingIntegration object at 0x0000021A1AD318E0>
+qgis_iface = <pytest_qgis.qgis_interface.QgisInterface object at 0x0000021A67B73430>
+tmp_path = WindowsPath('C:/Users/fl/AppData/Local/Temp/pytest-of-fl/pytest-34/test_prepare_layers_no_mock0')
+
+    def test_prepare_layers_no_mock(
+        self, qgis_iface: QgisInterface, tmp_path: Path
+    ) -> None:
+        """Test the full flow without mocking core logic."""
+        project = QgsProject.instance()
+        project.clear()
+        project_path = tmp_path / "real_shipping.qgs"
+        project.setFileName(str(project_path))
+    
+        layer = QgsVectorLayer("Point?field=id:integer", "real_layer", "memory")
+        project.addMapLayer(layer)
+        project.write()
+    
+        # Mock only the selection because setActiveLayer might
+        # not be enough for get_selected_layers
+        with patch("modules.shipping.get_selected_layers", return_value=[layer]):
+            results: Any = prepare_layers_for_shipping()
+    
+            assert results is not None
+            assert len(results.successes) == 1
+            assert results.successes[0] == "real_layer"
+    
+            # Check if target GPKG was created
+            target_gpkg = tmp_path / "real_shipping.gpkg"
+>           assert target_gpkg.exists()
+E           AssertionError: assert False
+E            +  where False = exists()
+E            +    where exists = WindowsPath('C:/Users/fl/AppData/Local/Temp/pytest-of-fl/pytest-34/test_prepare_layers_no_mock0/real_shipping.gpkg').exists
+
+tests\qgis\test_shipping_integration.py:77: AssertionError
+---------------------------- Captured Qt messages -----------------------------
+QtWarningMsg: QMetaEnum::keysToValue: empty keys string.
+QtWarningMsg: QMetaEnum::keysToValue: empty keys string.
+============================== warnings summary ===============================
+tests/qgis/test_shipping_integration.py::TestShippingIntegration::test_prepare_layers_no_mock
+  C:\OSGeo4W\apps\Python312\Lib\site-packages\osgeo\gdal.py:606: FutureWarning: Neither gdal.UseExceptions() nor gdal.DontUseExceptions() has been explicitly called. In GDAL 4.0, exceptions will be enabled by default.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/qgis/test_shipping_integration.py::TestShippingIntegration::test_prepare_layers_for_shipping
+FAILED tests/qgis/test_shipping_integration.py::TestShippingIntegration::test_prepare_layers_no_mock
+======================== 2 failed, 1 warning in 0.44s =========================
