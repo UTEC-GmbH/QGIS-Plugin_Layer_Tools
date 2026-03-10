@@ -65,7 +65,7 @@ def fix_layer_name(name: str) -> str:
         str: A fixed and sanitized version of the name.
     """
     fixed_name: str = name
-    with contextlib.suppress(UnicodeEncodeError):
+    with contextlib.suppress(UnicodeEncodeError, UnicodeDecodeError):
         fixed_name = name.encode("cp1252").decode("utf-8")
 
     # Remove or replace problematic characters
