@@ -1,6 +1,5 @@
 [general]
 name=UTEC Layer Tools (dev)
-supportsQt6=True
 
 version=1.2
 changelog=
@@ -65,6 +64,7 @@ changelog=
 
 description=Verschiedene Werkzeuge zur Darstellung, Benennung und zum Speichern von Layern. 
 qgisMinimumVersion=3.40
+qgisMaximumVersion=4.99
 author=Florian Ludwig
 email=immerse-vowel-dole@duck.com
 icon=resources/icons/main_icon.svg
