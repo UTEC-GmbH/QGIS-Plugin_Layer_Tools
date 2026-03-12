@@ -2,7 +2,9 @@
 
 import configparser
 import contextlib
+import dataclasses
 from collections.abc import Callable
+from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -18,7 +20,7 @@ except ImportError:
     from qgis.PyQt.QtGui import QAction
 
 from .modules.browser import GeopackageIndicatorManager
-from .modules.constants import ICONS
+from .modules.constants import ICONS, PAPER_SIZES
 from .modules.context import PluginContext
 from .modules.geopackage import copy_layers_to_gpkg
 from .modules.layer_location import LocationIndicatorManager
@@ -29,6 +31,7 @@ from .modules.logs_and_errors import (
     log_summary_message,
     raise_runtime_error,
 )
+from .modules.print_layout import create_print_layout
 from .modules.rename import Rename, rename_layers, undo_rename_layers
 from .modules.shipping import prepare_layers_for_shipping
 
@@ -244,6 +247,23 @@ class UTECLayerTools(QObject):
         )
         self.plugin_menu.addAction(shipping_action)
 
+        # Add a fly-out menu for creating layouts with specific paper sizes
+        # fmt: off
+        layout_menu_title: str = QCoreApplication.translate("Menu_Button", "Create Print Layout")
+        # fmt: on
+        layout_menu = QMenu(layout_menu_title, self.plugin_menu)
+        layout_menu.setIcon(ICONS.main_icon)  # Re-use main icon or a specific one
+
+        # Add actions for all defined paper sizes
+        for field in dataclasses.fields(PAPER_SIZES):
+            size_name = field.name
+            action = QAction(size_name, self.iface.mainWindow())
+            # Use partial to pass the size argument to the callback
+            action.triggered.connect(partial(self.create_layout, size_name))
+            layout_menu.addAction(action)
+
+        self.plugin_menu.addMenu(layout_menu)
+
         # Add the fly-out menu to the main "Plugins" menu
         if menu := self.iface.pluginMenu():
             menu.addMenu(self.plugin_menu)
@@ -315,6 +335,16 @@ class UTECLayerTools(QObject):
                 skipped=results.skips,
                 errors=results.errors,
             )
+
+    def create_layout(self, size: str) -> None:
+        """Create a new print layout for the specified paper size.
+
+        Args:
+            size: The paper size string (e.g., 'A3').
+        """
+        log_debug(f"... STARTING PLUGIN RUN ... (create_layout {size})", icon="✨✨✨")
+        with contextlib.suppress(CustomUserError, CustomRuntimeError):
+            create_print_layout(size)
 
     def copy_selected_layers(self) -> None:
         """Copy selected layers to the project's GeoPackage.

@@ -6,16 +6,14 @@ This module contains shared constants and enumerations used across the plugin.
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Generic, TypeVar
+from pathlib import Path
+from typing import Generic, TypeVar
 
 from qgis.core import Qgis, QgsApplication, QgsMapLayer, QgsSvgCache, QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication, QRectF, Qt
 from qgis.PyQt.QtGui import QColor, QFont, QIcon, QImage, QPainter, QPixmap
 
 from .context import PluginContext
-
-if TYPE_CHECKING:
-    from pathlib import Path
 
 GEOMETRY_SUFFIX_MAP: dict = {}
 LAYER_TYPES: dict = {}
@@ -44,6 +42,99 @@ else:
         QgsMapLayer.RasterLayer: "RasterLayer",
         QgsMapLayer.PluginLayer: "PluginLayer",
     }
+
+
+PL_PATH: Path = PluginContext.templates_path() / "print_layout"
+
+
+@dataclass
+class PaperProps:
+    """Stores width and height for a specific paper orientation."""
+
+    name: str
+    width: float
+    height: float
+    frame: Path
+
+
+@dataclass
+class PaperSizes:
+    """Container for all standard paper sizes."""
+
+    A4_LANDSCAPE: PaperProps
+    A4_PORTRAIT: PaperProps
+    A3_LANDSCAPE: PaperProps
+    A3_PORTRAIT: PaperProps
+    A2_LANDSCAPE: PaperProps
+    A2_PORTRAIT: PaperProps
+    A1_LANDSCAPE: PaperProps
+    A1_PORTRAIT: PaperProps
+    A0_LANDSCAPE: PaperProps
+    A0_PORTRAIT: PaperProps
+
+
+PAPER_SIZES: PaperSizes = PaperSizes(
+    A4_LANDSCAPE=PaperProps(
+        name=QCoreApplication.translate("PaperSizes", "A4 Landscape"),
+        width=297,
+        height=210,
+        frame=PL_PATH / "A4_L.svg",
+    ),
+    A4_PORTRAIT=PaperProps(
+        name=QCoreApplication.translate("PaperSizes", "A4 Portrait"),
+        width=210,
+        height=297,
+        frame=PL_PATH / "A4_P.svg",
+    ),
+    A3_LANDSCAPE=PaperProps(
+        name=QCoreApplication.translate("PaperSizes", "A3 Landscape"),
+        width=420,
+        height=297,
+        frame=PL_PATH / "A3_L.svg",
+    ),
+    A3_PORTRAIT=PaperProps(
+        name=QCoreApplication.translate("PaperSizes", "A3 Portrait"),
+        width=297,
+        height=420,
+        frame=PL_PATH / "A3_P.svg",
+    ),
+    A2_LANDSCAPE=PaperProps(
+        name=QCoreApplication.translate("PaperSizes", "A2 Landscape"),
+        width=594,
+        height=420,
+        frame=PL_PATH / "A2_L.svg",
+    ),
+    A2_PORTRAIT=PaperProps(
+        name=QCoreApplication.translate("PaperSizes", "A2 Portrait"),
+        width=420,
+        height=594,
+        frame=PL_PATH / "A2_P.svg",
+    ),
+    A1_LANDSCAPE=PaperProps(
+        name=QCoreApplication.translate("PaperSizes", "A1 Landscape"),
+        width=841,
+        height=594,
+        frame=PL_PATH / "A1_L.svg",
+    ),
+    A1_PORTRAIT=PaperProps(
+        name=QCoreApplication.translate("PaperSizes", "A1 Portrait"),
+        width=594,
+        height=841,
+        frame=PL_PATH / "A1_P.svg",
+    ),
+    A0_LANDSCAPE=PaperProps(
+        name=QCoreApplication.translate("PaperSizes", "A0 Landscape"),
+        width=1189,
+        height=841,
+        frame=PL_PATH / "A0_L.svg",
+    ),
+    A0_PORTRAIT=PaperProps(
+        name=QCoreApplication.translate("PaperSizes", "A0 Portrait"),
+        width=841,
+        height=1189,
+        frame=PL_PATH / "A0_P.svg",
+    ),
+)
 
 
 @dataclass
