@@ -2,7 +2,6 @@
 
 import configparser
 import contextlib
-import dataclasses
 from collections.abc import Callable
 from functools import partial
 from pathlib import Path
@@ -252,14 +251,12 @@ class UTECLayerTools(QObject):
         layout_menu_title: str = QCoreApplication.translate("Menu_Button", "Create Print Layout")
         # fmt: on
         layout_menu = QMenu(layout_menu_title, self.plugin_menu)
-        layout_menu.setIcon(ICONS.main_icon)  # Re-use main icon or a specific one
+        layout_menu.setIcon(ICONS.main_menu_print)
 
         # Add actions for all defined paper sizes
-        for field in dataclasses.fields(PAPER_SIZES):
-            size_name = field.name
-            action = QAction(size_name, self.iface.mainWindow())
-            # Use partial to pass the size argument to the callback
-            action.triggered.connect(partial(self.create_layout, size_name))
+        for paper_props in PAPER_SIZES:
+            action = QAction(paper_props.name, self.iface.mainWindow())
+            action.triggered.connect(partial(self.create_layout, paper_props.size_name))
             layout_menu.addAction(action)
 
         self.plugin_menu.addMenu(layout_menu)
