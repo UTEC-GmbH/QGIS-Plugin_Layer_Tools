@@ -4,7 +4,8 @@ name=UTEC Layer Tools (dev)
 version=1.3
 changelog=
     Version 1.3:
-    - ✨ Neue Funktion: Plankopf für Drucklayouts
+    - ✨ Neue Funktion: Drucklayouts
+        Es können neue Drucklayouts im Gewünschten Papierformat mit Rahmen und Plankopf erstellt werden.
 
     Version 1.2:
     - ✨ Neuer Indikator für Layer, die die gleiche Datenquelle benutzen.
