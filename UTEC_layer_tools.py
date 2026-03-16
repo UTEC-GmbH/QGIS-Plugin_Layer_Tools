@@ -173,6 +173,7 @@ class UTECLayerTools(QObject):
             tool_tip=tool_tip_text,
         )
         self.plugin_menu.addAction(copy_action)
+        self.plugin_menu.addSeparator()
 
         # Add an action for renaming layers
         # fmt: off
@@ -227,6 +228,7 @@ class UTECLayerTools(QObject):
             tool_tip=tool_tip_text,
         )
         self.plugin_menu.addAction(undo_rename_action)
+        self.plugin_menu.addSeparator()
 
         # Add an action for preparing layers for shipping
         # fmt: off
@@ -245,17 +247,33 @@ class UTECLayerTools(QObject):
             tool_tip=tool_tip_text,
         )
         self.plugin_menu.addAction(shipping_action)
+        self.plugin_menu.addSeparator()
 
         # Add a fly-out menu for creating layouts with specific paper sizes
         # fmt: off
         layout_menu_title: str = QCoreApplication.translate("Menu_Button", "Create Print Layout")
+        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Create Print Layout</b></p><p><span style='font-weight:normal; font-style:normal;'>Creates a print layout with a specific paper size that includes a frame and a title block.</span></p>")
+        #                                                               "<p><b>Drucklayout Erzeugen</b></p><p><span style='font-weight:normal; font-style:normal;'>Erstellt ein neues Drucklayout mit gewähltem Papierformat, das einen Seitenrahmen und einen Plankopf enthält.</span></p>"                                                                        
         # fmt: on
         layout_menu = QMenu(layout_menu_title, self.plugin_menu)
         layout_menu.setIcon(ICONS.main_menu_print)
+        layout_menu.setToolTipsVisible(True)
+        layout_menu.setToolTip(tool_tip_text)
 
         # Add actions for all defined paper sizes
+        last_prefix: str = ""
         for paper_props in PAPER_SIZES:
-            action = QAction(paper_props.name, self.iface.mainWindow())
+            current_prefix: str = paper_props.size_name.split("_")[0]
+            if last_prefix and last_prefix != current_prefix:
+                layout_menu.addSeparator()
+            last_prefix = current_prefix
+
+            icon: QIcon = (
+                ICONS.print_menu_landscape
+                if paper_props.width > paper_props.height
+                else ICONS.print_menu_portrait
+            )
+            action = QAction(icon, paper_props.name, self.iface.mainWindow())
             action.triggered.connect(partial(self.create_layout, paper_props.size_name))
             layout_menu.addAction(action)
 

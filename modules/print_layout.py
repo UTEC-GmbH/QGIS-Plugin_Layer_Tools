@@ -83,6 +83,10 @@ def _set_layout_page_size(layout: QgsPrintLayout, paper_size_name: str) -> Paper
 
     Returns:
         The PaperProps object for the given paper size.
+
+    Raises:
+        RuntimeError: If the paper size is unknown or the layout has no page
+            collection.
     """
     if not hasattr(PAPER_SIZES, paper_size_name):
         raise_runtime_error(f"Unknown paper size: {paper_size_name}")
@@ -182,8 +186,8 @@ def _auto_dynamic_elements(
     by their ID and links them to the provided map item. To make items
     findable, set their "Item ID" in the QGIS Layout item properties.
     For this function, the following IDs are used:
-    - "north_arrow": for a QgsLayoutItemPicture to be used as a north arrow.
-    - "map_scale": for a QgsLayoutItemLabel that should display the map scale.
+    - "Nordpfeil": for a QgsLayoutItemPicture to be used as a north arrow.
+    - "Maßstab": for a QgsLayoutItemLabel that should display the map scale.
 
     Args:
         new_items: A list of items loaded from the template.
@@ -302,8 +306,21 @@ def _move_title_block_to_corner(
 def create_print_layout(paper_size_name: str) -> None:
     """Create a new print layout with a specific paper size and title block.
 
+    This function orchestrates the creation of a complete print layout. It:
+    1. Creates a new layout with a unique name.
+    2. Sets the specified paper size.
+    3. Adds a map item reflecting the current canvas view.
+    4. Adds a decorative frame from an SVG file.
+    5. Loads and adds a title block from a .qpt template.
+    6. Sets layout-specific variables.
+    7. Adds the new layout to the project and opens it in the layout designer.
+
     Args:
-        paper_size_name: The name of the paper size (e.g., "A3", "A4").
+        paper_size_name: The name of the paper size (e.g., "a4_landscape").
+
+    Raises:
+        RuntimeError: If the project has no layout manager, or if a required
+            template file is missing or invalid.
     """
     project: QgsProject = PluginContext.project()
     layout_manager: QgsLayoutManager | None = project.layoutManager()
