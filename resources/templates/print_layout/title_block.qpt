@@ -819,7 +819,7 @@
    </dd_properties>
   </text-style>
  </LayoutItem>
- <LayoutItem frameJoinStyle="miter" visibility="1" size="13,5,mm" zValue="7" uuid="{35719f23-7f9b-46d6-917b-868847deb240}" positionLock="false" templateUuid="{35719f23-7f9b-46d6-917b-868847deb240}" positionOnPage="264.2,179.5,mm" itemRotation="0" blendMode="0" position="264.2,179.5,mm" outlineWidthM="0.3,mm" referencePoint="4" groupUuid="{95099d8b-822c-4197-803f-069363891cb2}" frame="false" id="Format" excludeFromExports="0" valign="128" marginX="0" opacity="1" htmlState="0" type="65641" halign="4" marginY="0" labelText="[% page_property(1, 'name') %]" background="false">
+ <LayoutItem frameJoinStyle="miter" visibility="1" size="13,5,mm" zValue="7" uuid="{35719f23-7f9b-46d6-917b-868847deb240}" positionLock="false" templateUuid="{35719f23-7f9b-46d6-917b-868847deb240}" positionOnPage="264.2,179.5,mm" itemRotation="0" blendMode="0" position="264.2,179.5,mm" outlineWidthM="0.3,mm" referencePoint="4" groupUuid="{95099d8b-822c-4197-803f-069363891cb2}" frame="false" id="Format" excludeFromExports="0" valign="128" marginX="0" opacity="1" htmlState="0" type="65641" halign="4" marginY="0" labelText="[% @utec_paper_size %]" background="false">
   <FrameColor blue="0" green="0" red="0" alpha="255"/>
   <BackgroundColor blue="255" green="255" red="255" alpha="255"/>
   <LayoutObject>
@@ -1324,7 +1324,7 @@
    </dd_properties>
   </text-style>
  </LayoutItem>
- <LayoutItem frameJoinStyle="miter" visibility="1" size="8,17.608,mm" zValue="2" uuid="{c354b9dc-c437-4226-9a7c-7441c5ca5e71}" positionLock="false" anchorPoint="4" templateUuid="{c354b9dc-c437-4226-9a7c-7441c5ca5e71}" positionOnPage="264.2,147,mm" itemRotation="0" blendMode="0" position="264.2,147,mm" svgBorderWidth="0.2" outlineWidthM="0.3,mm" mapUuid="" referencePoint="4" pictureHeight="17.6" northMode="0" groupUuid="{95099d8b-822c-4197-803f-069363891cb2}" frame="false" svgBorderColor="0,0,0,255,rgb:0,0,0,1" svgFillColor="255,255,255,255,rgb:1,1,1,1" id="Nordpfeil" excludeFromExports="0" pictureRotation="0" opacity="1" pictureWidth="8" northOffset="0" file="./Nordpfeil.svg" resizeMode="0" type="65640" mode="0" background="false">
+ <LayoutItem frameJoinStyle="miter" visibility="1" size="18,18,mm" zValue="2" uuid="{c354b9dc-c437-4226-9a7c-7441c5ca5e71}" positionLock="false" anchorPoint="4" templateUuid="{c354b9dc-c437-4226-9a7c-7441c5ca5e71}" positionOnPage="264.2,147,mm" itemRotation="0" blendMode="0" position="264.2,147,mm" svgBorderWidth="0.2" outlineWidthM="0.3,mm" mapUuid="" referencePoint="4" pictureHeight="17.6" northMode="0" groupUuid="{95099d8b-822c-4197-803f-069363891cb2}" frame="false" svgBorderColor="0,0,0,255,rgb:0,0,0,1" svgFillColor="255,255,255,255,rgb:1,1,1,1" id="Nordpfeil" excludeFromExports="0" pictureRotation="0" opacity="1" pictureWidth="8" northOffset="0" file="./Nordpfeil.svg" resizeMode="3" type="65640" mode="0" background="false">
   <FrameColor blue="0" green="0" red="0" alpha="255"/>
   <BackgroundColor blue="255" green="255" red="255" alpha="255"/>
   <LayoutObject>

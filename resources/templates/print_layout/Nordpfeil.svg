@@ -2,9 +2,9 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="5.2170334mm"
-   height="11.12253mm"
-   viewBox="0 0 5.2170333 11.12253"
+   width="13mm"
+   height="13mm"
+   viewBox="0 0 13 13"
    version="1.1"
    id="svg1"
    xml:space="preserve"
@@ -20,22 +20,22 @@
      borderopacity="0.25"
      inkscape:showpageshadow="2"
      inkscape:pageopacity="0.0"
-     inkscape:pagecheckerboard="0"
+     inkscape:pagecheckerboard="true"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
      inkscape:zoom="2.5929167"
      inkscape:cx="-113.19299"
-     inkscape:cy="101.23734"
+     inkscape:cy="100.85168"
      inkscape:window-width="2560"
      inkscape:window-height="1351"
      inkscape:window-x="2551"
      inkscape:window-y="-9"
      inkscape:window-maximized="1"
      inkscape:current-layer="layer-oc7"><inkscape:page
-       x="7.9372503e-06"
-       y="1.7112559e-06"
-       width="5.2170334"
-       height="11.12253"
+       x="0"
+       y="0"
+       width="13"
+       height="13"
        id="page2"
        margin="0"
        bleed="0" /></sodipodi:namedview><defs
@@ -1777,12 +1777,14 @@
      id="layer-oc7"
      inkscape:groupmode="layer"
      inkscape:label="_UTEC -Layout- Plankopf - Nordpfeil"
-     transform="matrix(0.26458333,0,0,0.26458335,-115.45448,-20.072227)"><path
-       id="path665"
-       d="M 446.23237,76.052504 V 107.5325 h 7.3 z m 0,31.479996 h 7.3 l 2.36,10.18 z"
-       style="fill:#939598;fill-opacity:1;fill-rule:nonzero;stroke:#939598;stroke-width:0.02;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
-       inkscape:label="Füllung rechts" /><path
-       id="path667"
-       d="m 446.23237,76.052504 -9.68,41.659996 9.68,-10.18 9.66,10.18 -9.66,-41.659996 V 107.5325"
-       style="fill:none;stroke:#000000;stroke-width:0.377952;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
-       inkscape:label="Kontur" /></g></svg>
+     transform="matrix(0.26458333,0,0,0.26458335,-115.45449,-20.072229)"><g
+       id="g1"
+       transform="translate(2.3666814,2.0053234)"><path
+         id="path665"
+         d="m 458.57368,77.595168 v 31.479992 h 7.3 z m 0,31.479992 h 7.3 l 2.36,10.18 z"
+         style="fill:#939598;fill-opacity:1;fill-rule:nonzero;stroke:#939598;stroke-width:0.02;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+         inkscape:label="Füllung rechts" /><path
+         id="path667"
+         d="m 458.57368,77.595168 -9.68,41.659992 9.68,-10.18 9.66,10.18 -9.66,-41.659992 v 31.479992"
+         style="fill:none;stroke:#000000;stroke-width:0.377952;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;stroke-dasharray:none;stroke-opacity:1"
+         inkscape:label="Kontur" /></g></g></svg>

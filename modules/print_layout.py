@@ -9,29 +9,32 @@ from qgis.core import (
     Qgis,
     QgsExpressionContextUtils,
     QgsLayoutItem,
+    QgsLayoutItemLabel,
     QgsLayoutItemMap,
     QgsLayoutItemPicture,
     QgsLayoutManager,
+    QgsLayoutObject,
     QgsLayoutPoint,
     QgsLayoutSize,
     QgsPathResolver,
     QgsPrintLayout,
     QgsProject,
+    QgsProperty,
     QgsReadWriteContext,
     QgsUnitTypes,
 )
 from qgis.PyQt.QtCore import QRectF
 from qgis.PyQt.QtXml import QDomDocument
 
-from .constants import PAPER_SIZES, PaperProps
+from .constants import MAP_SCALES, PAPER_SIZES, PaperProps
 from .context import PluginContext
 from .logs_and_errors import log_debug, raise_runtime_error
 
 if TYPE_CHECKING:
     from pathlib import Path
 
-    from qgis._gui import QgisInterface
-    from qgis.gui import QgsMapCanvas
+    from qgis.core import QgsLayoutItemPage
+    from qgis.gui import QgisInterface, QgsMapCanvas
 
 
 def _get_unique_layout_name(
@@ -93,13 +96,15 @@ def _set_layout_page_size(layout: QgsPrintLayout, paper_size_name: str) -> Paper
     if (page_collection := layout.pageCollection()) is None:
         raise_runtime_error("Layout has no page collection")
     if page_collection.pageCount() > 0:
-        page = page_collection.pages()[0]
+        page: QgsLayoutItemPage = page_collection.pages()[0]
         page.setPageSize(page_size_obj)
 
     return paper_props
 
 
-def _add_map_to_layout(layout: QgsPrintLayout, paper_props: PaperProps) -> None:
+def _add_map_to_layout(
+    layout: QgsPrintLayout, paper_props: PaperProps
+) -> QgsLayoutItemMap | None:
     """Add a map item to the layout, fitting the current view.
 
     The map item is sized to the full page, set to the current canvas extent,
@@ -108,27 +113,42 @@ def _add_map_to_layout(layout: QgsPrintLayout, paper_props: PaperProps) -> None:
     Args:
         layout: The layout to add the map to.
         paper_props: The properties of the paper, used for sizing the map.
+
+    Returns:
+        The created map item, or None if no map canvas was available.
     """
     iface: QgisInterface = PluginContext.iface()
     canvas: QgsMapCanvas | None = iface.mapCanvas()
     if not canvas:
         log_debug("No map canvas found. Layout created without map.", Qgis.Warning)
-        return
+        return None
 
     map_item = QgsLayoutItemMap(layout)
+
     # Disable the map's own frame, as we have a separate SVG frame
     map_item.setFrameEnabled(False)
 
     # Set map size to full page
+    map_item.setId("main_map")
     map_item.attemptSetSceneRect(QRectF(0, 0, paper_props.width, paper_props.height))
 
-    # Set map extent to current view
-    map_item.setExtent(canvas.extent())
+    # Zoom to the current canvas extent (centers content and fits it)
+    map_item.zoomToExtent(canvas.extent())
+
+    # Calculate target scale based on current canvas scale
+    current_scale: float = canvas.scale()
+    target_scale: float = next(
+        (scale for scale in MAP_SCALES if scale >= current_scale),
+        current_scale,
+    )
+    map_item.setScale(target_scale)
 
     layout.addLayoutItem(map_item)
 
     # Move map to the bottom of the stacking order
     layout.moveItemToBottom(map_item)
+
+    return map_item
 
 
 def _add_frame_to_layout(layout: QgsPrintLayout, paper_props: PaperProps) -> None:
@@ -151,6 +171,55 @@ def _add_frame_to_layout(layout: QgsPrintLayout, paper_props: PaperProps) -> Non
     frame_item.attemptSetSceneRect(QRectF(0, 0, paper_props.width, paper_props.height))
     layout.addLayoutItem(frame_item)
     frame_item.setLocked(True)
+
+
+def _auto_dynamic_elements(
+    new_items: list[QgsLayoutItem], map_item: QgsLayoutItemMap
+) -> None:
+    """Link items from the template to the main map.
+
+    This function finds specific items like a north arrow or a scale label
+    by their ID and links them to the provided map item. To make items
+    findable, set their "Item ID" in the QGIS Layout item properties.
+    For this function, the following IDs are used:
+    - "north_arrow": for a QgsLayoutItemPicture to be used as a north arrow.
+    - "map_scale": for a QgsLayoutItemLabel that should display the map scale.
+
+    Args:
+        new_items: A list of items loaded from the template.
+        map_item: The main map item in the layout.
+    """
+    map_id: str = map_item.id()
+    if not map_id:
+        log_debug("Main map has no ID, cannot link template items.", Qgis.Warning)
+        return
+
+    for item in new_items:
+        item_id: str = item.id()
+        if not item_id:
+            continue
+
+        # Link north arrow
+        if item_id == "Nordpfeil" and isinstance(item, QgsLayoutItemPicture):
+            item.setLinkedMap(map_item)
+            item.setPictureRotation(0)
+            item.setReferencePoint(QgsLayoutItem.ReferencePoint.Middle)
+            item.dataDefinedProperties().setProperty(
+                QgsLayoutObject.ItemRotation,
+                QgsProperty.fromExpression(
+                    f"map_get(item_variables('{map_id}'), 'map_rotation')"
+                ),
+            )
+
+        # Link scale label
+        elif item_id == "Maßstab" and isinstance(item, QgsLayoutItemLabel):
+            log_debug(f"Linking scale label to map '{map_id}'")
+            expression: str = (
+                f"'1:' || format_number(round(map_get(item_variables('{map_id}'), "
+                "'map_scale')), 0)"
+            )
+            item.setText(f"[% {expression} %]")
+            item.refresh()
 
 
 def _load_template_document() -> QDomDocument:
@@ -194,9 +263,18 @@ def _move_title_block_to_corner(
     """
     margin_mm: float = 5.0
 
+    top_level_items: list[QgsLayoutItem] = [
+        item
+        for item in new_items
+        if not (item.parentGroup() and item.parentGroup() in new_items)
+    ]
+
+    if not top_level_items:
+        return
+
     # Calculate bounding box of the added template items
-    bbox = new_items[0].sceneBoundingRect()
-    for item in new_items[1:]:
+    bbox = top_level_items[0].sceneBoundingRect()
+    for item in top_level_items[1:]:
         bbox = bbox.united(item.sceneBoundingRect())
 
     # Current bottom-right of the title block group
@@ -211,9 +289,7 @@ def _move_title_block_to_corner(
     shift_y: float = target_max_y - current_max_y
 
     # Move all new items
-    for item in new_items:
-        # Use item.pos() (QPointF in scene coords/mm) instead of item.position()
-        # to ensures we don't mix units (e.g. adding mm shift to an item in inches).
+    for item in top_level_items:
         current_scene_pos = item.pos()
         new_pos = QgsLayoutPoint(
             current_scene_pos.x() + shift_x,
@@ -242,7 +318,7 @@ def create_print_layout(paper_size_name: str) -> None:
     paper_props: PaperProps = _set_layout_page_size(layout, paper_size_name)
 
     # 3. Add map item showing the current view
-    _add_map_to_layout(layout, paper_props)
+    map_item: QgsLayoutItemMap | None = _add_map_to_layout(layout, paper_props)
 
     # 4. Add Frame from SVG
     _add_frame_to_layout(layout, paper_props)
@@ -261,11 +337,13 @@ def create_print_layout(paper_size_name: str) -> None:
     if new_items := layout.addItemsFromXml(
         doc.documentElement(), doc, rw_context, pasteInPlace=False
     ):
+        if map_item:
+            _auto_dynamic_elements(new_items, map_item)
         _move_title_block_to_corner(new_items, paper_props.width, paper_props.height)
 
     # 6. Set Dynamic Variables (Layout Variables)
     QgsExpressionContextUtils.setLayoutVariable(
-        layout, "utec_paper_size", paper_props.name
+        layout, "utec_paper_size", paper_props.name.split(" ")[0]
     )
 
     # 7. Add layout to project and open it

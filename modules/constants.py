@@ -17,6 +17,33 @@ from qgis.PyQt.QtGui import QColor, QFont, QIcon, QImage, QPainter, QPixmap
 
 from .context import PluginContext
 
+MAP_SCALES: list[int] = [
+    100,
+    200,
+    250,
+    500,
+    750,
+    1000,
+    1500,
+    2000,
+    2500,
+    5000,
+    7500,
+    10000,
+    20000,
+    25000,
+    30000,
+    40000,
+    50000,
+    100000,
+    250000,
+    500000,
+    1000000,
+    2500000,
+    5000000,
+    10000000,
+]
+
 GEOMETRY_SUFFIX_MAP: dict = {}
 LAYER_TYPES: dict = {}
 
