@@ -30,6 +30,21 @@ from pathlib import Path
 # Adjust _OSGEO4W_ROOT if OSGeo4W is installed elsewhere.
 _OSGEO4W_ROOT: str = os.environ.get("OSGEO4W_ROOT", r"C:\OSGeo4W")
 
+# Set QGIS_PREFIX_PATH to help QGIS find its resources, especially when
+# tests are not run from an OSGeo4W shell (e.g., in VS Code).
+if os.name == "nt" and "QGIS_PREFIX_PATH" not in os.environ:
+    # Try to find a valid QGIS installation path
+    qgis_prefix_candidates: list[Path] = [
+        Path(_OSGEO4W_ROOT) / "apps" / "qgis-ltr-qt6",
+        Path(_OSGEO4W_ROOT) / "apps" / "qgis-ltr",
+        Path(_OSGEO4W_ROOT) / "apps" / "qgis",
+    ]
+    for path in qgis_prefix_candidates:
+        if path.is_dir():
+            os.environ["QGIS_PREFIX_PATH"] = str(path)
+            break
+
+
 _DLL_DIRS: list[str] = [
     rf"{_OSGEO4W_ROOT}\bin",
     rf"{_OSGEO4W_ROOT}\apps\qgis-ltr\bin",

@@ -3,10 +3,13 @@
 This module contains shared constants and enumerations used across the plugin.
 """
 
-from collections.abc import Callable
+import inspect
+import re
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TYPE_CHECKING, Generic, TypeVar
+from pathlib import Path
+from typing import Generic, TypeVar
 
 from qgis.core import Qgis, QgsApplication, QgsMapLayer, QgsSvgCache, QgsWkbTypes
 from qgis.PyQt.QtCore import QCoreApplication, QRectF, Qt
@@ -14,8 +17,32 @@ from qgis.PyQt.QtGui import QColor, QFont, QIcon, QImage, QPainter, QPixmap
 
 from .context import PluginContext
 
-if TYPE_CHECKING:
-    from pathlib import Path
+MAP_SCALES: list[int] = [
+    100,
+    200,
+    250,
+    500,
+    750,
+    1000,
+    1500,
+    2000,
+    2500,
+    5000,
+    7500,
+    10000,
+    20000,
+    25000,
+    30000,
+    40000,
+    50000,
+    100000,
+    250000,
+    500000,
+    1000000,
+    2500000,
+    5000000,
+    10000000,
+]
 
 GEOMETRY_SUFFIX_MAP: dict = {}
 LAYER_TYPES: dict = {}
@@ -44,6 +71,151 @@ else:
         QgsMapLayer.RasterLayer: "RasterLayer",
         QgsMapLayer.PluginLayer: "PluginLayer",
     }
+
+
+@dataclass
+class PaperProps:
+    """Stores width and height for a specific paper orientation."""
+
+    size_name: str
+    name: str
+    width: float
+    height: float
+    frame: Path
+
+
+class PaperSizes:
+    """Container for all standard paper sizes, created dynamically."""
+
+    def __init__(self) -> None:
+        """Initialize the PaperSizes container."""
+        self._pl_path: Path | None = None
+
+    def __iter__(self) -> Iterator[PaperProps]:
+        """Iterate over the available paper size properties by inspecting them."""
+        for name, member in inspect.getmembers(self.__class__):
+            if isinstance(member, property) and re.match(r"^a\d+_", name):
+                yield getattr(self, name)
+
+    @property
+    def _print_layout_templ_path(self) -> Path:
+        """Get the path to the print layout templates, initializing if needed."""
+        if self._pl_path is None:
+            self._pl_path = PluginContext.templates_path() / "print_layout"
+        return self._pl_path
+
+    @property
+    def a4_landscape(self) -> PaperProps:
+        """Return properties for A4 Landscape."""
+        return PaperProps(
+            size_name="a4_landscape",
+            name=QCoreApplication.translate("PaperSizes", "A4 Landscape"),
+            width=297,
+            height=210,
+            frame=self._print_layout_templ_path / "A4_L.svg",
+        )
+
+    @property
+    def a4_portrait(self) -> PaperProps:
+        """Return properties for A4 Portrait."""
+        return PaperProps(
+            size_name="a4_portrait",
+            name=QCoreApplication.translate("PaperSizes", "A4 Portrait"),
+            width=210,
+            height=297,
+            frame=self._print_layout_templ_path / "A4_P.svg",
+        )
+
+    @property
+    def a3_landscape(self) -> PaperProps:
+        """Return properties for A3 Landscape."""
+        return PaperProps(
+            size_name="a3_landscape",
+            name=QCoreApplication.translate("PaperSizes", "A3 Landscape"),
+            width=420,
+            height=297,
+            frame=self._print_layout_templ_path / "A3_L.svg",
+        )
+
+    @property
+    def a3_portrait(self) -> PaperProps:
+        """Return properties for A3 Portrait."""
+        return PaperProps(
+            size_name="a3_portrait",
+            name=QCoreApplication.translate("PaperSizes", "A3 Portrait"),
+            width=297,
+            height=420,
+            frame=self._print_layout_templ_path / "A3_P.svg",
+        )
+
+    @property
+    def a2_landscape(self) -> PaperProps:
+        """Return properties for A2 Landscape."""
+        return PaperProps(
+            size_name="a2_landscape",
+            name=QCoreApplication.translate("PaperSizes", "A2 Landscape"),
+            width=594,
+            height=420,
+            frame=self._print_layout_templ_path / "A2_L.svg",
+        )
+
+    @property
+    def a2_portrait(self) -> PaperProps:
+        """Return properties for A2 Portrait."""
+        return PaperProps(
+            size_name="a2_portrait",
+            name=QCoreApplication.translate("PaperSizes", "A2 Portrait"),
+            width=420,
+            height=594,
+            frame=self._print_layout_templ_path / "A2_P.svg",
+        )
+
+    @property
+    def a1_landscape(self) -> PaperProps:
+        """Return properties for A1 Landscape."""
+        return PaperProps(
+            size_name="a1_landscape",
+            name=QCoreApplication.translate("PaperSizes", "A1 Landscape"),
+            width=841,
+            height=594,
+            frame=self._print_layout_templ_path / "A1_L.svg",
+        )
+
+    @property
+    def a1_portrait(self) -> PaperProps:
+        """Return properties for A1 Portrait."""
+        return PaperProps(
+            size_name="a1_portrait",
+            name=QCoreApplication.translate("PaperSizes", "A1 Portrait"),
+            width=594,
+            height=841,
+            frame=self._print_layout_templ_path / "A1_P.svg",
+        )
+
+    @property
+    def a0_landscape(self) -> PaperProps:
+        """Return properties for A0 Landscape."""
+        return PaperProps(
+            size_name="a0_landscape",
+            name=QCoreApplication.translate("PaperSizes", "A0 Landscape"),
+            width=1189,
+            height=841,
+            frame=self._print_layout_templ_path / "A0_L.svg",
+        )
+
+    @property
+    def a0_portrait(self) -> PaperProps:
+        """Return properties for A0 Portrait."""
+        return PaperProps(
+            size_name="a0_portrait",
+            name=QCoreApplication.translate("PaperSizes", "A0 Portrait"),
+            width=841,
+            height=1189,
+            frame=self._print_layout_templ_path / "A0_P.svg",
+        )
+
+
+PAPER_SIZES = PaperSizes()
 
 
 @dataclass
@@ -148,6 +320,11 @@ class Icons:
         return self._qicon("main_menu_copy.svg", dynamic=True)
 
     @property
+    def main_menu_print(self) -> QIcon:
+        """Return the print icon, dynamically colored for the current theme."""
+        return self._qicon("main_menu_print.svg", dynamic=True)
+
+    @property
     def main_menu_rename_copy(self) -> QIcon:
         """Return the rename+copy icon, dynamically colored for the current theme."""
         return self._qicon("main_menu_rename_copy.svg", dynamic=True)
@@ -166,6 +343,16 @@ class Icons:
     def main_menu_undo(self) -> QIcon:
         """Return the undo icon, dynamically colored for the current theme."""
         return self._qicon("main_menu_undo.svg", dynamic=True)
+
+    @property
+    def print_menu_landscape(self) -> QIcon:
+        """Return the landscape icon, dynamically colored for the current theme."""
+        return self._qicon("print_menu_landscape.svg", dynamic=True)
+
+    @property
+    def print_menu_portrait(self) -> QIcon:
+        """Return the portrait icon, dynamically colored for the current theme."""
+        return self._qicon("print_menu_portrait.svg", dynamic=True)
 
     @property
     def location_empty(self) -> QIcon:
