@@ -18,7 +18,7 @@ try:
 except ImportError:
     from qgis.PyQt.QtGui import QAction
 
-from .modules.browser import GeopackageIndicatorManager
+
 from .modules.constants import ICONS, PAPER_SIZES
 from .modules.context import PluginContext
 from .modules.geopackage import copy_layers_to_gpkg
@@ -61,7 +61,6 @@ class UTECLayerTools(QObject):
         self.plugin_icon: QIcon = ICONS.main_icon
         self.translator: QTranslator | None = None
         self.indicator_manager: LocationIndicatorManager | None = None
-        self.gpkg_indicator_manager: GeopackageIndicatorManager | None = None
 
         # Read metadata to get the plugin name for UI elements
         self.plugin_name: str = "UTEC Layer Tools (dev)"
@@ -156,7 +155,7 @@ class UTECLayerTools(QObject):
         self.plugin_menu.setToolTipsVisible(True)
         self.plugin_menu.setIcon(self.plugin_icon)
 
-        # Add an action for moving layers
+        # Add an action for copying layers to the geopackage
         # fmt: off
         # ruff: noqa: E501
         button: str = QCoreApplication.translate("Menu_Button", "Copy Selected Layers to Project's GeoPackage")
@@ -173,7 +172,56 @@ class UTECLayerTools(QObject):
             tool_tip=tool_tip_text,
         )
         self.plugin_menu.addAction(copy_action)
+
+        # Add a fly-out menu for creating layouts with specific paper sizes
+        # fmt: off
+        layout_menu_title: str = QCoreApplication.translate("Menu_Button", "Create Print Layout")
+        #tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Create Print Layout</b></p><p><span style='font-weight:normal; font-style:normal;'>Creates a print layout with a specific paper size that includes a frame and a title block.</span></p>")
+        #                                                               "<p><b>Drucklayout Erzeugen</b></p><p><span style='font-weight:normal; font-style:normal;'>Erstellt ein neues Drucklayout mit gewähltem Papierformat, das einen Seitenrahmen und einen Plankopf enthält.</span></p>"                                                                        
+        # fmt: on
+        print_layout_menu = QMenu(layout_menu_title, self.plugin_menu)
+        print_layout_menu.setIcon(ICONS.main_menu_print)
+
+        # Add actions for all defined paper sizes
+        last_prefix: str = ""
+        for paper_props in PAPER_SIZES:
+            current_prefix: str = paper_props.size_name.split("_")[0]
+            if last_prefix and last_prefix != current_prefix:
+                print_layout_menu.addSeparator()
+            last_prefix = current_prefix
+
+            icon: QIcon = (
+                ICONS.print_menu_landscape
+                if paper_props.width > paper_props.height
+                else ICONS.print_menu_portrait
+            )
+            action = QAction(icon, paper_props.name, self.iface.mainWindow())
+            action.triggered.connect(partial(self.create_layout, paper_props.size_name))
+            print_layout_menu.addAction(action)
+
+        self.plugin_menu.addMenu(print_layout_menu)
+
+        # Add an action for preparing layers for shipping
+        # fmt: off
+        # ruff: noqa: E501
+        button: str = QCoreApplication.translate("Menu_Button", "Prepare Selected Layers for Sending")
+        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Prepare Selected Layers for Sending</b></p><p><span style='font-weight:normal; font-style:normal;'>Creates a subfolder in the project folder with a GeoPackage (.gpkg) and a project file (.qgz) containing the selected layers. These two files can be sent e.g. via email.</span></p>")
+        #                                                                <p><b>Gewälte Layer für Versand Vorbereiten</b></p><p><span style='font-weight:normal; font-style:normal;'>Im Projektordner wird ein Unterordner mit einem GeoPackage (.gpkg) und einer Projektdatei (.qgz) erstellt, die die gewählten Layer enthalten. Diese beiden Dateien können z.B. per E-Mail versendet werden.</span></p>
+        # fmt: on
+        shipping_action = self.add_action(
+            icon=ICONS.main_menu_send,
+            button_text=button,
+            callback=self.prepare_shipping,
+            parent=self.iface.mainWindow(),
+            add_to_menu=False,  # Added to custom menu
+            add_to_toolbar=False,
+            tool_tip=tool_tip_text,
+        )
+        self.plugin_menu.addAction(shipping_action)
+
+        # -----------------------------------------------
         self.plugin_menu.addSeparator()
+        # -----------------------------------------------
 
         # Add an action for renaming layers
         # fmt: off
@@ -228,55 +276,6 @@ class UTECLayerTools(QObject):
             tool_tip=tool_tip_text,
         )
         self.plugin_menu.addAction(undo_rename_action)
-        self.plugin_menu.addSeparator()
-
-        # Add an action for preparing layers for shipping
-        # fmt: off
-        # ruff: noqa: E501
-        button: str = QCoreApplication.translate("Menu_Button", "Prepare Selected Layers for Sending")
-        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Prepare Selected Layers for Sending</b></p><p><span style='font-weight:normal; font-style:normal;'>Creates a subfolder in the project folder with a GeoPackage (.gpkg) and a project file (.qgz) containing the selected layers. These two files can be sent e.g. via email.</span></p>")
-        #                                                                <p><b>Gewälte Layer für Versand Vorbereiten</b></p><p><span style='font-weight:normal; font-style:normal;'>Im Projektordner wird ein Unterordner mit einem GeoPackage (.gpkg) und einer Projektdatei (.qgz) erstellt, die die gewählten Layer enthalten. Diese beiden Dateien können z.B. per E-Mail versendet werden.</span></p>
-        # fmt: on
-        shipping_action = self.add_action(
-            icon=ICONS.main_menu_send,
-            button_text=button,
-            callback=self.prepare_shipping,
-            parent=self.iface.mainWindow(),
-            add_to_menu=False,  # Added to custom menu
-            add_to_toolbar=False,
-            tool_tip=tool_tip_text,
-        )
-        self.plugin_menu.addAction(shipping_action)
-        self.plugin_menu.addSeparator()
-
-        # Add a fly-out menu for creating layouts with specific paper sizes
-        # fmt: off
-        layout_menu_title: str = QCoreApplication.translate("Menu_Button", "Create Print Layout")
-        #tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Create Print Layout</b></p><p><span style='font-weight:normal; font-style:normal;'>Creates a print layout with a specific paper size that includes a frame and a title block.</span></p>")
-        #                                                               "<p><b>Drucklayout Erzeugen</b></p><p><span style='font-weight:normal; font-style:normal;'>Erstellt ein neues Drucklayout mit gewähltem Papierformat, das einen Seitenrahmen und einen Plankopf enthält.</span></p>"                                                                        
-        # fmt: on
-        layout_menu = QMenu(layout_menu_title, self.plugin_menu)
-        layout_menu.setIcon(ICONS.main_menu_print)
-        # layout_menu.setToolTipsVisible(True)
-
-        # Add actions for all defined paper sizes
-        last_prefix: str = ""
-        for paper_props in PAPER_SIZES:
-            current_prefix: str = paper_props.size_name.split("_")[0]
-            if last_prefix and last_prefix != current_prefix:
-                layout_menu.addSeparator()
-            last_prefix = current_prefix
-
-            icon: QIcon = (
-                ICONS.print_menu_landscape
-                if paper_props.width > paper_props.height
-                else ICONS.print_menu_portrait
-            )
-            action = QAction(icon, paper_props.name, self.iface.mainWindow())
-            action.triggered.connect(partial(self.create_layout, paper_props.size_name))
-            layout_menu.addAction(action)
-
-        self.plugin_menu.addMenu(layout_menu)
 
         # Add the fly-out menu to the main "Plugins" menu
         if menu := self.iface.pluginMenu():
@@ -295,12 +294,6 @@ class UTECLayerTools(QObject):
         # Initialize and connect the location indicator manager
         self.indicator_manager = LocationIndicatorManager(self.project, self.iface)
         self.indicator_manager.init_indicators()
-
-        # Initialize and connect the geopackage indicator manager
-        self.gpkg_indicator_manager = GeopackageIndicatorManager(
-            self.project, self.iface
-        )
-        self.gpkg_indicator_manager.init_indicators()
 
     def unload(self) -> None:
         """Plugin unload method.
