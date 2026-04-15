@@ -23,7 +23,8 @@ from qgis.core import (
     QgsReadWriteContext,
     QgsUnitTypes,
 )
-from qgis.PyQt.QtCore import QRectF
+from qgis.PyQt.QtCore import QCoreApplication, QRectF
+from qgis.PyQt.QtWidgets import QInputDialog
 from qgis.PyQt.QtXml import QDomDocument
 
 from .constants import MAP_SCALES, PAPER_SIZES, PaperProps
@@ -56,6 +57,33 @@ def _get_unique_layout_name(
         final_name = f"{base_name} ({counter})"
         counter += 1
     return final_name
+
+
+def _ask_layout_name(suggested_name: str) -> str | None:
+    """Prompt the user for a name for the new print layout.
+
+    Args:
+        suggested_name: The default name suggested to the user.
+
+    Returns:
+        str | None: The name chosen by the user, or None if the action was cancelled.
+    """
+    title: str = QCoreApplication.translate("PrintLayout", "Create Print Layout")
+    label: str = QCoreApplication.translate("PrintLayout", "Layout Name:")
+
+    # QInputDialog.getText returns a tuple (string, ok_pressed)
+    user_input: tuple[str, bool] = QInputDialog.getText(
+        PluginContext.iface().mainWindow(), title, label, text=suggested_name
+    )
+
+    name: str = user_input[0]
+    ok_pressed: bool = user_input[1]
+
+    if not ok_pressed:
+        return None
+
+    # Use the stripped input if provided, otherwise default to the suggestion
+    return name.strip() or suggested_name
 
 
 def _create_and_initialize_layout(project: QgsProject, name: str) -> QgsPrintLayout:
@@ -328,7 +356,12 @@ def create_print_layout(paper_size_name: str) -> None:
         raise_runtime_error("Project has no layout manager")
 
     # 1. Determine a unique name and create the layout
-    final_name: str = _get_unique_layout_name(layout_manager, paper_size_name)
+    suggested_name: str = _get_unique_layout_name(layout_manager, paper_size_name)
+
+    if not (final_name := _ask_layout_name(suggested_name)):
+        log_debug("Layout creation cancelled by user.", Qgis.Info)
+        return
+
     layout: QgsPrintLayout = _create_and_initialize_layout(project, final_name)
 
     # 2. Set page size

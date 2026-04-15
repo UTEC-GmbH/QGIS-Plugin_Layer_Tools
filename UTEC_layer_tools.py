@@ -31,6 +31,7 @@ from .modules.logs_and_errors import (
     raise_runtime_error,
 )
 from .modules.print_layout import create_print_layout
+from .modules.project_variables import edit_project_variables
 from .modules.rename import Rename, rename_layers, undo_rename_layers
 from .modules.shipping import prepare_layers_for_shipping
 
@@ -154,6 +155,28 @@ class UTECLayerTools(QObject):
 
         self.plugin_menu.setToolTipsVisible(True)
         self.plugin_menu.setIcon(self.plugin_icon)
+
+        # Add an action for editing project variables
+        # fmt: off
+        # ruff: noqa: E501
+        button: str = QCoreApplication.translate("Menu_Button", "Edit Project Variables")
+        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Edit Project Variables</b></p><p><span style='font-weight:normal; font-style:normal;'>Define project-specific metadata like project number and name. These are stored as project variables (see Project → Properties...) and can be used in expressions, e.g. [% @project_number %].</span></p>")
+        #                                                                <p><b>Projektvariablen bearbeiten</b></p><p><span style='font-weight:normal; font-style:normal;'>Metadaten wie Projektnummer und Name definieren. Diese werden als Projektvariablen gespeichert (siehe Projekt → Eigenschaften...) und können in Ausdrücken verwendet werden, z.B. [% @project_number %].</span></p>
+        # fmt: on
+        project_vars_action = self.add_action(
+            icon=ICONS.main_menu_variables,
+            button_text=button,
+            callback=self.manage_project_variables,
+            parent=self.iface.mainWindow(),
+            add_to_menu=False,
+            add_to_toolbar=False,
+            tool_tip=tool_tip_text,
+        )
+        self.plugin_menu.addAction(project_vars_action)
+
+        # -----------------------------------------------
+        self.plugin_menu.addSeparator()
+        # -----------------------------------------------
 
         # Add an action for copying layers to the geopackage
         # fmt: off
@@ -327,6 +350,14 @@ class UTECLayerTools(QObject):
     #
     #
     # --- Plugin actions ---
+
+    def manage_project_variables(self) -> None:
+        """Open the custom project variables editor."""
+        log_debug(
+            "... STARTING PLUGIN RUN ... (manage_project_variables)", icon="✨✨✨"
+        )
+        with contextlib.suppress(CustomUserError, CustomRuntimeError):
+            edit_project_variables()
 
     def rename_selected_layers(self) -> None:
         """Rename selected layers based on their group hierarchy.
