@@ -5,7 +5,11 @@ version=1.4
 changelog=
     Version 1.4:
     - ✨ Neue Funktion: Projektvariablen → Hiermit können Metadaten wie "Bauherr" oder "Projektname" definiert werden. Diese Daten können z.B. im Plankopf automatisch eingetragen werden.
-    - 👍 Verbesserung: Bei der Erstellung eines Drucklayouts können jetzt Angaben zu Bauherr etc. eingegeben werden. Diese werden dann in den Projektvariablen gespeichert und auf alle Layouts angewendet. Die Angabe "Planart" ist für jedes Layout individuell.
+     - 👍 Verbesserung: Bei der Erstellung eines Drucklayouts können jetzt Angaben zu Bauherr etc. eingegeben werden. 
+        - Diese Angaben werden dann in den Projektvariablen gespeichert und auf alle Layouts angewendet. 
+        - Die Angabe "Planart" ist für jedes Layout individuell.
+        - Einige Angaben, wie Projektnummer, werden falls möglich aus dem Dateinamen ermittelt
+        - Alle Angaben können entweder in den Projektvariablen oder in den separaten Layouts manuell angepasst werden.
     - 🤏 Kleine Verbesserung: Menu aufgeräumt
     - 🐞 Bugfix: "UTEC Projekt-GeoPackage" im QGIS Browser (siehe Version 1.0) entfernt, weil es die normale Funktion des Browsers beeinträchtigt hat
 
