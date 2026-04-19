@@ -19,6 +19,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from .context import PluginContext
+from .general import enforce_text_edit_limits
 from .logs_and_errors import log_debug
 
 
@@ -30,6 +31,8 @@ class ProjectVariable:
     label: str
     default_callback: Callable[[QgsProject], str]
     is_multi_line: bool = False
+    max_lines: int | None = None
+    max_chars_per_line: int | None = None
 
     @property
     def name(self) -> str:
@@ -59,22 +62,48 @@ def get_project_variables() -> list[ProjectVariable]:
         ProjectVariable(
             id="project_number",
             label=QCoreApplication.translate("ProjectVariables", "Project Number:"),
+            max_chars_per_line=8,
             default_callback=get_default_number,
-        ),
-        ProjectVariable(
-            id="project_name",
-            label=QCoreApplication.translate("ProjectVariables", "Project Name:"),
-            default_callback=lambda _: QCoreApplication.translate("ProjectVariables", "Project"),
-            is_multi_line=True,
         ),
         ProjectVariable(
             id="project_developer",
             label=QCoreApplication.translate("ProjectVariables", "Project Developer:"),
             default_callback=lambda _: QCoreApplication.translate("ProjectVariables", "Developer"),
             is_multi_line=True,
+            max_lines=3,
+            max_chars_per_line=45,
+        ),
+        ProjectVariable(
+            id="project_name",
+            label=QCoreApplication.translate("ProjectVariables", "Project Name:"),
+            default_callback=lambda _: QCoreApplication.translate("ProjectVariables", "Project"),
+            is_multi_line=True,
+            max_lines=3,
+            max_chars_per_line=30,
         ),
     ]
     # fmt: on
+
+
+def get_current_variable_value(project: QgsProject, variable: ProjectVariable) -> str:
+    """Retrieve the current variable value or its default.
+
+    Args:
+        project: The QGIS project.
+        variable: The variable definition.
+
+    Returns:
+        The current value if set, otherwise the default value.
+    """
+    # Try to get existing value from project scope
+    if not (scope := QgsExpressionContextUtils.projectScope(project)):
+        log_debug("Project scope not found.")
+        return ""
+
+    if existing_value := scope.variable(variable.name):
+        return str(existing_value)
+
+    return variable.default_callback(project)
 
 
 class ProjectVariablesDialog(QDialog):
@@ -103,11 +132,21 @@ class ProjectVariablesDialog(QDialog):
                 edit = QTextEdit()
                 edit.setAcceptRichText(False)
                 edit.setTabChangesFocus(True)
-                edit.setPlainText(self._get_initial_value(variable))
-                edit.setMaximumHeight(80)
+                edit.setPlainText(get_current_variable_value(self.project, variable))
+                edit.setMaximumHeight(50)
+                if (max_lines := variable.max_lines) is not None and (
+                    max_chars := variable.max_chars_per_line
+                ) is not None:
+                    edit.textChanged.connect(
+                        lambda widget=edit, lines=max_lines, chars=max_chars: (
+                            enforce_text_edit_limits(widget, lines, chars)
+                        )
+                    )
             else:
                 edit = QLineEdit()
-                edit.setText(self._get_initial_value(variable))
+                edit.setText(get_current_variable_value(self.project, variable))
+                if variable.max_chars_per_line:
+                    edit.setMaxLength(variable.max_chars_per_line)
 
             self.edits[variable.id] = edit
             label_text: str = f"{variable.label} ({variable.name})"
@@ -120,25 +159,6 @@ class ProjectVariablesDialog(QDialog):
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout.addRow(self.button_box)
-
-    def _get_initial_value(self, variable: ProjectVariable) -> str:
-        """Retrieve the current variable value or its default.
-
-        Args:
-            variable: The variable definition.
-
-        Returns:
-            The current value if set, otherwise the default value.
-        """
-        # Try to get existing value from project scope
-        if not (scope := QgsExpressionContextUtils.projectScope(self.project)):
-            log_debug("Project scope not found.")
-            return ""
-
-        if existing_value := scope.variable(variable.name):
-            return str(existing_value)
-
-        return variable.default_callback(self.project)
 
     def save_variables(self) -> None:
         """Write the values from the UI back to the project properties."""

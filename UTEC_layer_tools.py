@@ -174,28 +174,6 @@ class UTECLayerTools(QObject):
         )
         self.plugin_menu.addAction(project_vars_action)
 
-        # -----------------------------------------------
-        self.plugin_menu.addSeparator()
-        # -----------------------------------------------
-
-        # Add an action for copying layers to the geopackage
-        # fmt: off
-        # ruff: noqa: E501
-        button: str = QCoreApplication.translate("Menu_Button", "Copy Selected Layers to Project's GeoPackage")
-        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Copy Selected Layers to Project's GeoPackage</b></p><p><span style='font-weight:normal; font-style:normal;'>Selected layers and layers in selected groups are copied to the project's GeoPackage and added back from the GeoPackage to the top of the layer tree of the current project. The original layers can be removed from the project if desired.</p><p>The project's GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).</span></p><p><b>CAUTION: This will overwrite layers with the same name and geometry type in the project's GeoPackage!</b></p>")
-        #                                                                <p><b>Gewählte Layer in das Projekt-GeoPackage Kopieren</b></p><p><span style='font-weight:normal; font-style:normal;'>Gewählte Layer und Layer in gewählten Gruppen werden in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.</p><p>Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).</span></p><p><b>Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!</b></p>
-        # fmt: on
-        copy_action = self.add_action(
-            icon=ICONS.main_menu_copy,
-            button_text=button,
-            callback=self.copy_selected_layers,
-            parent=self.iface.mainWindow(),
-            add_to_menu=False,  # Added to custom menu
-            add_to_toolbar=False,
-            tool_tip=tool_tip_text,
-        )
-        self.plugin_menu.addAction(copy_action)
-
         # Add a fly-out menu for creating layouts with specific paper sizes
         # fmt: off
         layout_menu_title: str = QCoreApplication.translate("Menu_Button", "Create Print Layout")
@@ -223,6 +201,28 @@ class UTECLayerTools(QObject):
             print_layout_menu.addAction(action)
 
         self.plugin_menu.addMenu(print_layout_menu)
+
+        # -----------------------------------------------
+        self.plugin_menu.addSeparator()
+        # -----------------------------------------------
+
+        # Add an action for copying layers to the geopackage
+        # fmt: off
+        # ruff: noqa: E501
+        button: str = QCoreApplication.translate("Menu_Button", "Copy Selected Layers to Project's GeoPackage")
+        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Copy Selected Layers to Project's GeoPackage</b></p><p><span style='font-weight:normal; font-style:normal;'>Selected layers and layers in selected groups are copied to the project's GeoPackage and added back from the GeoPackage to the top of the layer tree of the current project. The original layers can be removed from the project if desired.</p><p>The project's GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).</span></p><p><b>CAUTION: This will overwrite layers with the same name and geometry type in the project's GeoPackage!</b></p>")
+        #                                                                <p><b>Gewählte Layer in das Projekt-GeoPackage Kopieren</b></p><p><span style='font-weight:normal; font-style:normal;'>Gewählte Layer und Layer in gewählten Gruppen werden in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.</p><p>Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).</span></p><p><b>Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!</b></p>
+        # fmt: on
+        copy_action = self.add_action(
+            icon=ICONS.main_menu_copy,
+            button_text=button,
+            callback=self.copy_selected_layers,
+            parent=self.iface.mainWindow(),
+            add_to_menu=False,  # Added to custom menu
+            add_to_toolbar=False,
+            tool_tip=tool_tip_text,
+        )
+        self.plugin_menu.addAction(copy_action)
 
         # Add an action for preparing layers for shipping
         # fmt: off

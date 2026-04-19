@@ -516,7 +516,7 @@
    </dd_properties>
   </text-style>
  </LayoutItem>
- <LayoutItem frameJoinStyle="miter" visibility="1" size="53,5,mm" zValue="10" uuid="{f31ed28c-04af-41a9-a1e3-616c6ea1a5e9}" positionLock="false" templateUuid="{f31ed28c-04af-41a9-a1e3-616c6ea1a5e9}" positionOnPage="238.2,187,mm" itemRotation="0" blendMode="0" position="238.2,187,mm" outlineWidthM="0.3,mm" referencePoint="3" groupUuid="{95099d8b-822c-4197-803f-069363891cb2}" frame="false" id="Zeichnung" excludeFromExports="0" valign="128" marginX="0" opacity="1" htmlState="0" type="65641" halign="1" marginY="0" labelText="[% @project_filename %]" background="false">
+ <LayoutItem frameJoinStyle="miter" visibility="1" size="53,5,mm" zValue="10" uuid="{f31ed28c-04af-41a9-a1e3-616c6ea1a5e9}" positionLock="false" templateUuid="{f31ed28c-04af-41a9-a1e3-616c6ea1a5e9}" positionOnPage="238.2,187,mm" itemRotation="0" blendMode="0" position="238.2,187,mm" outlineWidthM="0.3,mm" referencePoint="3" groupUuid="{95099d8b-822c-4197-803f-069363891cb2}" frame="false" id="Zeichnung" excludeFromExports="0" valign="128" marginX="0" opacity="1" htmlState="0" type="65641" halign="1" marginY="0" labelText="[%with_variable('datnam', @project_filename,&#xa;with_variable('maxlen_filename', 39,&#xa;with_variable('part', 11,&#xa;&#x9;if(&#xa;&#x9;&#x9;length(@datnam) > @maxlen_filename,&#xa;&#x9;&#x9;left(@datnam, @part) || ' [...] ' || right(@datnam, @part),&#xa;&#x9;&#x9;@datnam&#xa;&#x9;)&#xa;)))%]" background="false">
   <FrameColor blue="0" green="0" red="0" alpha="255"/>
   <BackgroundColor blue="255" green="255" red="255" alpha="255"/>
   <LayoutObject>
@@ -610,9 +610,15 @@
    <shadow shadowRadius="1.5" shadowOffsetAngle="135" shadowOpacity="0.69999999999999996" shadowOffsetMapUnitScale="3x:0,0,0,0,0,0" shadowUnder="0" shadowOffsetDist="1" shadowOffsetUnit="MM" shadowRadiusMapUnitScale="3x:0,0,0,0,0,0" shadowBlendMode="6" shadowRadiusUnit="MM" shadowColor="0,0,0,255,rgb:0,0,0,1" shadowScale="100" shadowDraw="0" shadowOffsetGlobal="1" shadowRadiusAlphaOnly="0"/>
    <dd_properties>
     <Option type="Map">
-     <Option type="QString" name="name" value=""/>
-     <Option name="properties"/>
-     <Option type="QString" name="type" value="collection"/>
+     <Option value="" name="name" type="QString"/>
+     <Option name="properties" type="Map">
+      <Option name="FontStretchFactor" type="Map">
+       <Option value="true" name="active" type="bool"/>
+       <Option value="with_variable('lenpf', length(@project_filename),&#xd;&#xa;with_variable('maxlen_filename', 39,&#xd;&#xa;with_variable('min', 25,&#xd;&#xa;with_variable('shrink_max', 75,&#xd;&#xa;    if(@lenpf > @min AND @lenpf &lt;= @maxlen_filename,&#xd;&#xa;        clamp(&#xd;&#xa;&#x9;&#x9;&#x9;@shrink_max, &#xd;&#xa;&#x9;&#x9;&#x9;100 - (@lenpf - @min) * (100 - @shrink_max) / (@maxlen_filename - @min), &#xd;&#xa;&#x9;&#x9;&#x9;100&#xd;&#xa;&#x9;&#x9;),&#xd;&#xa;&#x9;&#x9;100&#xd;&#xa;    )&#xd;&#xa;))))" name="expression" type="QString"/>
+       <Option value="3" name="type" type="int"/>
+      </Option>
+     </Option>
+     <Option value="collection" name="type" type="QString"/>
     </Option>
    </dd_properties>
   </text-style>
@@ -718,7 +724,7 @@
    </dd_properties>
   </text-style>
  </LayoutItem>
- <LayoutItem frameJoinStyle="miter" visibility="1" size="17,5,mm" zValue="8" uuid="{2581e6a0-bd91-43d3-b091-288b397aadea}" positionLock="false" templateUuid="{2581e6a0-bd91-43d3-b091-288b397aadea}" positionOnPage="238.2,179.5,mm" itemRotation="0" blendMode="0" position="238.2,179.5,mm" outlineWidthM="0.3,mm" referencePoint="3" groupUuid="{95099d8b-822c-4197-803f-069363891cb2}" frame="false" id="Projektnr." excludeFromExports="0" valign="128" marginX="0" opacity="1" htmlState="0" type="65641" halign="1" marginY="0" labelText="[% coalesce(@UTEC_Projektnummer, '9999') %]" background="false">
+ <LayoutItem frameJoinStyle="miter" visibility="1" size="17,5,mm" zValue="8" uuid="{2581e6a0-bd91-43d3-b091-288b397aadea}" positionLock="false" templateUuid="{2581e6a0-bd91-43d3-b091-288b397aadea}" positionOnPage="238.2,179.5,mm" itemRotation="0" blendMode="0" position="238.2,179.5,mm" outlineWidthM="0.3,mm" referencePoint="3" groupUuid="{95099d8b-822c-4197-803f-069363891cb2}" frame="false" id="Projektnr." excludeFromExports="0" valign="128" marginX="0" opacity="1" htmlState="0" type="65641" halign="1" marginY="0" labelText="[% coalesce(@UTEC_project_number, '9999') %]" background="false">
   <FrameColor blue="0" green="0" red="0" alpha="255"/>
   <BackgroundColor blue="255" green="255" red="255" alpha="255"/>
   <LayoutObject>
@@ -1122,7 +1128,7 @@
    </dd_properties>
   </text-style>
  </LayoutItem>
- <LayoutItem frameJoinStyle="miter" visibility="1" size="95,19,mm" zValue="4" uuid="{79cbe125-d155-40b1-920b-f5fde8ded806}" positionLock="false" templateUuid="{79cbe125-d155-40b1-920b-f5fde8ded806}" positionOnPage="141,169.5,mm" itemRotation="0" blendMode="0" position="141,169.5,mm" outlineWidthM="0.3,mm" referencePoint="0" groupUuid="{95099d8b-822c-4197-803f-069363891cb2}" frame="false" id="Projekt" excludeFromExports="0" valign="32" marginX="0" opacity="1" htmlState="0" type="65641" halign="1" marginY="0" labelText="[% coalesce(@UTEC_Projekt, 'Projekt') %]" background="false">
+ <LayoutItem frameJoinStyle="miter" visibility="1" size="95,19,mm" zValue="4" uuid="{79cbe125-d155-40b1-920b-f5fde8ded806}" positionLock="false" templateUuid="{79cbe125-d155-40b1-920b-f5fde8ded806}" positionOnPage="141,169.5,mm" itemRotation="0" blendMode="0" position="141,169.5,mm" outlineWidthM="0.3,mm" referencePoint="0" groupUuid="{95099d8b-822c-4197-803f-069363891cb2}" frame="false" id="Projekt" excludeFromExports="0" valign="32" marginX="0" opacity="1" htmlState="0" type="65641" halign="1" marginY="0" labelText="[% coalesce(@UTEC_project_name, 'Projekt') %]" background="false">
   <FrameColor blue="0" green="0" red="0" alpha="255"/>
   <BackgroundColor blue="255" green="255" red="255" alpha="255"/>
   <LayoutObject>
@@ -1223,7 +1229,7 @@
    </dd_properties>
   </text-style>
  </LayoutItem>
- <LayoutItem frameJoinStyle="miter" visibility="1" size="95,19,mm" zValue="3" uuid="{a7167700-b195-4345-a144-5c388af40f74}" positionLock="false" templateUuid="{a7167700-b195-4345-a144-5c388af40f74}" positionOnPage="141,113.5,mm" itemRotation="0" blendMode="0" position="141,113.5,mm" outlineWidthM="0.3,mm" referencePoint="0" groupUuid="{95099d8b-822c-4197-803f-069363891cb2}" frame="false" id="Bauherr" excludeFromExports="0" valign="32" marginX="0" opacity="1" htmlState="0" type="65641" halign="1" marginY="0" labelText="[% coalesce(@UTEC_Bauherr, 'Bauherr&#xa;Straße&#xa;Ort') %]" background="false">
+ <LayoutItem frameJoinStyle="miter" visibility="1" size="148,19,mm" zValue="3" uuid="{a7167700-b195-4345-a144-5c388af40f74}" positionLock="false" templateUuid="{a7167700-b195-4345-a144-5c388af40f74}" positionOnPage="141,113.5,mm" itemRotation="0" blendMode="0" position="141,113.5,mm" outlineWidthM="0.3,mm" referencePoint="0" groupUuid="{95099d8b-822c-4197-803f-069363891cb2}" frame="false" id="Bauherr" excludeFromExports="0" valign="32" marginX="0" opacity="1" htmlState="0" type="65641" halign="1" marginY="0" labelText="[% coalesce(@UTEC_project_developer, 'Bauherr&#xa;Straße&#xa;Ort') %]" background="false">
   <FrameColor blue="0" green="0" red="0" alpha="255"/>
   <BackgroundColor blue="255" green="255" red="255" alpha="255"/>
   <LayoutObject>

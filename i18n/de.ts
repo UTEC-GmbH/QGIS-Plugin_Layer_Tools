@@ -64,7 +64,7 @@ Do you want to continue?</source>
 <context>
     <name>Menu_Button</name>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="184"/>
+        <location filename="../UTEC_layer_tools.py" line="212"/>
         <source>Copy Selected Layers to Project&apos;s GeoPackage</source>
         <translation>Gewählte Layer ins Projekt-GeoPackage kopieren</translation>
     </message>
@@ -89,7 +89,7 @@ Do you want to continue?</source>
         <translation>Gewählte Layer für den Versand vorbereiten</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="201"/>
+        <location filename="../UTEC_layer_tools.py" line="179"/>
         <source>Create Print Layout</source>
         <translation>Neues Drucklayout Erzeugen</translation>
     </message>
@@ -102,34 +102,34 @@ Do you want to continue?</source>
 <context>
     <name>Menu_ToolTip</name>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="185"/>
+        <location filename="../UTEC_layer_tools.py" line="213"/>
         <source>&lt;p&gt;&lt;b&gt;Copy Selected Layers to Project&apos;s GeoPackage&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Selected layers and layers in selected groups are copied to the project&apos;s GeoPackage and added back from the GeoPackage to the top of the layer tree of the current project. The original layers can be removed from the project if desired.&lt;/p&gt;&lt;p&gt;The project&apos;s GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;CAUTION: This will overwrite layers with the same name and geometry type in the project&apos;s GeoPackage!&lt;/b&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer in das Projekt-GeoPackage Kopieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Gewählte Layer und Layer in gewählten Gruppen werden in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.&lt;/p&gt;&lt;p&gt;Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!&lt;/b&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer in das Projekt-GeoPackage Kopieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Gewählte Layer und Layer in gewählten Gruppen werden in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.&lt;/p&gt;&lt;p&gt;Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!&lt;/b&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../UTEC_layer_tools.py" line="253"/>
         <source>&lt;p&gt;&lt;b&gt;Rename Selected Layers by Group Name&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Selected layers and layers in selected groups are renamed according to their parent group names. If a layer is not in a group, it is not renamed.&lt;/p&gt;&lt;p&gt;(Mostly useful for renaming layers imported from AutoCAD)&lt;/span&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer nach Gruppenname Umbenennen&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen. Layer, die sich nicht in einer Gruppe befinden, wird er nicht umbenannt.&lt;/p&gt;&lt;p&gt;(Nützlich für das Umbenennen von Layern, die aus AutoCAD importiert wurden)&lt;/span&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer nach Gruppenname Umbenennen&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen. Layer, die sich nicht in einer Gruppe befinden, wird er nicht umbenannt.&lt;/p&gt;&lt;p&gt;(Nützlich für das Umbenennen von Layern, die aus AutoCAD importiert wurden)&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../UTEC_layer_tools.py" line="271"/>
         <source>&lt;p&gt;&lt;b&gt;Rename and Copy Selected Layers to Project&apos;s GeoPackage&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Selected layers and layers in selected groups are renamed according to their parent group names, then copied to the project&apos;s GeoPackage and then added back from the GeoPackage to the top of the layer tree of the current project. The original layers can be removed from the project if desired.&lt;/p&gt;&lt;p&gt;The project&apos;s GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;b&gt;CAUTION: This will overwrite layers with the same name and geometry type in the project&apos;s GeoPackage!&lt;/b&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer Umbenennen und in das Projekt-GeoPackage Kopieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen, danach in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.&lt;/p&gt;&lt;p&gt;Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!&lt;/b&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer Umbenennen und in das Projekt-GeoPackage Kopieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen, danach in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.&lt;/p&gt;&lt;p&gt;Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!&lt;/b&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../UTEC_layer_tools.py" line="289"/>
         <source>&lt;p&gt;&lt;b&gt;Undo Last Rename&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Undoes the most recent layer renaming operation performed by this plugin.&lt;/span&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;Letzte Umbenennung Rückgängig Machen&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Die letzte Umbenennung, die von diesem Plugin ausgeführt wurde, wird rückgängig gemacht.&lt;/span&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;&lt;b&gt;Letzte Umbenennung Rückgängig Machen&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Die letzte Umbenennung, die von diesem Plugin ausgeführt wurde, wird rückgängig gemacht.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../UTEC_layer_tools.py" line="231"/>
         <source>&lt;p&gt;&lt;b&gt;Prepare Selected Layers for Sending&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Creates a subfolder in the project folder with a GeoPackage (.gpkg) and a project file (.qgz) containing the selected layers. These two files can be sent e.g. via email.&lt;/span&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;Gewälte Layer für Versand Vorbereiten&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Im Projektordner wird ein Unterordner mit einem GeoPackage (.gpkg) und einer Projektdatei (.qgz) erstellt, die die gewählten Layer enthalten. Diese beiden Dateien können z.B. per E-Mail versendet werden.&lt;/span&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;&lt;b&gt;Gewälte Layer für Versand Vorbereiten&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Im Projektordner wird ein Unterordner mit einem GeoPackage (.gpkg) und einer Projektdatei (.qgz) erstellt, die die gewählten Layer enthalten. Diese beiden Dateien können z.B. per E-Mail versendet werden.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../UTEC_layer_tools.py" line="163"/>
-        <source>&lt;p&gt;&lt;b&gt;Edit Project Variables&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Define project-specific metadata like project number and name. These are stored as project variables (see Project → Properties...) and can be used in expressions, e.g. [% @project_number %].&lt;/span&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;Projektvariablen bearbeiten&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Metadaten wie Projektnummer und Name definieren. Diese werden als Projektvariablen gespeichert (siehe Projekt → Eigenschaften...) und können in Ausdrücken verwendet werden, z.B. [% @project_number %].&lt;/span&gt;&lt;/p&gt;</translation>
+        <source>&lt;p&gt;&lt;b&gt;Edit Project Variables&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Define project-specific metadata like project number and name. These are stored as project variables (see Project → Properties...) and can be used in expressions, e.g. [% @project_number %].&lt;/span&gt;&lt;/p&gt;</source>
+        <translation>&lt;p&gt;&lt;b&gt;Projektvariablen bearbeiten&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Metadaten wie Projektnummer und Name definieren. Diese werden als Projektvariablen gespeichert (siehe Projekt → Eigenschaften...) und können in Ausdrücken verwendet werden, z.B. [% @project_number %].&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
 </context>
 <context>
@@ -188,14 +188,19 @@ Do you want to continue?</source>
 <context>
     <name>PrintLayout</name>
     <message>
-        <location filename="../modules/print_layout.py" line="71"/>
+        <location filename="../modules/print_layout.py" line="82"/>
         <source>Create Print Layout</source>
         <translation>Neues Drucklayout Erzeugen</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="72"/>
-        <source>Layout Name:</source>
-        <translation>Layoutname:</translation>
+        <location filename="../modules/print_layout.py" line="93"/>
+        <source>Drawing Type</source>
+        <translation>Planart</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout.py" line="62"/>
+        <source>Overview</source>
+        <translation>Übersichtsplan</translation>
     </message>
 </context>
 <context>
@@ -206,27 +211,27 @@ Do you want to continue?</source>
         <translation>Projektnummer:</translation>
     </message>
     <message>
-        <location filename="../modules/project_variables.py" line="64"/>
+        <location filename="../modules/project_variables.py" line="70"/>
         <source>Project Name:</source>
         <translation>Projekt:</translation>
     </message>
     <message>
-        <location filename="../modules/project_variables.py" line="69"/>
+        <location filename="../modules/project_variables.py" line="64"/>
         <source>Project Developer:</source>
         <translation>Bauherr:</translation>
     </message>
     <message>
-        <location filename="../modules/project_variables.py" line="90"/>
+        <location filename="../modules/project_variables.py" line="112"/>
         <source>Edit Project Variables</source>
         <translation>Projektvariablen Bearbeiten</translation>
     </message>
     <message>
-        <location filename="../modules/project_variables.py" line="64"/>
+        <location filename="../modules/project_variables.py" line="70"/>
         <source>Project</source>
         <translation>Projekt</translation>
     </message>
     <message>
-        <location filename="../modules/project_variables.py" line="69"/>
+        <location filename="../modules/project_variables.py" line="64"/>
         <source>Developer</source>
         <translation>Bauherr</translation>
     </message>

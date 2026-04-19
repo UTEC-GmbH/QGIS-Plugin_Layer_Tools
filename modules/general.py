@@ -17,6 +17,7 @@ from qgis.core import (
     QgsVectorLayer,
 )
 from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtWidgets import QTextEdit
 
 from .context import PluginContext
 from .logs_and_errors import log_debug, raise_runtime_error, raise_user_error
@@ -132,3 +133,38 @@ def is_empty_layer(layer: QgsMapLayer) -> bool:
     request.setLimit(1)
     request.setFlags(QgsFeatureRequest.NoGeometry)
     return next(layer.getFeatures(request), None) is None
+
+
+def enforce_text_edit_limits(
+    edit: QTextEdit, max_lines: int = 3, max_chars_per_line: int = 30
+) -> None:
+    """Enforce line count and character per line limits on a QTextEdit.
+
+    Args:
+        edit: The QTextEdit widget to restrict.
+        max_lines: The maximum number of lines allowed.
+        max_chars_per_line: The maximum number of characters allowed per line.
+    """
+    text: str = edit.toPlainText()
+    lines: list[str] = text.split("\n")
+    modified: bool = False
+
+    if len(lines) > max_lines:
+        lines = lines[:max_lines]
+        modified = True
+
+    for index, line in enumerate(lines):
+        if len(line) > max_chars_per_line:
+            lines[index] = line[:max_chars_per_line]
+            modified = True
+
+    if modified:
+        cursor_position: int = edit.textCursor().position()
+        edit.blockSignals(True)
+        edit.setPlainText("\n".join(lines))
+        edit.blockSignals(False)
+
+        # Restore cursor position
+        cursor = edit.textCursor()
+        cursor.setPosition(min(cursor_position, len(edit.toPlainText())))
+        edit.setTextCursor(cursor)
