@@ -28,6 +28,7 @@ from qgis.PyQt.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFormLayout,
+    QFrame,
     QLineEdit,
     QTextEdit,
 )
@@ -96,7 +97,9 @@ class NewLayoutDialog(QDialog):
         self.form_layout.addRow(name_label, self.name_edit)
 
         # Visual Separator
-        self.form_layout.addRow("", None)
+        separator: QFrame = QFrame()
+        separator.setFixedHeight(15)
+        self.form_layout.addRow(separator)
 
         # 2. Project Variables (Metadata)
         for variable in self.variables:
@@ -356,8 +359,9 @@ def _load_template_document() -> QDomDocument:
     except OSError as e:
         raise_runtime_error(f"Could not read template file: {e}")
 
-    success, error_str, _, _ = doc.setContent(content)
-    if not success:
+    content_result = doc.setContent(content)
+    if not content_result[0]:
+        error_str: str = content_result[1]
         raise_runtime_error(f"Failed to parse title block template XML: {error_str}")
     return doc
 
@@ -430,8 +434,7 @@ def create_print_layout(paper_size_name: str) -> None:
             template file is missing or invalid.
     """
     project: QgsProject = PluginContext.project()
-    layout_manager: QgsLayoutManager | None = project.layoutManager()
-    if not layout_manager:
+    if (layout_manager := project.layoutManager()) is None:
         raise_runtime_error("Project has no layout manager")
 
     # 1. Determine a unique name and create the layout
