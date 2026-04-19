@@ -315,6 +315,11 @@ class Icons:
         return self._qicon("main_icon.svg")
 
     @property
+    def main_menu_variables(self) -> QIcon:
+        """Return the variables icon, dynamically colored for the current theme."""
+        return self._qicon("main_menu_variables.svg", dynamic=True)
+
+    @property
     def main_menu_copy(self) -> QIcon:
         """Return the copy icon, dynamically colored for the current theme."""
         return self._qicon("main_menu_copy.svg", dynamic=True)

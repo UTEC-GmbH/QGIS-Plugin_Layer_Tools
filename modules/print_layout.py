@@ -23,12 +23,26 @@ from qgis.core import (
     QgsReadWriteContext,
     QgsUnitTypes,
 )
-from qgis.PyQt.QtCore import QRectF
+from qgis.PyQt.QtCore import QCoreApplication, QRectF
+from qgis.PyQt.QtWidgets import (
+    QDialog,
+    QDialogButtonBox,
+    QFormLayout,
+    QFrame,
+    QLineEdit,
+    QTextEdit,
+)
 from qgis.PyQt.QtXml import QDomDocument
 
 from .constants import MAP_SCALES, PAPER_SIZES, PaperProps
 from .context import PluginContext
+from .general import enforce_text_edit_limits
 from .logs_and_errors import log_debug, raise_runtime_error
+from .project_variables import (
+    ProjectVariable,
+    get_current_variable_value,
+    get_project_variables,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -37,25 +51,110 @@ if TYPE_CHECKING:
     from qgis.gui import QgisInterface, QgsMapCanvas
 
 
-def _get_unique_layout_name(
-    layout_manager: QgsLayoutManager, paper_size_name: str
-) -> str:
+def _get_unique_layout_name(layout_manager: QgsLayoutManager) -> str:
     """Determine a unique name for the layout.
 
     Args:
         layout_manager: The project's layout manager.
-        paper_size_name: The name of the paper size.
 
     Returns:
         A unique name for the new layout.
     """
-    base_name: str = f"Layout {paper_size_name}"
-    final_name: str = base_name
+
+    layout_name: str = QCoreApplication.translate("PrintLayout", "Overview")
     counter: int = 1
-    while layout_manager.layoutByName(final_name):
-        final_name = f"{base_name} ({counter})"
+    while layout_manager.layoutByName(layout_name):
+        layout_name = f"{layout_name} ({counter})"
         counter += 1
-    return final_name
+    return layout_name
+
+
+class NewLayoutDialog(QDialog):
+    """Dialog for naming a new layout and editing project variables."""
+
+    def __init__(self, project: QgsProject, suggested_name: str) -> None:
+        """Initialize the dialog.
+
+        Args:
+            project: The current QGIS project.
+            suggested_name: The default name suggested for the layout.
+        """
+        super().__init__(PluginContext.iface().mainWindow())
+        self.project: QgsProject = project
+        self.setWindowTitle(
+            QCoreApplication.translate("PrintLayout", "Create Print Layout")
+        )
+        self.setMinimumWidth(450)
+
+        self.form_layout: QFormLayout = QFormLayout(self)
+        self.variable_edits: dict[str, QLineEdit | QTextEdit] = {}
+        self.variables: list[ProjectVariable] = get_project_variables()
+
+        # 1. Layout Name
+        self.name_edit = QLineEdit(suggested_name)
+        self.name_edit.setMaxLength(30)
+        name_label: str = QCoreApplication.translate("PrintLayout", "Drawing Type")
+        self.form_layout.addRow(name_label, self.name_edit)
+
+        # Visual Separator
+        separator: QFrame = QFrame()
+        separator.setFixedHeight(15)
+        self.form_layout.addRow(separator)
+
+        # 2. Project Variables (Metadata)
+        for variable in self.variables:
+            edit: QLineEdit | QTextEdit
+            current_value: str = get_current_variable_value(self.project, variable)
+
+            if variable.is_multi_line:
+                edit = QTextEdit()
+                edit.setAcceptRichText(False)
+                edit.setTabChangesFocus(True)
+                edit.setPlainText(current_value)
+                edit.setMaximumHeight(50)
+                if (max_lines := variable.max_lines) is not None and (
+                    max_chars := variable.max_chars_per_line
+                ) is not None:
+                    edit.textChanged.connect(
+                        lambda widget=edit, lines=max_lines, chars=max_chars: (
+                            enforce_text_edit_limits(widget, lines, chars)
+                        )
+                    )
+            else:
+                edit = QLineEdit()
+                edit.setText(current_value)
+                if variable.max_chars_per_line:
+                    edit.setMaxLength(variable.max_chars_per_line)
+
+            self.variable_edits[variable.id] = edit
+            self.form_layout.addRow(variable.label, edit)
+
+        # Buttons
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        )
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        self.form_layout.addRow(self.button_box)
+
+    def get_layout_name(self) -> str:
+        """Return the entered layout name."""
+        return self.name_edit.text().strip()
+
+    def save_variables(self) -> None:
+        """Save entered project variables to the project."""
+        for variable in self.variables:
+            widget: QLineEdit | QTextEdit = self.variable_edits[variable.id]
+            value: str = (
+                widget.text().strip()
+                if isinstance(widget, QLineEdit)
+                else widget.toPlainText().strip()
+            )
+
+            QgsExpressionContextUtils.setProjectVariable(
+                self.project, variable.name, value
+            )
+        log_debug("Project variables updated.", prefix="Project Properties → ")
 
 
 def _create_and_initialize_layout(project: QgsProject, name: str) -> QgsPrintLayout:
@@ -133,7 +232,7 @@ def _add_map_to_layout(
     map_item.setFrameEnabled(False)
 
     # Set map size to full page
-    map_item.setId("main_map")
+    map_item.setId("Karte_1")
     map_item.attemptSetSceneRect(QRectF(0, 0, paper_props.width, paper_props.height))
 
     # Zoom to the current canvas extent (centers content and fits it)
@@ -146,6 +245,16 @@ def _add_map_to_layout(
         current_scale,
     )
     map_item.setScale(target_scale)
+
+    # Check if a map theme exists with the same name as the layout.
+    layout_name: str = layout.name()
+    if (
+        (project := layout.project())
+        and (theme_collection := project.mapThemeCollection())
+        and layout_name in theme_collection.mapThemes()
+    ):
+        map_item.setFollowVisibilityPresetName(layout_name)
+        map_item.setFollowVisibilityPreset(True)
 
     layout.addLayoutItem(map_item)
 
@@ -171,6 +280,7 @@ def _add_frame_to_layout(layout: QgsPrintLayout, paper_props: PaperProps) -> Non
         return
 
     frame_item = QgsLayoutItemPicture(layout)
+    frame_item.setId(QCoreApplication.translate("PrintLayout", "Frame"))
     frame_item.setPicturePath(str(frame_svg_path))
     frame_item.attemptSetSceneRect(QRectF(0, 0, paper_props.width, paper_props.height))
     layout.addLayoutItem(frame_item)
@@ -249,8 +359,9 @@ def _load_template_document() -> QDomDocument:
     except OSError as e:
         raise_runtime_error(f"Could not read template file: {e}")
 
-    success, error_str, _, _ = doc.setContent(content)
-    if not success:
+    content_result = doc.setContent(content)
+    if not content_result[0]:
+        error_str: str = content_result[1]
         raise_runtime_error(f"Failed to parse title block template XML: {error_str}")
     return doc
 
@@ -323,12 +434,21 @@ def create_print_layout(paper_size_name: str) -> None:
             template file is missing or invalid.
     """
     project: QgsProject = PluginContext.project()
-    layout_manager: QgsLayoutManager | None = project.layoutManager()
-    if not layout_manager:
+    if (layout_manager := project.layoutManager()) is None:
         raise_runtime_error("Project has no layout manager")
 
     # 1. Determine a unique name and create the layout
-    final_name: str = _get_unique_layout_name(layout_manager, paper_size_name)
+    suggested_name: str = _get_unique_layout_name(layout_manager)
+
+    dialog = NewLayoutDialog(project, suggested_name)
+    if not dialog.exec_():
+        log_debug("Layout creation cancelled by user.", Qgis.Info)
+        return
+
+    final_name: str = dialog.get_layout_name() or suggested_name
+    dialog.save_variables()
+    project.setDirty(True)
+
     layout: QgsPrintLayout = _create_and_initialize_layout(project, final_name)
 
     # 2. Set page size
