@@ -243,6 +243,16 @@ def _add_map_to_layout(
     )
     map_item.setScale(target_scale)
 
+    # Check if a map theme exists with the same name as the layout.
+    layout_name: str = layout.name()
+    if (
+        (project := layout.project())
+        and (theme_collection := project.mapThemeCollection())
+        and layout_name in theme_collection.mapThemes()
+    ):
+        map_item.setFollowVisibilityPresetName(layout_name)
+        map_item.setFollowVisibilityPreset(True)
+
     layout.addLayoutItem(map_item)
 
     # Move map to the bottom of the stacking order
@@ -267,6 +277,7 @@ def _add_frame_to_layout(layout: QgsPrintLayout, paper_props: PaperProps) -> Non
         return
 
     frame_item = QgsLayoutItemPicture(layout)
+    frame_item.setId(QCoreApplication.translate("PrintLayout", "Frame"))
     frame_item.setPicturePath(str(frame_svg_path))
     frame_item.attemptSetSceneRect(QRectF(0, 0, paper_props.width, paper_props.height))
     layout.addLayoutItem(frame_item)

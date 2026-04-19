@@ -188,50 +188,55 @@ Do you want to continue?</source>
 <context>
     <name>PrintLayout</name>
     <message>
-        <location filename="../modules/print_layout.py" line="82"/>
+        <location filename="../modules/print_layout.py" line="83"/>
         <source>Create Print Layout</source>
         <translation>Neues Drucklayout Erzeugen</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="93"/>
+        <location filename="../modules/print_layout.py" line="95"/>
         <source>Drawing Type</source>
         <translation>Planart</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="62"/>
+        <location filename="../modules/print_layout.py" line="63"/>
         <source>Overview</source>
         <translation>Übersichtsplan</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout.py" line="270"/>
+        <source>Frame</source>
+        <translation>Rahmen</translation>
     </message>
 </context>
 <context>
     <name>ProjectVariables</name>
     <message>
-        <location filename="../modules/project_variables.py" line="59"/>
+        <location filename="../modules/project_variables.py" line="62"/>
         <source>Project Number:</source>
         <translation>Projektnummer:</translation>
     </message>
     <message>
-        <location filename="../modules/project_variables.py" line="70"/>
+        <location filename="../modules/project_variables.py" line="76"/>
         <source>Project Name:</source>
         <translation>Projekt:</translation>
     </message>
     <message>
-        <location filename="../modules/project_variables.py" line="64"/>
+        <location filename="../modules/project_variables.py" line="68"/>
         <source>Project Developer:</source>
         <translation>Bauherr:</translation>
     </message>
     <message>
-        <location filename="../modules/project_variables.py" line="112"/>
+        <location filename="../modules/project_variables.py" line="120"/>
         <source>Edit Project Variables</source>
         <translation>Projektvariablen Bearbeiten</translation>
     </message>
     <message>
-        <location filename="../modules/project_variables.py" line="70"/>
+        <location filename="../modules/project_variables.py" line="76"/>
         <source>Project</source>
         <translation>Projekt</translation>
     </message>
     <message>
-        <location filename="../modules/project_variables.py" line="64"/>
+        <location filename="../modules/project_variables.py" line="68"/>
         <source>Developer</source>
         <translation>Bauherr</translation>
     </message>
@@ -244,17 +249,17 @@ Do you want to continue?</source>
         <translation>Konnte das Plugin-Menu nicht erstellen.</translation>
     </message>
     <message>
-        <location filename="../modules/general.py" line="41"/>
+        <location filename="../modules/general.py" line="42"/>
         <source>QGIS interface not set.</source>
         <translation>Das OGIS Interface ist nicht gesetzt.</translation>
     </message>
     <message>
-        <location filename="../modules/general.py" line="42"/>
+        <location filename="../modules/general.py" line="43"/>
         <source>Could not get layer tree view.</source>
         <translation>Konnte den Layer-Baum nicht öffnen.</translation>
     </message>
     <message>
-        <location filename="../modules/general.py" line="43"/>
+        <location filename="../modules/general.py" line="44"/>
         <source>No layers or groups selected.</source>
         <translation>Keine Layer oder Layer-Gruppen ausgewählt.</translation>
     </message>
