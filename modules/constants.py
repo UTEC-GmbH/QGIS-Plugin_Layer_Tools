@@ -301,12 +301,6 @@ class Icons:
 
     def __init__(self) -> None:
         """Initialize the icons."""
-        self.browser_used: QIcon = QgsApplication.getThemeIcon(
-            "mActionHandleStoreFilterExpressionChecked.svg"
-        )
-        self.browser_unused: QIcon = QgsApplication.getThemeIcon(
-            "mActionHandleStoreFilterExpressionUnchecked.svg"
-        )
         self._multi_icon_cache: dict[int, QIcon] = {}
 
     @property
@@ -328,6 +322,11 @@ class Icons:
     def main_menu_print(self) -> QIcon:
         """Return the print icon, dynamically colored for the current theme."""
         return self._qicon("main_menu_print.svg", dynamic=True)
+
+    @property
+    def main_menu_export(self) -> QIcon:
+        """Return the export icon."""
+        return self._qicon("main_menu_export_pdf.svg", dynamic=True)
 
     @property
     def main_menu_rename_copy(self) -> QIcon:
@@ -383,11 +382,6 @@ class Icons:
     def location_gpkg_project(self) -> QIcon:
         """Return the 'project gpkg' location icon."""
         return self._qicon("location_gpkg_project.svg")
-
-    @property
-    def browser_gpkg(self) -> QIcon:
-        """Return the browser gpkg icon."""
-        return self._qicon("browser_gpkg.svg")
 
     @property
     def location_cloud(self) -> QIcon:
