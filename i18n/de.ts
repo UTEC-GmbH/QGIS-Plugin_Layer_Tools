@@ -188,24 +188,39 @@ Do you want to continue?</source>
 <context>
     <name>PrintLayout</name>
     <message>
-        <location filename="../modules/print_layout.py" line="83"/>
+        <location filename="../modules/print_layout.py" line="85"/>
         <source>Create Print Layout</source>
         <translation>Neues Drucklayout Erzeugen</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="95"/>
+        <location filename="../modules/print_layout.py" line="97"/>
         <source>Drawing Type</source>
         <translation>Planart</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="63"/>
+        <location filename="../modules/print_layout.py" line="65"/>
         <source>Overview</source>
         <translation>Übersichtsplan</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="270"/>
+        <location filename="../modules/print_layout.py" line="307"/>
         <source>Frame</source>
         <translation>Rahmen</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout.py" line="101"/>
+        <source>Show Background Map Source</source>
+        <translation>Quelle der Hintergrundkarte anzeigen</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout.py" line="107"/>
+        <source>Source of Background Maps: </source>
+        <translation>Quelle Hintergrundkarte: </translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout.py" line="112"/>
+        <source>Source</source>
+        <translation>Quelle</translation>
     </message>
 </context>
 <context>
