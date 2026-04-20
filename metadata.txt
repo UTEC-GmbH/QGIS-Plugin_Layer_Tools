@@ -1,8 +1,11 @@
 [general]
 name=UTEC Layer Tools (dev)
 
-version=1.4
+version=1.4a
 changelog=
+    Version 1.4a:
+    - 👍 Verbesserung: Im Plankopf kann jetzt auch eine Quelle für die Hintergrundkarten angegeben werden.
+
     Version 1.4:
     - ✨ Neue Funktion: Projektvariablen → Hiermit können Metadaten wie "Bauherr" oder "Projektname" definiert werden. Diese Daten können z.B. im Plankopf automatisch eingetragen werden.
      - 👍 Verbesserung: Bei der Erstellung eines Drucklayouts können jetzt Angaben zu Bauherr etc. eingegeben werden. 
@@ -12,7 +15,6 @@ changelog=
         - Alle Angaben können entweder in den Projektvariablen oder in den separaten Layouts manuell angepasst werden.
     - 🤏 Kleine Verbesserung: Menu aufgeräumt
     - 🐞 Bugfix: "UTEC Projekt-GeoPackage" im QGIS Browser (siehe Version 1.0) entfernt, weil es die normale Funktion des Browsers beeinträchtigt hat
-
 
     Version 1.3:
     - ✨ Neue Funktion: Drucklayouts
