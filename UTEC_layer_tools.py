@@ -141,24 +141,50 @@ class UTECLayerTools(QObject):
         return action
 
     def initGui(self) -> None:  # noqa: N802
-        """Create the menu entries and toolbar icons for the plugin.
+        """Create the menu entries and toolbar icons for the plugin."""
+        self._setup_main_menu()
 
-        Initializes the plugin menu, adds actions to the menu and toolbar, and
-        sets up the location indicator manager.
-        """
+        # -- Section 1: Project Metadata & Layouts --
+        self._add_project_variables_action()
+        self._add_print_layout_menu()
+        self._add_export_layouts_action()
 
-        # Create a menu for the plugin in the "Plugins" menu
-        self.plugin_menu = QMenu(self.menu, self.iface.pluginMenu())
-        if self.plugin_menu is None:
+        if self.plugin_menu:
+            self.plugin_menu.addSeparator()
+
+        # -- Section 2: Data Management --
+        self._add_geopackage_actions()
+
+        if self.plugin_menu:
+            self.plugin_menu.addSeparator()
+
+        # -- Section 3: Layer Management --
+        self._add_rename_actions()
+
+        # Integrate the plugin menu into QGIS
+        if (menu := self.iface.pluginMenu()) and self.plugin_menu:
+            menu.addMenu(self.plugin_menu)
+
+        self._setup_toolbar()
+
+        # Initialize indicators
+        self.indicator_manager = LocationIndicatorManager(self.project, self.iface)
+        self.indicator_manager.init_indicators()
+
+    def _setup_main_menu(self) -> None:
+        """Initialize the main plugin menu structure."""
+        if (menu := QMenu(self.menu, self.iface.pluginMenu())) is None:
             # fmt: off
             error_msg: str = QCoreApplication.translate("RuntimeError", "Failed to create the plugin menu.")
             # fmt: on
             raise_runtime_error(error_msg)
 
-        self.plugin_menu.setToolTipsVisible(True)
-        self.plugin_menu.setIcon(self.plugin_icon)
+        self.plugin_menu = menu
+        menu.setToolTipsVisible(True)
+        menu.setIcon(self.plugin_icon)
 
-        # Add an action for editing project variables
+    def _add_project_variables_action(self) -> None:
+        """Add the action for editing project variables."""
         # fmt: off
         # ruff: noqa: E501
         button: str = QCoreApplication.translate("Menu_Button", "Edit Project Variables")
@@ -174,18 +200,17 @@ class UTECLayerTools(QObject):
             add_to_toolbar=False,
             tool_tip=tool_tip_text,
         )
-        self.plugin_menu.addAction(project_vars_action)
+        if self.plugin_menu:
+            self.plugin_menu.addAction(project_vars_action)
 
-        # Add a fly-out menu for creating layouts with specific paper sizes
+    def _add_print_layout_menu(self) -> None:
+        """Add a fly-out menu for creating specific print layouts."""
         # fmt: off
         layout_menu_title: str = QCoreApplication.translate("Menu_Button", "Create Print Layout")
-        #tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Create Print Layout</b></p><p><span style='font-weight:normal; font-style:normal;'>Creates a print layout with a specific paper size that includes a frame and a title block.</span></p>")
-        #                                                               "<p><b>Drucklayout Erzeugen</b></p><p><span style='font-weight:normal; font-style:normal;'>Erstellt ein neues Drucklayout mit gewähltem Papierformat, das einen Seitenrahmen und einen Plankopf enthält.</span></p>"                                                                        
         # fmt: on
         print_layout_menu = QMenu(layout_menu_title, self.plugin_menu)
         print_layout_menu.setIcon(ICONS.main_menu_print)
 
-        # Add actions for all defined paper sizes
         last_prefix: str = ""
         for paper_props in PAPER_SIZES:
             current_prefix: str = paper_props.size_name.split("_")[0]
@@ -202,9 +227,11 @@ class UTECLayerTools(QObject):
             action.triggered.connect(partial(self.create_layout, paper_props.size_name))
             print_layout_menu.addAction(action)
 
-        self.plugin_menu.addMenu(print_layout_menu)
+        if self.plugin_menu:
+            self.plugin_menu.addMenu(print_layout_menu)
 
-        # Add an action for exporting layouts as PDF
+    def _add_export_layouts_action(self) -> None:
+        """Add the action for exporting layouts as PDF."""
         # fmt: off
         # ruff: noqa: E501
         button_text: str = QCoreApplication.translate("Menu_Button", "Export Layouts as PDF")
@@ -220,13 +247,11 @@ class UTECLayerTools(QObject):
             add_to_toolbar=False,
             tool_tip=tool_tip_export,
         )
-        self.plugin_menu.addAction(export_layouts_action)
+        if self.plugin_menu:
+            self.plugin_menu.addAction(export_layouts_action)
 
-        # -----------------------------------------------
-        self.plugin_menu.addSeparator()
-        # -----------------------------------------------
-
-        # Add an action for copying layers to the geopackage
+    def _add_geopackage_actions(self) -> None:
+        """Add actions for copying layers and preparing shipping packages."""
         # fmt: off
         # ruff: noqa: E501
         button: str = QCoreApplication.translate("Menu_Button", "Copy Selected Layers to Project's GeoPackage")
@@ -238,39 +263,37 @@ class UTECLayerTools(QObject):
             button_text=button,
             callback=self.copy_selected_layers,
             parent=self.iface.mainWindow(),
-            add_to_menu=False,  # Added to custom menu
+            add_to_menu=False,
             add_to_toolbar=False,
             tool_tip=tool_tip_text,
         )
-        self.plugin_menu.addAction(copy_action)
+        if self.plugin_menu:
+            self.plugin_menu.addAction(copy_action)
 
-        # Add an action for preparing layers for shipping
         # fmt: off
         # ruff: noqa: E501
-        button: str = QCoreApplication.translate("Menu_Button", "Prepare Selected Layers for Sending")
-        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Prepare Selected Layers for Sending</b></p><p><span style='font-weight:normal; font-style:normal;'>Creates a subfolder in the project folder with a GeoPackage (.gpkg) and a project file (.qgz) containing the selected layers. These two files can be sent e.g. via email.</span></p>")
+        button_ship: str = QCoreApplication.translate("Menu_Button", "Prepare Selected Layers for Sending")
+        tool_tip_ship: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Prepare Selected Layers for Sending</b></p><p><span style='font-weight:normal; font-style:normal;'>Creates a subfolder in the project folder with a GeoPackage (.gpkg) and a project file (.qgz) containing the selected layers. These two files can be sent e.g. via email.</span></p>")
         #                                                                <p><b>Gewälte Layer für Versand Vorbereiten</b></p><p><span style='font-weight:normal; font-style:normal;'>Im Projektordner wird ein Unterordner mit einem GeoPackage (.gpkg) und einer Projektdatei (.qgz) erstellt, die die gewählten Layer enthalten. Diese beiden Dateien können z.B. per E-Mail versendet werden.</span></p>
         # fmt: on
         shipping_action = self.add_action(
             icon=ICONS.main_menu_send,
-            button_text=button,
+            button_text=button_ship,
             callback=self.prepare_shipping,
             parent=self.iface.mainWindow(),
-            add_to_menu=False,  # Added to custom menu
+            add_to_menu=False,
             add_to_toolbar=False,
-            tool_tip=tool_tip_text,
+            tool_tip=tool_tip_ship,
         )
-        self.plugin_menu.addAction(shipping_action)
+        if self.plugin_menu:
+            self.plugin_menu.addAction(shipping_action)
 
-        # -----------------------------------------------
-        self.plugin_menu.addSeparator()
-        # -----------------------------------------------
-
-        # Add an action for renaming layers
+    def _add_rename_actions(self) -> None:
+        """Add actions for renaming layers and undoing operations."""
         # fmt: off
         # ruff: noqa: E501     
         button: str = QCoreApplication.translate("Menu_Button", "Rename Selected Layers by Group Name")
-        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Rename Selected Layers by Group Name</b></p><p><span style='font-weight:normal; font-style:normal;'>Selected layers and layers in selected groups are renamed according to their parent group names. If a layer is not in a group, it is not renamed.</p><p>(Mostly useful for renaming layers imported from AutoCAD)</span></p>")
+        tool_tip_rename: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Rename Selected Layers by Group Name</b></p><p><span style='font-weight:normal; font-style:normal;'>Selected layers and layers in selected groups are renamed according to their parent group names. If a layer is not in a group, it is not renamed.</p><p>(Mostly useful for renaming layers imported from AutoCAD)</span></p>")
         #                                                                <p><b>Gewählte Layer nach Gruppenname Umbenennen</b></p><p><span style='font-weight:normal; font-style:normal;'>Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen. Layer, die sich nicht in einer Gruppe befinden, wird er nicht umbenannt.</p><p>(Nützlich für das Umbenennen von Layern, die aus AutoCAD importiert wurden)</span></p>
         # fmt: on
         rename_action = self.add_action(
@@ -278,65 +301,65 @@ class UTECLayerTools(QObject):
             button_text=button,
             callback=self.rename_selected_layers,
             parent=self.iface.mainWindow(),
-            add_to_menu=False,  # Will be added to our custom menu
-            add_to_toolbar=False,  # Avoid creating a separate toolbar button
-            tool_tip=tool_tip_text,
+            add_to_menu=False,
+            add_to_toolbar=False,
+            tool_tip=tool_tip_rename,
         )
-        self.plugin_menu.addAction(rename_action)
+        if self.plugin_menu:
+            self.plugin_menu.addAction(rename_action)
 
-        # Add an action for renaming and moving layers
         # fmt: off
         # ruff: noqa: E501
-        button: str = QCoreApplication.translate("Menu_Button", "Rename and Copy Selected Layers to Project's GeoPackage")
-        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Rename and Copy Selected Layers to Project's GeoPackage</b></p><p><span style='font-weight:normal; font-style:normal;'>Selected layers and layers in selected groups are renamed according to their parent group names, then copied to the project's GeoPackage and then added back from the GeoPackage to the top of the layer tree of the current project. The original layers can be removed from the project if desired.</p><p>The project's GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).</span></p><b>CAUTION: This will overwrite layers with the same name and geometry type in the project's GeoPackage!</b></p>")
+        button_ren_copy: str = QCoreApplication.translate("Menu_Button", "Rename and Copy Selected Layers to Project's GeoPackage")
+        tool_tip_ren_copy: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Rename and Copy Selected Layers to Project's GeoPackage</b></p><p><span style='font-weight:normal; font-style:normal;'>Selected layers and layers in selected groups are renamed according to their parent group names, then copied to the project's GeoPackage and then added back from the GeoPackage to the top of the layer tree of the current project. The original layers can be removed from the project if desired.</p><p>The project's GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).</span></p><b>CAUTION: This will overwrite layers with the same name and geometry type in the project's GeoPackage!</b></p>")
         #                                                                <p><b>Gewählte Layer Umbenennen und in das Projekt-GeoPackage Kopieren</b></p><p><span style='font-weight:normal; font-style:normal;'>Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen, danach in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.</p><p>Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).</span></p><p><b>Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!</b></p>
         # fmt: on
         rename_copy_action = self.add_action(
             icon=ICONS.main_menu_rename_copy,
-            button_text=button,
+            button_text=button_ren_copy,
             callback=self.rename_and_copy_layers,
             parent=self.iface.mainWindow(),
-            add_to_menu=False,  # Added to custom menu
+            add_to_menu=False,
             add_to_toolbar=False,
-            tool_tip=tool_tip_text,
+            tool_tip=tool_tip_ren_copy,
         )
-        self.plugin_menu.addAction(rename_copy_action)
+        if self.plugin_menu:
+            self.plugin_menu.addAction(rename_copy_action)
 
-        # Add an action for undoing the last rename
         # fmt: off
         # ruff: noqa: E501
-        button: str = QCoreApplication.translate("Menu_Button", "Undo Last Rename")
-        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Undo Last Rename</b></p><p><span style='font-weight:normal; font-style:normal;'>Undoes the most recent layer renaming operation performed by this plugin.</span></p>")
+        button_undo: str = QCoreApplication.translate("Menu_Button", "Undo Last Rename")
+        tool_tip_undo: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Undo Last Rename</b></p><p><span style='font-weight:normal; font-style:normal;'>Undoes the most recent layer renaming operation performed by this plugin.</span></p>")
         #                                                                <p><b>Letzte Umbenennung Rückgängig Machen</b></p><p><span style='font-weight:normal; font-style:normal;'>Die letzte Umbenennung, die von diesem Plugin ausgeführt wurde, wird rückgängig gemacht.</span></p>
         # fmt: on
         undo_rename_action = self.add_action(
             icon=ICONS.main_menu_undo,
-            button_text=button,
+            button_text=button_undo,
             callback=self.undo_last_rename,
             parent=self.iface.mainWindow(),
-            add_to_menu=False,  # Added to custom menu
+            add_to_menu=False,
             add_to_toolbar=False,
-            tool_tip=tool_tip_text,
+            tool_tip=tool_tip_undo,
         )
-        self.plugin_menu.addAction(undo_rename_action)
+        if self.plugin_menu:
+            self.plugin_menu.addAction(undo_rename_action)
 
-        # Add the fly-out menu to the main "Plugins" menu
-        if menu := self.iface.pluginMenu():
-            menu.addMenu(self.plugin_menu)
+    def _setup_toolbar(self) -> None:
+        """Set up the toolbar button and popup menu for the plugin."""
         toolbar_button = QToolButton()
         toolbar_button.setIcon(self.plugin_icon)
         toolbar_button.setToolTip(self.plugin_name)
         toolbar_button.setMenu(self.plugin_menu)
-        if PluginContext.is_qt6():
-            toolbar_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        else:
-            toolbar_button.setPopupMode(QToolButton.InstantPopup)
+
+        mode: QToolButton.ToolButtonPopupMode = (
+            QToolButton.ToolButtonPopupMode.InstantPopup
+            if PluginContext.is_qt6()
+            else QToolButton.InstantPopup
+        )
+        toolbar_button.setPopupMode(mode)
+
         toolbar_action = self.iface.addToolBarWidget(toolbar_button)
         self.actions.append(toolbar_action)
-
-        # Initialize and connect the location indicator manager
-        self.indicator_manager = LocationIndicatorManager(self.project, self.iface)
-        self.indicator_manager.init_indicators()
 
     def unload(self) -> None:
         """Plugin unload method.
