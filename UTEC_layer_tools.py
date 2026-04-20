@@ -329,10 +329,6 @@ class UTECLayerTools(QObject):
             self.indicator_manager.unload()
             self.indicator_manager = None
 
-        if self.gpkg_indicator_manager:
-            self.gpkg_indicator_manager.unload()
-            self.gpkg_indicator_manager = None
-
         # Remove toolbar icons for all actions
         for action in self.actions:
             self.iface.removeToolBarIcon(action)

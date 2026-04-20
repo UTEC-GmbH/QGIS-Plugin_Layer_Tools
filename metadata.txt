@@ -3,6 +3,10 @@ name=UTEC Layer Tools (dev)
 
 version=1.4a
 changelog=
+    Version 1.5:
+    - 🐞 Bugfix: GeoPackageIndicator von unload entfernt
+
+
     Version 1.4a:
     - 👍 Verbesserung: Im Plankopf kann jetzt auch eine Quelle für die Hintergrundkarten angegeben werden.
 
