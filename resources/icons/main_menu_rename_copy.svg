@@ -33,7 +33,6 @@
      inkscape:window-y="0"
      inkscape:window-maximized="0"
      inkscape:current-layer="svg3" /><g
-     style="fill:none"
      id="g3"
      transform="matrix(0.73387159,0,0,0.73387159,7.854825,7.3044213)"><path
        opacity="0.5"
@@ -51,7 +50,6 @@
        fill="param(fill)"
        id="path3-2"
        style="fill-opacity:1" /></g><g
-     style="fill:none"
      id="g1"
      transform="matrix(0.82026112,0,0,0.82026112,-1.6405222,-1.6405222)"><path
        d="m 8.42229,20.6181 c 1.75561,0.9214 2.63341,1.382 3.57771,1.382 v -10 L 2.63802,7.07275 C 2.62423,7.09491 2.6107,7.11727 2.5974,7.13986 2,8.15436 2,9.41678 2,11.9416 v 0.117 c 0,2.5248 0,3.7873 0.5974,4.8018 0.59739,1.0145 1.67323,1.5791 3.82489,2.7082 z"

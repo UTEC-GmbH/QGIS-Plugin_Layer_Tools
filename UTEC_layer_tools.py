@@ -23,6 +23,7 @@ from .modules.constants import ICONS, PAPER_SIZES
 from .modules.context import PluginContext
 from .modules.geopackage import copy_layers_to_gpkg
 from .modules.layer_location import LocationIndicatorManager
+from .modules.layout_export import export_layouts_to_pdf
 from .modules.logs_and_errors import (
     CustomRuntimeError,
     CustomUserError,
@@ -203,6 +204,24 @@ class UTECLayerTools(QObject):
 
         self.plugin_menu.addMenu(print_layout_menu)
 
+        # Add an action for exporting layouts as PDF
+        # fmt: off
+        # ruff: noqa: E501
+        button_text: str = QCoreApplication.translate("Menu_Button", "Export Layouts as PDF")
+        tool_tip_export: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Export Layouts as PDF</b></p><p><span style='font-weight:normal; font-style:normal;'>Select existing layouts to export them as PDF files. The PDFs will be saved in a folder named 'pdf' within the project directory.</span></p>")
+        #                                                                  <p><b>Layouts als PDF exportieren</b></p><p><span style='font-weight:normal; font-style:normal;'>Layouts wählen, die als PDF-Dateien exportiert werden sollen. Die Dateien werden in einem Unterordner namens 'pdf' im Projektverzeichnis gespeichert.</span></p>
+        # fmt: on
+        export_layouts_action = self.add_action(
+            icon=ICONS.main_menu_export,
+            button_text=button_text,
+            callback=self.export_layouts,
+            parent=self.iface.mainWindow(),
+            add_to_menu=False,
+            add_to_toolbar=False,
+            tool_tip=tool_tip_export,
+        )
+        self.plugin_menu.addAction(export_layouts_action)
+
         # -----------------------------------------------
         self.plugin_menu.addSeparator()
         # -----------------------------------------------
@@ -380,6 +399,17 @@ class UTECLayerTools(QObject):
         log_debug(f"... STARTING PLUGIN RUN ... (create_layout {size})", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
             create_print_layout(size)
+
+    def export_layouts(self) -> None:
+        """Export selected layouts as PDF files."""
+        log_debug("... STARTING PLUGIN RUN ... (export_layouts)", icon="✨✨✨")
+        with contextlib.suppress(CustomUserError, CustomRuntimeError):
+            results: ActionResults[None] = export_layouts_to_pdf()
+            log_summary_message(
+                processed=len(results.processed),
+                skipped=results.skips,
+                errors=results.errors,
+            )
 
     def copy_selected_layers(self) -> None:
         """Copy selected layers to the project's GeoPackage.
