@@ -96,9 +96,10 @@ class UTECLayerTools(QObject):
         icon: QIcon,
         button_text: str,
         callback: Callable,
-        enabled_flag: bool = True,  # noqa: FBT001, FBT002
-        add_to_menu: bool = True,  # noqa: FBT001, FBT002
-        add_to_toolbar: bool = True,  # noqa: FBT001, FBT002
+        *,
+        enabled_flag: bool = True,
+        add_to_menu: bool = True,
+        add_to_toolbar: bool = True,
         tool_tip: str | None = None,
         parent=None,  # noqa: ANN001
     ) -> QAction:  # pyright: ignore[reportInvalidTypeForm]

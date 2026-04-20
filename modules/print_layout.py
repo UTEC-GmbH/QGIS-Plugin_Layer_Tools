@@ -25,6 +25,7 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QCoreApplication, QRectF
 from qgis.PyQt.QtWidgets import (
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
@@ -96,6 +97,21 @@ class NewLayoutDialog(QDialog):
         name_label: str = QCoreApplication.translate("PrintLayout", "Drawing Type")
         self.form_layout.addRow(name_label, self.name_edit)
 
+        # 2. Map Source Visibility and Text
+        self.source_checkbox = QCheckBox(
+            QCoreApplication.translate("PrintLayout", "Show Background Map Source")
+        )
+        self.source_checkbox.setChecked(False)
+        self.form_layout.addRow(self.source_checkbox)
+
+        self.source_edit = QLineEdit(
+            QCoreApplication.translate("PrintLayout", "Source of Background Maps: ")
+        )
+        self.source_edit.setEnabled(False)
+        self.source_checkbox.toggled.connect(self.source_edit.setEnabled)
+        source_label: str = QCoreApplication.translate("PrintLayout", "Source")
+        self.form_layout.addRow(source_label, self.source_edit)
+
         # Visual Separator
         separator: QFrame = QFrame()
         separator.setFixedHeight(15)
@@ -140,6 +156,14 @@ class NewLayoutDialog(QDialog):
     def get_layout_name(self) -> str:
         """Return the entered layout name."""
         return self.name_edit.text().strip()
+
+    def get_source_visibility(self) -> bool:
+        """Return True if the source should be visible."""
+        return self.source_checkbox.isChecked()
+
+    def get_source_text(self) -> str:
+        """Return the source text."""
+        return self.source_edit.text().strip()
 
     def save_variables(self) -> None:
         """Save entered project variables to the project."""
@@ -288,29 +312,48 @@ def _add_frame_to_layout(layout: QgsPrintLayout, paper_props: PaperProps) -> Non
 
 
 def _auto_dynamic_elements(
-    new_items: list[QgsLayoutItem], map_item: QgsLayoutItemMap
+    new_items: list[QgsLayoutItem],
+    map_item: QgsLayoutItemMap | None,
+    *,
+    source_visible: bool = False,
+    source_text: str = "",
 ) -> None:
-    """Link items from the template to the main map.
+    """Link items from the template to the main map and update the source text.
 
-    This function finds specific items like a north arrow or a scale label
-    by their ID and links them to the provided map item. To make items
-    findable, set their "Item ID" in the QGIS Layout item properties.
+    This function finds specific items like a north arrow or a scale label by their ID
+    and links them to the provided map item. It also handles the visibility and content
+    of the "Quelle" text object.
+
+    To make items findable, set their "Item ID" in the QGIS Layout item properties.
     For this function, the following IDs are used:
     - "Nordpfeil": for a QgsLayoutItemPicture to be used as a north arrow.
     - "Maßstab": for a QgsLayoutItemLabel that should display the map scale.
+    - "Quelle": for a QgsLayoutItemLabel that should display the map source.
 
     Args:
         new_items: A list of items loaded from the template.
-        map_item: The main map item in the layout.
+        map_item: The main map item in the layout, or None.
+        source_visible: Whether the background map source should be visible.
+        source_text: The text to display as the map source.
     """
-    map_id: str = map_item.id()
-    if not map_id:
+    map_id: str = map_item.id() if map_item else ""
+    if map_item and not map_id:
         log_debug("Main map has no ID, cannot link template items.", Qgis.Warning)
-        return
 
     for item in new_items:
-        item_id: str = item.id()
-        if not item_id:
+        if not (item_id := item.id()):
+            continue
+
+        # Handle Background Map Source (Quelle)
+        if item_id == "Quelle":
+            item.setVisibility(source_visible)
+            if isinstance(item, QgsLayoutItemLabel):
+                item.setText(source_text)
+                item.refresh()
+            continue
+
+        # Items requiring a map
+        if not map_item or not map_id:
             continue
 
         # Link north arrow
@@ -376,7 +419,8 @@ def _move_title_block_to_corner(
         page_width: The width of the page.
         page_height: The height of the page.
     """
-    margin_mm: float = 5.0
+    margin_right_mm: float = 5.0
+    margin_bottom_mm: float = 1.0
 
     top_level_items: list[QgsLayoutItem] = [
         item
@@ -397,8 +441,8 @@ def _move_title_block_to_corner(
     current_max_y: float = bbox.bottom()
 
     # Target bottom-right
-    target_max_x: float = page_width - margin_mm
-    target_max_y: float = page_height - margin_mm
+    target_max_x: float = page_width - margin_right_mm
+    target_max_y: float = page_height - margin_bottom_mm
 
     shift_x: float = target_max_x - current_max_x
     shift_y: float = target_max_y - current_max_y
@@ -446,6 +490,8 @@ def create_print_layout(paper_size_name: str) -> None:
         return
 
     final_name: str = dialog.get_layout_name() or suggested_name
+    show_source: bool = dialog.get_source_visibility()
+    source_text: str = dialog.get_source_text()
     dialog.save_variables()
     project.setDirty(True)
 
@@ -474,8 +520,12 @@ def create_print_layout(paper_size_name: str) -> None:
     if new_items := layout.addItemsFromXml(
         doc.documentElement(), doc, rw_context, pasteInPlace=False
     ):
-        if map_item:
-            _auto_dynamic_elements(new_items, map_item)
+        _auto_dynamic_elements(
+            new_items,
+            map_item,
+            source_visible=show_source,
+            source_text=source_text,
+        )
         _move_title_block_to_corner(new_items, paper_props.width, paper_props.height)
 
     # 6. Set Dynamic Variables (Layout Variables)
