@@ -16,8 +16,11 @@ from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QDialog,
     QDialogButtonBox,
+    QFileDialog,
     QFormLayout,
     QFrame,
+    QHBoxLayout,
+    QLineEdit,
     QListWidget,
     QListWidgetItem,
     QProgressBar,
@@ -44,10 +47,27 @@ class LayoutSelectionDialog(QDialog):
         self.setWindowTitle(
             QCoreApplication.translate("PrintLayout", "Export Layouts as PDF")
         )
-        self.setMinimumWidth(400)
-        self.setMinimumHeight(300)
+        self.setMinimumWidth(500)
+        self.setMinimumHeight(400)
 
         self.main_container: QVBoxLayout = QVBoxLayout(self)
+
+        self._setup_layout_list(layouts)
+        self._setup_settings_section()
+
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        )
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        self.main_container.addWidget(self.button_box)
+
+    def _setup_layout_list(self, layouts: list[QgsPrintLayout]) -> None:
+        """Set up the layout selection list.
+
+        Args:
+            layouts: List of available print layouts.
+        """
         self.list_widget: QListWidget = QListWidget()
 
         for layout in layouts:
@@ -59,21 +79,23 @@ class LayoutSelectionDialog(QDialog):
 
         self.main_container.addWidget(self.list_widget)
 
-        # -- Export Settings Section --
+    def _setup_settings_section(self) -> None:
+        """Set up the collapsible export settings section."""
         self.settings_toggle: QToolButton = QToolButton()
         self.settings_toggle.setCheckable(True)
         self.settings_toggle.setChecked(False)
 
         # Setup visual styles based on Qt version
-        if PluginContext.is_qt6():
-            self.settings_toggle.setArrowType(Qt.ArrowType.RightArrow)
-            style = Qt.ToolButtonStyle.ToolButtonTextBesideIcon
-            shape = QFrame.Shape.StyledPanel
-        else:
-            self.settings_toggle.setArrowType(Qt.RightArrow)
-            style = Qt.ToolButtonTextBesideIcon
-            shape = QFrame.StyledPanel
+        is_qt6: bool = PluginContext.is_qt6()
+        arrow = Qt.ArrowType.RightArrow if is_qt6 else Qt.RightArrow
+        style = (
+            Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+            if is_qt6
+            else Qt.ToolButtonTextBesideIcon
+        )
+        shape = QFrame.Shape.StyledPanel if is_qt6 else QFrame.StyledPanel
 
+        self.settings_toggle.setArrowType(arrow)
         self.settings_toggle.setToolButtonStyle(style)
         self.settings_toggle.setText(
             QCoreApplication.translate("PrintLayout", "Export Settings")
@@ -90,39 +112,78 @@ class LayoutSelectionDialog(QDialog):
         self.settings_container.setVisible(False)
         self.settings_form: QFormLayout = QFormLayout(self.settings_container)
 
-        # DPI Setting
-        self.dpi_spin: QSpinBox = QSpinBox()
-        self.dpi_spin.setRange(72, 3000)
-        self.dpi_spin.setValue(300)
-        self.dpi_spin.setSuffix(" dpi")
-        self.settings_form.addRow(
-            QCoreApplication.translate("PrintLayout", "Resolution:"), self.dpi_spin
-        )
-
-        # Georeference Setting
-        self.georef_check: QCheckBox = QCheckBox()
-        self.georef_check.setChecked(True)
-        self.settings_form.addRow(
-            QCoreApplication.translate("PrintLayout", "Append georeference:"),
-            self.georef_check,
-        )
-
-        # Metadata Setting
-        self.metadata_check: QCheckBox = QCheckBox()
-        self.metadata_check.setChecked(True)
-        self.settings_form.addRow(
-            QCoreApplication.translate("PrintLayout", "Export metadata:"),
-            self.metadata_check,
-        )
+        self._setup_folder_selection()
+        self._setup_export_options()
 
         self.main_container.addWidget(self.settings_container)
 
-        self.button_box = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+    def _setup_folder_selection(self) -> None:
+        """Add the folder selection widgets to the settings form."""
+        self.dir_edit: QLineEdit = QLineEdit()
+        default_dir: Path = PluginContext.project_path().parent / "pdf"
+        self.dir_edit.setText(str(default_dir))
+
+        self.dir_button: QToolButton = QToolButton()
+        self.dir_button.setText("...")
+        self.dir_button.clicked.connect(self._select_directory)
+
+        self.dir_layout: QHBoxLayout = QHBoxLayout()
+        self.dir_layout.addWidget(self.dir_edit)
+        self.dir_layout.addWidget(self.dir_button)
+
+        self.settings_form.addRow(
+            QCoreApplication.translate("PrintLayout", "Export Folder:"),
+            self.dir_layout,
         )
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-        self.main_container.addWidget(self.button_box)
+
+    def _setup_export_options(self) -> None:
+        """Add DPI and checkbox options to the settings form."""
+
+        # fmt: off
+        # ruff: noqa: E501
+        resolution_label: str = QCoreApplication.translate("PrintLayout", "Resolution")
+        georef_label: str = QCoreApplication.translate("PrintLayout", "Append georeference information")
+        georef_tooltip: str = QCoreApplication.translate("PrintLayout", "Include georeferencing information in the PDF header. Allows compatible viewers to display coordinates.")
+        metadata_label: str = QCoreApplication.translate("PrintLayout", "Export metadata")
+        metadata_tooltip: str = QCoreApplication.translate("PrintLayout", "Include document metadata (author, title, etc.) in the PDF.")
+        simplify_label: str = QCoreApplication.translate("PrintLayout", "Simplify geometry")
+        simplify_tooltip: str = QCoreApplication.translate("PrintLayout", "Simplify geometry to reduce file size.")
+        # fmt: on
+
+        # Resolution
+        self.dpi_spin: QSpinBox = QSpinBox()
+        self.dpi_spin.setRange(72, 3000)
+        self.dpi_spin.setValue(200)
+        self.dpi_spin.setSuffix(" dpi")
+        self.settings_form.addRow(resolution_label, self.dpi_spin)
+
+        # Georeference
+        self.georef_check = self._add_setting_checkbox(georef_label, georef_tooltip)
+        self.metadata_check = self._add_setting_checkbox(
+            metadata_label, metadata_tooltip
+        )
+
+        # Simplify geometry
+        self.simplify_geom_check: QCheckBox = self._add_setting_checkbox(
+            simplify_label, simplify_tooltip
+        )
+
+    def _add_setting_checkbox(self, label_text: str, tooltip_text: str) -> QCheckBox:
+        """Add a checkbox row to the export settings form.
+
+        Args:
+            label_text: The translated text for the form row label.
+            tooltip_text: The translated text for the widget tooltip.
+
+        Returns:
+            QCheckBox: The created checkbox widget.
+        """
+        checkbox: QCheckBox = QCheckBox()
+        checkbox.setChecked(True)
+        checkbox.setToolTip(tooltip_text)
+        self.settings_form.addRow(label_text, checkbox)
+
+        return checkbox
 
     def get_selected_layouts(self) -> list[QgsPrintLayout]:
         """Retrieve the list of selected layout objects.
@@ -136,6 +197,23 @@ class LayoutSelectionDialog(QDialog):
             if (item := self.list_widget.item(index)) is not None
             and item.checkState() == Qt.Checked
         ]
+
+    def _select_directory(self) -> None:
+        """Open a directory selection dialog and update the path."""
+        if selected_directory := QFileDialog.getExistingDirectory(
+            self,
+            QCoreApplication.translate("PrintLayout", "Select Export Directory"),
+            self.dir_edit.text(),
+        ):
+            self.dir_edit.setText(selected_directory)
+
+    def get_export_directory(self) -> Path:
+        """Retrieve the selected export directory.
+
+        Returns:
+            Path: The path to the folder where PDFs will be saved.
+        """
+        return Path(self.dir_edit.text().strip())
 
     def _toggle_settings(self, *, expanded: bool) -> None:
         """Toggle the visibility of the export settings section.
@@ -162,6 +240,7 @@ class LayoutSelectionDialog(QDialog):
         settings.dpi = float(self.dpi_spin.value())
         settings.appendGeoreference = self.georef_check.isChecked()
         settings.exportMetadata = self.metadata_check.isChecked()
+        settings.simplifyGeometries = self.simplify_geom_check.isChecked()
 
         return settings
 
@@ -221,7 +300,9 @@ def export_layouts_to_pdf() -> ActionResults[None]:
     if not selected_layouts:
         return ActionResults(None, skips=[Issue("User", "No layouts selected.")])
 
-    pdf_dir: Path = PluginContext.project_path().parent / "pdf"
+    # Retrieve settings and directory once for all layouts
+    export_settings: QgsLayoutExporter.PdfExportSettings = dialog.get_export_settings()
+    pdf_dir: Path = dialog.get_export_directory()
     pdf_dir.mkdir(exist_ok=True)
 
     results: ActionResults[None] = ActionResults(None)
@@ -231,9 +312,6 @@ def export_layouts_to_pdf() -> ActionResults[None]:
 
     if message_bar := PluginContext.message_bar():
         message_bar.pushWidget(progress_bar, Qgis.Info)
-
-    # Retrieve settings once for all layouts
-    export_settings: QgsLayoutExporter.PdfExportSettings = dialog.get_export_settings()
 
     try:
         for index, layout in enumerate(selected_layouts):

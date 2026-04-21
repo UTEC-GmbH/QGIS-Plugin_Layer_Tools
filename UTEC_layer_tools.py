@@ -23,7 +23,6 @@ from .modules.constants import ICONS, PAPER_SIZES
 from .modules.context import PluginContext
 from .modules.geopackage import copy_layers_to_gpkg
 from .modules.layer_location import LocationIndicatorManager
-from .modules.print_layout_export import export_layouts_to_pdf
 from .modules.logs_and_errors import (
     CustomRuntimeError,
     CustomUserError,
@@ -32,6 +31,7 @@ from .modules.logs_and_errors import (
     raise_runtime_error,
 )
 from .modules.print_layout import create_print_layout
+from .modules.print_layout_export import export_layouts_to_pdf
 from .modules.project_variables import edit_project_variables
 from .modules.rename import Rename, rename_layers, undo_rename_layers
 from .modules.shipping import prepare_layers_for_shipping
@@ -235,8 +235,8 @@ class UTECLayerTools(QObject):
         # fmt: off
         # ruff: noqa: E501
         button_text: str = QCoreApplication.translate("Menu_Button", "Export Layouts as PDF")
-        tool_tip_export: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Export Layouts as PDF</b></p><p><span style='font-weight:normal; font-style:normal;'>Select existing layouts to export them as PDF files. The PDFs will be saved in a folder named 'pdf' within the project directory.</span></p>")
-        #                                                                  <p><b>Layouts als PDF exportieren</b></p><p><span style='font-weight:normal; font-style:normal;'>Layouts wählen, die als PDF-Dateien exportiert werden sollen. Die Dateien werden in einem Unterordner namens 'pdf' im Projektverzeichnis gespeichert.</span></p>
+        tool_tip_export: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Export Layouts as PDF</b></p><p><span style='font-weight:normal; font-style:normal;'>Select layouts to be exported as PDF files. The PDFs will be saved in the specified folder (defaults to 'pdf' within the project directory) without overwriting existing files. Existing files with the same name will be moved to a folder called 'alt'.</span></p>")
+        #                                                                  <p><b>Layouts als PDF exportieren</b></p><p><span style='font-weight:normal; font-style:normal;'>Layouts wählen, die als PDF-Dateien exportiert werden sollen. Die Dateien werden im angegebenen Ordner (Standardordner: 'pdf' im Projektverzeichnis) gespeichert ohne vorhandene Dateien zu überschreiben. Vorhandene Dateien mit demselben Namen werden in einen Unterordner namens 'alt' verschoben.</span></p>
         # fmt: on
         export_layouts_action = self.add_action(
             icon=ICONS.main_menu_export,

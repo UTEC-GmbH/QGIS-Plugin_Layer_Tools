@@ -138,8 +138,8 @@ Do you want to continue?</source>
     </message>
     <message>
         <location filename="../UTEC_layer_tools.py" line="238"/>
-        <source>&lt;p&gt;&lt;b&gt;Export Layouts as PDF&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Select existing layouts to export them as PDF files. The PDFs will be saved in a folder named &apos;pdf&apos; within the project directory.&lt;/span&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;Layouts als PDF exportieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Layouts wählen, die als PDF-Dateien exportiert werden sollen. Die Dateien werden in einem Unterordner namens &apos;pdf&apos; im Projektverzeichnis gespeichert.&lt;/span&gt;&lt;/p&gt;</translation>
+        <source>&lt;p&gt;&lt;b&gt;Export Layouts as PDF&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Select layouts to be exported as PDF files. The PDFs will be saved in the specified folder (defaults to &apos;pdf&apos; within the project directory) without overwriting existing files. Existing files with the same name will be moved to a folder called &apos;alt&apos;.&lt;/span&gt;&lt;/p&gt;</source>
+        <translation> &lt;p&gt;&lt;b&gt;Layouts als PDF exportieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Layouts wählen, die als PDF-Dateien exportiert werden sollen. Die Dateien werden im angegebenen Ordner (Standardordner: &apos;pdf&apos; im Projektverzeichnis) gespeichert ohne vorhandene Dateien zu überschreiben. Vorhandene Dateien mit demselben Namen werden in einen Unterordner namens &apos;alt&apos; verschoben.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
 </context>
 <context>
@@ -233,9 +233,29 @@ Do you want to continue?</source>
         <translation>Quelle</translation>
     </message>
     <message>
-        <location filename="../modules/layout_export.py" line="39"/>
+        <location filename="../modules/print_layout_export.py" line="47"/>
         <source>Export Layouts as PDF</source>
         <translation>Layouts als PDF exportieren</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout_export.py" line="100"/>
+        <source>Export Settings</source>
+        <translation>Export Einstellungen</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout_export.py" line="134"/>
+        <source>Export Folder:</source>
+        <translation>Zielordner:</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout_export.py" line="145"/>
+        <source>Resolution:</source>
+        <translation>Auflösung:</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout_export.py" line="184"/>
+        <source>Select Export Directory</source>
+        <translation>Zielordner wählen</translation>
     </message>
 </context>
 <context>
