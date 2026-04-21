@@ -1,4 +1,4 @@
-"""Module: layout_export.py
+"""Module: print_layout_export.py
 
 This module handles the batch export of QGIS print layouts to PDF files.
 """
@@ -13,11 +13,16 @@ from qgis.core import (
 )
 from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtWidgets import (
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
+    QFormLayout,
+    QFrame,
     QListWidget,
     QListWidgetItem,
     QProgressBar,
+    QSpinBox,
+    QToolButton,
     QVBoxLayout,
 )
 
@@ -53,6 +58,65 @@ class LayoutSelectionDialog(QDialog):
             self.list_widget.addItem(item)
 
         self.main_container.addWidget(self.list_widget)
+
+        # -- Export Settings Section --
+        self.settings_toggle: QToolButton = QToolButton()
+        self.settings_toggle.setCheckable(True)
+        self.settings_toggle.setChecked(False)
+
+        # Setup visual styles based on Qt version
+        if PluginContext.is_qt6():
+            self.settings_toggle.setArrowType(Qt.ArrowType.RightArrow)
+            style = Qt.ToolButtonStyle.ToolButtonTextBesideIcon
+            shape = QFrame.Shape.StyledPanel
+        else:
+            self.settings_toggle.setArrowType(Qt.RightArrow)
+            style = Qt.ToolButtonTextBesideIcon
+            shape = QFrame.StyledPanel
+
+        self.settings_toggle.setToolButtonStyle(style)
+        self.settings_toggle.setText(
+            QCoreApplication.translate("PrintLayout", "Export Settings")
+        )
+        self.settings_toggle.setStyleSheet("border: none; font-weight: bold;")
+        self.settings_toggle.toggled.connect(
+            lambda checked: self._toggle_settings(expanded=checked)
+        )
+
+        self.main_container.addWidget(self.settings_toggle)
+
+        self.settings_container: QFrame = QFrame()
+        self.settings_container.setFrameShape(shape)
+        self.settings_container.setVisible(False)
+        self.settings_form: QFormLayout = QFormLayout(self.settings_container)
+
+        # DPI Setting
+        self.dpi_spin: QSpinBox = QSpinBox()
+        self.dpi_spin.setRange(72, 3000)
+        self.dpi_spin.setValue(300)
+        self.dpi_spin.setSuffix(" dpi")
+        self.settings_form.addRow(
+            QCoreApplication.translate("PrintLayout", "Resolution:"), self.dpi_spin
+        )
+
+        # Georeference Setting
+        self.georef_check: QCheckBox = QCheckBox()
+        self.georef_check.setChecked(True)
+        self.settings_form.addRow(
+            QCoreApplication.translate("PrintLayout", "Append georeference:"),
+            self.georef_check,
+        )
+
+        # Metadata Setting
+        self.metadata_check: QCheckBox = QCheckBox()
+        self.metadata_check.setChecked(True)
+        self.settings_form.addRow(
+            QCoreApplication.translate("PrintLayout", "Export metadata:"),
+            self.metadata_check,
+        )
+
+        self.main_container.addWidget(self.settings_container)
+
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel
         )
@@ -72,6 +136,34 @@ class LayoutSelectionDialog(QDialog):
             if (item := self.list_widget.item(index)) is not None
             and item.checkState() == Qt.Checked
         ]
+
+    def _toggle_settings(self, *, expanded: bool) -> None:
+        """Toggle the visibility of the export settings section.
+
+        Args:
+            expanded: True if the settings section should be visible.
+        """
+        self.settings_container.setVisible(expanded)
+
+        if PluginContext.is_qt6():
+            arrow = Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow
+        else:
+            arrow = Qt.DownArrow if expanded else Qt.RightArrow
+
+        self.settings_toggle.setArrowType(arrow)
+
+    def get_export_settings(self) -> QgsLayoutExporter.PdfExportSettings:
+        """Retrieve the PDF export settings configured in the dialog.
+
+        Returns:
+            QgsLayoutExporter.PdfExportSettings: The configured export settings.
+        """
+        settings = QgsLayoutExporter.PdfExportSettings()
+        settings.dpi = float(self.dpi_spin.value())
+        settings.appendGeoreference = self.georef_check.isChecked()
+        settings.exportMetadata = self.metadata_check.isChecked()
+
+        return settings
 
 
 def _archive_existing_pdf(pdf_path: Path) -> None:
@@ -140,6 +232,9 @@ def export_layouts_to_pdf() -> ActionResults[None]:
     if message_bar := PluginContext.message_bar():
         message_bar.pushWidget(progress_bar, Qgis.Info)
 
+    # Retrieve settings once for all layouts
+    export_settings: QgsLayoutExporter.PdfExportSettings = dialog.get_export_settings()
+
     try:
         for index, layout in enumerate(selected_layouts):
             layout_name: str = layout.name()
@@ -151,7 +246,7 @@ def export_layouts_to_pdf() -> ActionResults[None]:
 
             status: QgsLayoutExporter.ExportResult = QgsLayoutExporter(
                 layout
-            ).exportToPdf(str(pdf_path), QgsLayoutExporter.PdfExportSettings())
+            ).exportToPdf(str(pdf_path), export_settings)
 
             if (
                 PluginContext.is_qgis4()
