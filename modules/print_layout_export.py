@@ -79,7 +79,9 @@ class LayoutSelectionDialog(QDialog):
             QCoreApplication.translate("PrintLayout", "Export Settings")
         )
         self.settings_toggle.setStyleSheet("border: none; font-weight: bold;")
-        self.settings_toggle.toggled.connect(self._toggle_settings)
+        self.settings_toggle.toggled.connect(
+            lambda checked: self._toggle_settings(expanded=checked)
+        )
 
         self.main_container.addWidget(self.settings_toggle)
 
