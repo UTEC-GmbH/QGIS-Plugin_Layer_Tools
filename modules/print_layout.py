@@ -3,6 +3,8 @@
 This module contains functions for creating print layouts from templates.
 """
 
+from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from qgis.core import (
@@ -52,6 +54,16 @@ if TYPE_CHECKING:
     from qgis.gui import QgisInterface, QgsMapCanvas
 
 
+@dataclass
+class LayoutMetadata:
+    """Container for dynamic values applied to layout items."""
+
+    source_visible: bool
+    source_text: str
+    drafter: str
+    checker: str
+
+
 def _get_unique_layout_name(layout_manager: QgsLayoutManager) -> str:
     """Determine a unique name for the layout.
 
@@ -91,13 +103,50 @@ class NewLayoutDialog(QDialog):
         self.variable_edits: dict[str, QLineEdit | QTextEdit] = {}
         self.variables: list[ProjectVariable] = get_project_variables()
 
-        # 1. Layout Name
-        self.name_edit = QLineEdit(suggested_name)
-        self.name_edit.setMaxLength(30)
-        name_label: str = QCoreApplication.translate("PrintLayout", "Drawing Type")
-        self.form_layout.addRow(name_label, self.name_edit)
+        self._setup_layout_inputs(suggested_name)
+        self._setup_source_inputs()
+        self._setup_variable_inputs()
+        self._setup_dialog_buttons()
 
-        # 2. Map Source Visibility and Text
+    def _setup_layout_inputs(self, suggested_name: str) -> None:
+        """Set up inputs for layout name and drafter/checker initials.
+
+        Args:
+            suggested_name: The default name suggested for the layout.
+        """
+        self.name_edit = self._add_labeled_line_edit(
+            suggested_name,
+            30,
+            QCoreApplication.translate("PrintLayout", "Drawing Type"),
+        )
+        self.drafter_edit = self._add_labeled_line_edit(
+            "XY", 6, QCoreApplication.translate("PrintLayout", "Drafter")
+        )
+        self.checker_edit = self._add_labeled_line_edit(
+            "", 6, QCoreApplication.translate("PrintLayout", "Checker")
+        )
+
+    def _add_labeled_line_edit(
+        self, default_value: str, max_length: int, label_text: str
+    ) -> QLineEdit:
+        """Create a QLineEdit with a label and add it to the form layout.
+
+        Args:
+            default_value: The initial text for the input box.
+            max_length: The maximum number of characters allowed.
+            label_text: The untranslated label text for the form row.
+
+        Returns:
+            QLineEdit: The created line edit widget.
+        """
+        line_edit = QLineEdit(default_value)
+        line_edit.setMaxLength(max_length)
+        self.form_layout.addRow(label_text, line_edit)
+
+        return line_edit
+
+    def _setup_source_inputs(self) -> None:
+        """Set up inputs for the background map source."""
         self.source_checkbox = QCheckBox(
             QCoreApplication.translate("PrintLayout", "Show Background Map Source")
         )
@@ -109,43 +158,59 @@ class NewLayoutDialog(QDialog):
         )
         self.source_edit.setEnabled(False)
         self.source_checkbox.toggled.connect(self.source_edit.setEnabled)
-        source_label: str = QCoreApplication.translate("PrintLayout", "Source")
-        self.form_layout.addRow(source_label, self.source_edit)
+        self.form_layout.addRow(
+            QCoreApplication.translate("PrintLayout", "Source"), self.source_edit
+        )
 
-        # Visual Separator
+    def _setup_variable_inputs(self) -> None:
+        """Add inputs for project-specific metadata variables."""
         separator: QFrame = QFrame()
         separator.setFixedHeight(15)
         self.form_layout.addRow(separator)
 
-        # 2. Project Variables (Metadata)
         for variable in self.variables:
-            edit: QLineEdit | QTextEdit
-            current_value: str = get_current_variable_value(self.project, variable)
-
-            if variable.is_multi_line:
-                edit = QTextEdit()
-                edit.setAcceptRichText(False)
-                edit.setTabChangesFocus(True)
-                edit.setPlainText(current_value)
-                edit.setMaximumHeight(50)
-                if (max_lines := variable.max_lines) is not None and (
-                    max_chars := variable.max_chars_per_line
-                ) is not None:
-                    edit.textChanged.connect(
-                        lambda widget=edit, lines=max_lines, chars=max_chars: (
-                            enforce_text_edit_limits(widget, lines, chars)
-                        )
-                    )
-            else:
-                edit = QLineEdit()
-                edit.setText(current_value)
-                if variable.max_chars_per_line:
-                    edit.setMaxLength(variable.max_chars_per_line)
-
+            edit: QLineEdit | QTextEdit = self._create_variable_widget(variable)
             self.variable_edits[variable.id] = edit
             self.form_layout.addRow(variable.label, edit)
 
-        # Buttons
+    def _create_variable_widget(
+        self, variable: ProjectVariable
+    ) -> QLineEdit | QTextEdit:
+        """Create the appropriate widget for a project variable.
+
+        Args:
+            variable: The project variable definition.
+
+        Returns:
+            QLineEdit | QTextEdit: The created input widget.
+        """
+        current_value: str = get_current_variable_value(self.project, variable)
+
+        if not variable.is_multi_line:
+            edit = QLineEdit(current_value)
+            if variable.max_chars_per_line:
+                edit.setMaxLength(variable.max_chars_per_line)
+            return edit
+
+        text_edit = QTextEdit()
+        text_edit.setAcceptRichText(False)
+        text_edit.setTabChangesFocus(True)
+        text_edit.setPlainText(current_value)
+        text_edit.setMaximumHeight(50)
+
+        if (max_lines := variable.max_lines) is not None and (
+            max_chars := variable.max_chars_per_line
+        ) is not None:
+            text_edit.textChanged.connect(
+                lambda widget=text_edit, lines=max_lines, chars=max_chars: (
+                    enforce_text_edit_limits(widget, lines, chars)
+                )
+            )
+
+        return text_edit
+
+    def _setup_dialog_buttons(self) -> None:
+        """Add standard Ok/Cancel buttons to the dialog."""
         self.button_box = QDialogButtonBox(
             QDialogButtonBox.Ok | QDialogButtonBox.Cancel
         )
@@ -164,6 +229,14 @@ class NewLayoutDialog(QDialog):
     def get_source_text(self) -> str:
         """Return the source text."""
         return self.source_edit.text().strip()
+
+    def get_drafter_initials(self) -> str:
+        """Return the entered drafter initials."""
+        return self.drafter_edit.text().strip().upper()
+
+    def get_checker_initials(self) -> str:
+        """Return the entered checker initials."""
+        return self.checker_edit.text().strip().upper()
 
     def save_variables(self) -> None:
         """Save entered project variables to the project."""
@@ -314,9 +387,7 @@ def _add_frame_to_layout(layout: QgsPrintLayout, paper_props: PaperProps) -> Non
 def _auto_dynamic_elements(
     new_items: list[QgsLayoutItem],
     map_item: QgsLayoutItemMap | None,
-    *,
-    source_visible: bool = False,
-    source_text: str = "",
+    metadata: LayoutMetadata,
 ) -> None:
     """Link items from the template to the main map and update the source text.
 
@@ -329,54 +400,113 @@ def _auto_dynamic_elements(
     - "Nordpfeil": for a QgsLayoutItemPicture to be used as a north arrow.
     - "Maßstab": for a QgsLayoutItemLabel that should display the map scale.
     - "Quelle": for a QgsLayoutItemLabel that should display the map source.
+    - "gezeichnet - Name": for a QgsLayoutItemLabel for the drafter initials.
+    - "geprüft - Name": for a QgsLayoutItemLabel for the checker initials.
+    - "geprüft - Datum": for a QgsLayoutItemLabel for the check date.
 
     Args:
         new_items: A list of items loaded from the template.
         map_item: The main map item in the layout, or None.
-        source_visible: Whether the background map source should be visible.
-        source_text: The text to display as the map source.
+        metadata: The dynamic values to apply to the elements.
     """
-    map_id: str = map_item.id() if map_item else ""
-    if map_item and not map_id:
+    can_link_map: bool = bool(map_item and map_item.id())
+    if map_item and not can_link_map:
         log_debug("Main map has no ID, cannot link template items.", Qgis.Warning)
 
     for item in new_items:
         if not (item_id := item.id()):
             continue
 
-        # Handle Background Map Source (Quelle)
-        if item_id == "Quelle":
-            item.setVisibility(source_visible)
-            if isinstance(item, QgsLayoutItemLabel):
-                item.setText(source_text)
-                item.refresh()
+        if _handle_static_labels(
+            item=item,
+            item_id=item_id,
+            metadata=metadata,
+        ):
             continue
 
-        # Items requiring a map
-        if not map_item or not map_id:
-            continue
+        if can_link_map and map_item:
+            _handle_map_linked_items(item, item_id, map_item)
 
-        # Link north arrow
-        if item_id == "Nordpfeil" and isinstance(item, QgsLayoutItemPicture):
-            item.setLinkedMap(map_item)
-            item.setPictureRotation(0)
-            item.setReferencePoint(QgsLayoutItem.ReferencePoint.Middle)
-            item.dataDefinedProperties().setProperty(
-                QgsLayoutObject.ItemRotation,
-                QgsProperty.fromExpression(
-                    f"map_get(item_variables('{map_id}'), 'map_rotation')"
-                ),
-            )
 
-        # Link scale label
-        elif item_id == "Maßstab" and isinstance(item, QgsLayoutItemLabel):
-            log_debug(f"Linking scale label to map '{map_id}'")
-            expression: str = (
-                f"'1:' || format_number(round(map_get(item_variables('{map_id}'), "
-                "'map_scale')), 0)"
-            )
-            item.setText(f"[% {expression} %]")
+def _handle_static_labels(
+    item: QgsLayoutItem,
+    item_id: str,
+    metadata: LayoutMetadata,
+) -> bool:
+    """Handle layout items that display static text or basic metadata.
+
+    Args:
+        item: The layout item to process.
+        item_id: The ID of the item.
+        metadata: The dynamic values to apply.
+
+    Returns:
+        bool: True if the item was handled by this function.
+    """
+    if item_id == "Quelle":
+        item.setVisibility(metadata.source_visible)
+        if isinstance(item, QgsLayoutItemLabel):
+            item.setText(metadata.source_text)
             item.refresh()
+        return True
+
+    if not isinstance(item, QgsLayoutItemLabel):
+        return False
+
+    if item_id == "gezeichnet - Name":
+        item.setText(metadata.drafter)
+        item.refresh()
+        return True
+
+    if item_id == "geprüft - Name":
+        item.setText(metadata.checker)
+        item.refresh()
+        return True
+
+    if item_id == "geprüft - Datum":
+        if metadata.checker:
+            item.setText(datetime.now().astimezone().strftime("%d.%m.%Y"))
+        else:
+            item.setText("")
+        item.refresh()
+        return True
+
+    return False
+
+
+def _handle_map_linked_items(
+    item: QgsLayoutItem, item_id: str, map_item: QgsLayoutItemMap
+) -> None:
+    """Handle items that need to be synchronized with a specific map item.
+
+    Args:
+        item: The layout item to process.
+        item_id: The ID of the item.
+        map_item: The map item to link to.
+    """
+    map_id: str = map_item.id()
+
+    # Link north arrow
+    if item_id == "Nordpfeil" and isinstance(item, QgsLayoutItemPicture):
+        item.setLinkedMap(map_item)
+        item.setPictureRotation(0)
+        item.setReferencePoint(QgsLayoutItem.ReferencePoint.Middle)
+        item.dataDefinedProperties().setProperty(
+            QgsLayoutObject.ItemRotation,
+            QgsProperty.fromExpression(
+                f"map_get(item_variables('{map_id}'), 'map_rotation')"
+            ),
+        )
+
+    # Link scale label
+    elif item_id == "Maßstab" and isinstance(item, QgsLayoutItemLabel):
+        log_debug(f"Linking scale label to map '{map_id}'")
+        expression: str = (
+            f"'1:' || format_number(round(map_get(item_variables('{map_id}'), "
+            "'map_scale')), 0)"
+        )
+        item.setText(f"[% {expression} %]")
+        item.refresh()
 
 
 def _load_template_document() -> QDomDocument:
@@ -489,9 +619,17 @@ def create_print_layout(paper_size_name: str) -> None:
         log_debug("Layout creation cancelled by user.", Qgis.Info)
         return
 
-    final_name: str = dialog.get_layout_name() or suggested_name
-    show_source: bool = dialog.get_source_visibility()
-    source_text: str = dialog.get_source_text()
+    # Package metadata into a dataclass to reduce argument counts
+    metadata: LayoutMetadata = LayoutMetadata(
+        source_visible=dialog.get_source_visibility(),
+        source_text=dialog.get_source_text(),
+        drafter=dialog.get_drafter_initials(),
+        checker=dialog.get_checker_initials(),
+    )
+
+    final_name_entry: str = dialog.get_layout_name()
+    final_name: str = final_name_entry or suggested_name
+
     dialog.save_variables()
     project.setDirty(True)
 
@@ -520,12 +658,7 @@ def create_print_layout(paper_size_name: str) -> None:
     if new_items := layout.addItemsFromXml(
         doc.documentElement(), doc, rw_context, pasteInPlace=False
     ):
-        _auto_dynamic_elements(
-            new_items,
-            map_item,
-            source_visible=show_source,
-            source_text=source_text,
-        )
+        _auto_dynamic_elements(new_items, map_item, metadata)
         _move_title_block_to_corner(new_items, paper_props.width, paper_props.height)
 
     # 6. Set Dynamic Variables (Layout Variables)
