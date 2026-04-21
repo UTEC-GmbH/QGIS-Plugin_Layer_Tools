@@ -427,12 +427,12 @@ class UTECLayerTools(QObject):
         """Export selected layouts as PDF files."""
         log_debug("... STARTING PLUGIN RUN ... (export_layouts)", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
-            results: ActionResults[None] = export_layouts_to_pdf()
-            log_summary_message(
-                processed=len(results.processed),
-                skipped=results.skips,
-                errors=results.errors,
-            )
+            if results := export_layouts_to_pdf():
+                log_summary_message(
+                    processed=len(results.processed),
+                    skipped=results.skips,
+                    errors=results.errors,
+                )
 
     def copy_selected_layers(self) -> None:
         """Copy selected layers to the project's GeoPackage.

@@ -139,7 +139,7 @@ Do you want to continue?</source>
     <message>
         <location filename="../UTEC_layer_tools.py" line="238"/>
         <source>&lt;p&gt;&lt;b&gt;Export Layouts as PDF&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Select layouts to be exported as PDF files. The PDFs will be saved in the specified folder (defaults to &apos;pdf&apos; within the project directory) without overwriting existing files. Existing files with the same name will be moved to a folder called &apos;alt&apos;.&lt;/span&gt;&lt;/p&gt;</source>
-        <translation> &lt;p&gt;&lt;b&gt;Layouts als PDF exportieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Layouts wählen, die als PDF-Dateien exportiert werden sollen. Die Dateien werden im angegebenen Ordner (Standardordner: &apos;pdf&apos; im Projektverzeichnis) gespeichert ohne vorhandene Dateien zu überschreiben. Vorhandene Dateien mit demselben Namen werden in einen Unterordner namens &apos;alt&apos; verschoben.&lt;/span&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;&lt;b&gt;Layouts als PDF exportieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Layouts wählen, die als PDF-Dateien exportiert werden sollen. Die Dateien werden im angegebenen Ordner (Standardordner: &apos;pdf&apos; im Projektverzeichnis) gespeichert ohne vorhandene Dateien zu überschreiben. Vorhandene Dateien mit demselben Namen werden in einen Unterordner namens &apos;alt&apos; verschoben.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
 </context>
 <context>
@@ -198,37 +198,32 @@ Do you want to continue?</source>
 <context>
     <name>PrintLayout</name>
     <message>
-        <location filename="../modules/print_layout.py" line="85"/>
+        <location filename="../modules/print_layout.py" line="97"/>
         <source>Create Print Layout</source>
         <translation>Neues Drucklayout Erzeugen</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="97"/>
-        <source>Drawing Type</source>
-        <translation>Planart</translation>
-    </message>
-    <message>
-        <location filename="../modules/print_layout.py" line="65"/>
+        <location filename="../modules/print_layout.py" line="77"/>
         <source>Overview</source>
         <translation>Übersichtsplan</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="307"/>
+        <location filename="../modules/print_layout.py" line="380"/>
         <source>Frame</source>
         <translation>Rahmen</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="101"/>
+        <location filename="../modules/print_layout.py" line="150"/>
         <source>Show Background Map Source</source>
         <translation>Quelle der Hintergrundkarte anzeigen</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="107"/>
+        <location filename="../modules/print_layout.py" line="156"/>
         <source>Source of Background Maps: </source>
         <translation>Quelle Hintergrundkarte: </translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="112"/>
+        <location filename="../modules/print_layout.py" line="161"/>
         <source>Source</source>
         <translation>Quelle</translation>
     </message>
@@ -248,14 +243,59 @@ Do you want to continue?</source>
         <translation>Zielordner:</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout_export.py" line="145"/>
-        <source>Resolution:</source>
-        <translation>Auflösung:</translation>
-    </message>
-    <message>
-        <location filename="../modules/print_layout_export.py" line="184"/>
+        <location filename="../modules/print_layout_export.py" line="203"/>
         <source>Select Export Directory</source>
         <translation>Zielordner wählen</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout_export.py" line="144"/>
+        <source>Resolution</source>
+        <translation>Auflösung</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout_export.py" line="145"/>
+        <source>Append georeference information</source>
+        <translation>Georeferenzinformation anhängen</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout_export.py" line="146"/>
+        <source>Include georeferencing information in the PDF header. Allows compatible viewers to display coordinates.</source>
+        <translation>Georeferenzinformationen in das PDF-Dokument schreiben. Dies erlaubt kompatibler Software Koordinaten anzuzeigen.</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout_export.py" line="147"/>
+        <source>Export metadata</source>
+        <translation>Metadaten exportieren</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout_export.py" line="148"/>
+        <source>Include document metadata (author, title, etc.) in the PDF.</source>
+        <translation>Informationen wie z. B. Titel, Autor, Datum, etc. werden mit exportiert.</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout_export.py" line="149"/>
+        <source>Simplify geometry</source>
+        <translation>Geometrien vereinfachen</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout_export.py" line="150"/>
+        <source>Simplify geometry to reduce file size.</source>
+        <translation>Dies kann die Größe und Komplexität der Exportdatei reduzieren.</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout.py" line="117"/>
+        <source>Drawing Type</source>
+        <translation>Planart</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout.py" line="122"/>
+        <source>Drafter</source>
+        <translation>gezeichnet - Name</translation>
+    </message>
+    <message>
+        <location filename="../modules/print_layout.py" line="125"/>
+        <source>Checker</source>
+        <translation>geprüft - Name</translation>
     </message>
 </context>
 <context>

@@ -275,14 +275,14 @@ def _archive_existing_pdf(pdf_path: Path) -> None:
         log_debug(f"Could not archive existing file: {error}", Qgis.Warning)
 
 
-def export_layouts_to_pdf() -> ActionResults[None]:
+def export_layouts_to_pdf() -> ActionResults[None] | None:
     """Export selected layouts from the project to PDF files.
 
     Shows a dialog to the user to select which layouts to export.
     The PDFs are saved in a 'pdf' subfolder within the project directory.
 
     Returns:
-        ActionResults: The summary of processed, successful, and failed exports.
+        ActionResults[None] | None: The summary of results, or None if cancelled.
     """
     project: QgsProject = PluginContext.project()
     if (layout_manager := project.layoutManager()) is None:
@@ -292,13 +292,12 @@ def export_layouts_to_pdf() -> ActionResults[None]:
     if not layouts:
         raise_runtime_error("No layouts found in the project.")
 
-    dialog = LayoutSelectionDialog(layouts)
+    dialog: LayoutSelectionDialog = LayoutSelectionDialog(layouts)
     if not dialog.exec_():
-        return ActionResults(None, skips=[Issue("User", "Export cancelled by user.")])
+        return None
 
-    selected_layouts: list[QgsPrintLayout] = dialog.get_selected_layouts()
-    if not selected_layouts:
-        return ActionResults(None, skips=[Issue("User", "No layouts selected.")])
+    if not (selected_layouts := dialog.get_selected_layouts()):
+        return None
 
     # Retrieve settings and directory once for all layouts
     export_settings: QgsLayoutExporter.PdfExportSettings = dialog.get_export_settings()
