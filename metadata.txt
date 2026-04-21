@@ -6,6 +6,7 @@ changelog=
     Version 1.5:
     - ✨ Neue Funktion: Layouts als pdf exportieren
     - 🐞 Bugfix: GeoPackageIndicator von unload entfernt
+    - 🤏 Kleine Verbesserung am Code (im Hintergrund)
 
     Version 1.4a:
     - 👍 Verbesserung: Im Plankopf kann jetzt auch eine Quelle für die Hintergrundkarten angegeben werden.

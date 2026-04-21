@@ -23,7 +23,7 @@ from .modules.constants import ICONS, PAPER_SIZES
 from .modules.context import PluginContext
 from .modules.geopackage import copy_layers_to_gpkg
 from .modules.layer_location import LocationIndicatorManager
-from .modules.layout_export import export_layouts_to_pdf
+from .modules.print_layout_export import export_layouts_to_pdf
 from .modules.logs_and_errors import (
     CustomRuntimeError,
     CustomUserError,
