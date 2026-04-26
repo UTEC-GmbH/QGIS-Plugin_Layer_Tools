@@ -78,7 +78,7 @@ class UTECLayerTools(QObject):
         self.menu: str = self.plugin_name
 
         # initialize translation
-        locale = QSettings().value("locale/userLocale", "en")[:2]
+        locale: str = QSettings().value("locale/userLocale", "en")[:2]
         translator_path: Path = self.plugin_dir / "i18n" / f"{locale}.qm"
 
         if not translator_path.exists():

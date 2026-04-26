@@ -1,12 +1,12 @@
 [general]
 name=UTEC Layer Tools (dev)
 
-version=1.4a
+version=1.5
 changelog=
     Version 1.5:
-    - ✨ Neue Funktion: Layouts als pdf exportieren
+    - ✨ Neue Funktion: Layouts als pdf exportieren (mehrere gleichzeitig)
+    - 👍 Verbesserung: Beim Erstellen eines Layouts können mehr Informationen für den Plankopf eingegeben werden
     - 🐞 Bugfix: GeoPackageIndicator von unload entfernt
-    - 🤏 Kleine Verbesserung am Code (im Hintergrund)
 
     Version 1.4a:
     - 👍 Verbesserung: Im Plankopf kann jetzt auch eine Quelle für die Hintergrundkarten angegeben werden.
