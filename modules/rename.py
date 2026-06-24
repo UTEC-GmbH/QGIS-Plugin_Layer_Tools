@@ -19,11 +19,21 @@ from qgis.core import (
     QgsVectorLayer,
     QgsWkbTypes,
 )
+from qgis.PyQt.QtCore import QCoreApplication
+from qgis.PyQt.QtWidgets import (
+    QCheckBox,
+    QDialog,
+    QDialogButtonBox,
+    QFormLayout,
+    QGroupBox,
+    QLineEdit,
+    QVBoxLayout,
+)
 
 from .constants import GEOMETRY_SUFFIX_MAP, ActionResults, Issue
 from .context import PluginContext
 from .general import get_selected_layers, is_empty_layer
-from .logs_and_errors import log_debug, raise_runtime_error
+from .logs_and_errors import CustomUserError, log_debug, raise_runtime_error
 
 if TYPE_CHECKING:
     from qgis.core import QgsLayerTree, QgsLayerTreeNode
@@ -46,6 +56,123 @@ class Rename:
     new_name: str | None = None
     skip: str | None = None
     error: str | None = None
+
+
+class RemoveStringsDialog(QDialog):
+    """Dialog for entering words to remove from layer names."""
+
+    def __init__(self, parent=None) -> None:
+        """Initialize the dialog.
+
+        Args:
+            parent: The parent widget.
+        """
+        super().__init__(parent or PluginContext.iface().mainWindow())
+        self.setWindowTitle(
+            QCoreApplication.translate("RenameDialog", "Remove Words from New Names")
+        )
+        self.setMinimumWidth(400)
+
+        layout = QVBoxLayout(self)
+
+        # 1. Group box for default words
+        self.group_box = QGroupBox(
+            QCoreApplication.translate("RenameDialog", "Default words to remove")
+        )
+        group_layout = QFormLayout(self.group_box)
+
+        # Default options
+        self.default_options = ["Schraffur", "Text", "Layout", "UTEC"]
+
+        # By default, have 'hatch' and 'schraffur' checked
+        default_checked = {"Schraffur", "Text", "Layout"}
+
+        self.checkboxes: dict[str, QCheckBox] = {}
+        for option in self.default_options:
+            cb = QCheckBox(option)
+            cb.setChecked(option in default_checked)
+            self.checkboxes[option] = cb
+            group_layout.addRow(cb)
+
+        layout.addWidget(self.group_box)
+
+        # 2. Additional custom strings
+        custom_layout = QFormLayout()
+        self.custom_input = QLineEdit()
+        self.custom_input.setPlaceholderText(
+            QCoreApplication.translate("RenameDialog", "e.g., test, draft, temp")
+        )
+        custom_layout.addRow(
+            QCoreApplication.translate(
+                "RenameDialog", "Additional words (comma-separated):"
+            ),
+            self.custom_input,
+        )
+        layout.addLayout(custom_layout)
+
+        # 3. Buttons
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+        )
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        layout.addWidget(self.button_box)
+
+    def get_remove_strings(self) -> list[str]:
+        """Get the list of strings/words to be removed based on selections and input."""
+        remove_list: list[str] = []
+        for key, cb in self.checkboxes.items():
+            if cb.isChecked():
+                remove_list.append(key)
+
+        # Parse additional strings from line edit
+        custom_text = self.custom_input.text()
+        if custom_text:
+            custom_words = [w.strip() for w in custom_text.split(",") if w.strip()]
+            remove_list.extend(custom_words)
+
+        return remove_list
+
+
+def clean_layer_name(name: str, remove_strings: list[str]) -> str:
+    """Remove specified words/substrings from the name and clean up separators and spaces.
+
+    Args:
+        name: The raw layer name.
+        remove_strings: A list of substrings to remove.
+
+    Returns:
+        str: The cleaned layer name.
+    """
+    for word in remove_strings:
+        word_stripped = word.strip()
+        if not word_stripped:
+            continue
+        # Case-insensitive replacement
+        pattern = re.compile(re.escape(word_stripped), re.IGNORECASE)
+        name = pattern.sub("", name)
+
+    # Clean up double/multiple spaces
+    name = re.sub(r"\s+", " ", name)
+    # Strip any leading/trailing spaces, underscores, or hyphens
+    name = re.sub(r"^[-_\s]+|[-_\s]+$", "", name)
+    # Clean up multiple consecutive hyphens or underscores
+    name = re.sub(r"-+", "-", name)
+    name = re.sub(r"_+", "_", name)
+
+    return name.strip()
+
+
+def prompt_remove_strings() -> list[str] | None:
+    """Prompt the user for words/strings to remove from the new layer names.
+
+    Returns:
+        list[str] | None: A list of words to remove, or None if the user cancelled.
+    """
+    dialog = RemoveStringsDialog()
+    if dialog.exec_():
+        return dialog.get_remove_strings()
+    return None
 
 
 def fix_layer_name(name: str) -> str:
@@ -140,7 +267,9 @@ def handle_name_collisions(potential_renames: list[Rename]) -> list[Rename]:
     return rename_plan
 
 
-def prepare_rename_plan() -> ActionResults[list[Rename]]:
+def prepare_rename_plan(
+    remove_strings: list[str] | None = None,
+) -> ActionResults[list[Rename]]:
     """Prepare a plan to rename selected layers based on their parent group.
 
     The new name is based on the layer's parent group name.
@@ -148,6 +277,9 @@ def prepare_rename_plan() -> ActionResults[list[Rename]]:
     If multiple layers would be renamed to the same name (e.g., they are in
     the same group), a geometry type suffix is
     appended to differentiate them.
+
+    Args:
+        remove_strings: A list of substrings/words to remove from the new name.
 
     Returns:
         ActionResults: An object containing the rename plan (in .result),
@@ -193,6 +325,9 @@ def prepare_rename_plan() -> ActionResults[list[Rename]]:
             continue
 
         new_name: str = fix_layer_name(raw_group_name)
+        if remove_strings:
+            new_name = clean_layer_name(new_name, remove_strings)
+
         if not new_name:
             log_debug(
                 f"Rename → '{old_name}' → Skipped because invalid name.",
@@ -278,7 +413,15 @@ def rename_layers() -> ActionResults[None]:
     Returns:
         ActionResults: The results of the rename operation.
     """
-    prep: ActionResults[list[Rename]] = prepare_rename_plan()
+    # Validate selection first so we don't prompt on empty selection
+    get_selected_layers()
+
+    # Prompt user for words to remove
+    remove_strings = prompt_remove_strings()
+    if remove_strings is None:
+        raise CustomUserError("Renaming cancelled by user.")
+
+    prep: ActionResults[list[Rename]] = prepare_rename_plan(remove_strings)
     renamed: ActionResults[list[tuple[str, str, str]]] = execute_rename_plan(
         prep.result
     )

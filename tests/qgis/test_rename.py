@@ -163,3 +163,52 @@ class TestExecuteRenamePlan:
         assert layer_a.name() == "A_renamed"
         assert layer_b.name() == "B_renamed"
         assert len(result.successes) == 2  # noqa: PLR2004
+
+
+class TestRenameIntegration:
+    """Integration tests for the renaming flow and remove strings."""
+
+    def test_prepare_rename_plan_removes_strings(self, qgis_iface) -> None:
+        """Test that prepare_rename_plan removes the specified strings and cleans up the name."""
+        from unittest.mock import patch
+        from qgis.core import QgsProject, QgsLayerTreeGroup, QgsVectorLayer
+        from modules.rename import prepare_rename_plan
+
+        # 1. Create a layer and add it to a group
+        project = QgsProject.instance()
+        project.clear()  # Start fresh
+
+        layer = QgsVectorLayer("Point?crs=EPSG:4326", "original_layer_name", "memory")
+        project.addMapLayer(layer, False)
+
+        root = project.layerTreeRoot()
+        group = QgsLayerTreeGroup("Group - hatch - copy")
+        root.addChildNode(group)
+        
+        # Add layer to the group
+        group.addLayer(layer)
+
+        # 2. Mock get_selected_layers to return this layer
+        with patch("modules.rename.get_selected_layers", return_value=[layer]):
+            # Prepare plan with "hatch" and "copy" to remove
+            prep_results = prepare_rename_plan(remove_strings=["hatch", "copy"])
+            
+            assert not prep_results.errors
+            assert len(prep_results.result) == 1
+            rename_entry = prep_results.result[0]
+            assert rename_entry.layer == layer
+            # Group - hatch - copy -> Group
+            assert rename_entry.new_name == "Group"
+
+    def test_rename_layers_cancelled(self) -> None:
+        """Test that rename_layers raises CustomUserError if the dialog is cancelled."""
+        from unittest.mock import patch
+        from modules.rename import rename_layers
+        from modules.logs_and_errors import CustomUserError
+
+        # Mock prompt_remove_strings to return None (user clicked cancel)
+        with patch("modules.rename.get_selected_layers", return_value=[None]), \
+             patch("modules.rename.prompt_remove_strings", return_value=None):
+            import pytest
+            with pytest.raises(CustomUserError, match="Renaming cancelled by user."):
+                rename_layers()
