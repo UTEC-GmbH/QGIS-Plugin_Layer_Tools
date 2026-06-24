@@ -116,7 +116,6 @@ def setup_environment() -> None:
                 f"{qgis_path_str}\n{qgis_plugins_path_str}\n", encoding="utf-8"
             )
 
-
         # Install testing and linting tools using the new venv's pip
         pip_exe: Path
         if not (pip_exe := venv_path / "Scripts" / "pip.exe").exists():
