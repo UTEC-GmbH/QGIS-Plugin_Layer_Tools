@@ -135,7 +135,8 @@ class RemoveStringsDialog(QDialog):
 
 
 def clean_layer_name(name: str, remove_strings: list[str]) -> str:
-    """Remove specified words/substrings from the name and clean up separators and spaces.
+    """Remove specified words/substrings from the name
+    and clean up separators and spaces.
 
     Args:
         name: The raw layer name.
