@@ -7,7 +7,6 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from qgis.core import (
-    Qgis,
     QgsCoordinateReferenceSystem,
     QgsLayout,
     QgsMapThemeCollection,
@@ -24,7 +23,7 @@ from .constants import ActionResults
 from .context import PluginContext
 from .general import get_selected_layers
 from .geopackage import add_layers_from_gpkg_to_project, add_layers_to_gpkg, create_gpkg
-from .logs_and_errors import log_debug
+from .logs_and_errors import QML, log_debug
 
 if TYPE_CHECKING:
     from collections.abc import Iterable
@@ -105,7 +104,7 @@ def _set_map_extent(source_canvas: QgsMapCanvas, target_project: QgsProject) -> 
     else:
         log_debug(
             "Shipping → Target project view settings could not be accessed",
-            Qgis.Warning,
+            QML.WARNING,
         )
 
 
@@ -170,7 +169,7 @@ def prepare_layers_for_shipping() -> ActionResults[None]:
 
     # Save the shipping project
     shipping_project.write()
-    log_debug(f"Created shipping project: {qgz_path}", Qgis.Success)
+    log_debug(f"Created shipping project: {qgz_path}", QML.SUCCESS)
 
     return ActionResults(
         result=None,

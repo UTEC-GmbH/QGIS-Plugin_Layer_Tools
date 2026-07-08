@@ -1,8 +1,11 @@
 [general]
 name=UTEC Layer Tools (dev)
 
-version=1.5
+version=1.6
 changelog=
+    Version 1.6:
+    - 👍 Verbesserung: Beim Umbenennen können Wörter automatisch entfernt werden (z.B. "Schraffur")
+
     Version 1.5:
     - ✨ Neue Funktion: Layouts als pdf exportieren (mehrere gleichzeitig)
     - 👍 Verbesserung: Beim Erstellen eines Layouts können mehr Informationen für den Plankopf eingegeben werden

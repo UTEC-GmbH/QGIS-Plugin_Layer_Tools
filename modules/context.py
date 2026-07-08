@@ -8,7 +8,7 @@ current project, and the plugin directory.
 import inspect
 from pathlib import Path
 from types import FrameType
-from typing import Final, NoReturn
+from typing import Final, NoReturn, cast
 
 from qgis.core import Qgis, QgsMessageLog, QgsProject
 from qgis.gui import QgisInterface, QgsMessageBar
@@ -59,7 +59,7 @@ def raise_context_runtime_error(error_msg: str) -> NoReturn:
     QgsMessageLog.logMessage(
         message=f"💀 {error_msg}",
         tag="UTEC Plugin ERROR",
-        level=Qgis.Critical,
+        level=cast("Qgis.MessageLevel", Qgis.MessageLevel.Critical),
         notifyUser=True,
     )
 

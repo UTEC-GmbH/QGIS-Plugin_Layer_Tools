@@ -73,7 +73,9 @@ class UTECLayerTools(QObject):
             try:
                 self.plugin_name = config.get("general", "name")
             except (configparser.NoSectionError, configparser.NoOptionError):
-                log_debug("Could not read name from metadata.txt", Qgis.Warning)
+                log_debug(
+                    "Could not read name from metadata.txt", Qgis.MessageLevel.Warning
+                )
 
         self.menu: str = self.plugin_name
 
@@ -82,7 +84,9 @@ class UTECLayerTools(QObject):
         translator_path: Path = self.plugin_dir / "i18n" / f"{locale}.qm"
 
         if not translator_path.exists():
-            log_debug(f"Translator not found in: {translator_path}", Qgis.Warning)
+            log_debug(
+                f"Translator not found in: {translator_path}", Qgis.MessageLevel.Warning
+            )
         else:
             self.translator = QTranslator()
             if self.translator is not None and self.translator.load(
@@ -90,7 +94,9 @@ class UTECLayerTools(QObject):
             ):
                 QCoreApplication.installTranslator(self.translator)
             else:
-                log_debug("Translator could not be installed.", Qgis.Warning)
+                log_debug(
+                    "Translator could not be installed.", Qgis.MessageLevel.Warning
+                )
 
     def add_action(  # noqa: PLR0913 # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,

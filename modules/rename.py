@@ -28,12 +28,13 @@ from qgis.PyQt.QtWidgets import (
     QGroupBox,
     QLineEdit,
     QVBoxLayout,
+    QWidget,
 )
 
 from .constants import GEOMETRY_SUFFIX_MAP, ActionResults, Issue
 from .context import PluginContext
 from .general import get_selected_layers, is_empty_layer
-from .logs_and_errors import CustomUserError, log_debug, raise_runtime_error
+from .logs_and_errors import QML, CustomUserError, log_debug, raise_runtime_error
 
 if TYPE_CHECKING:
     from qgis.core import QgsLayerTree, QgsLayerTreeNode
@@ -61,7 +62,7 @@ class Rename:
 class RemoveStringsDialog(QDialog):
     """Dialog for entering words to remove from layer names."""
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize the dialog.
 
         Args:
@@ -304,7 +305,7 @@ def prepare_rename_plan(
         if not node:
             log_debug(
                 f"Rename → '{old_name}' → Error: layer not in layer tree.",
-                Qgis.Warning,
+                QML.WARNING,
             )
             potential_renames.errors.append(
                 Issue(old_name, "Rename error: Layer not in layer tree.")
@@ -318,7 +319,7 @@ def prepare_rename_plan(
         if not isinstance(parent, QgsLayerTreeGroup) or not raw_group_name:
             log_debug(
                 f"Rename → '{old_name}' → Skipped because not in a group.",
-                Qgis.Warning,
+                QML.WARNING,
             )
             potential_renames.skips.append(
                 Issue(old_name, "Skipped renaming: layer not in a group")
@@ -332,7 +333,7 @@ def prepare_rename_plan(
         if not new_name:
             log_debug(
                 f"Rename → '{old_name}' → Skipped because invalid name.",
-                Qgis.Warning,
+                QML.WARNING,
             )
             potential_renames.errors.append(
                 Issue(old_name, "Rename error: invalid name")
@@ -399,7 +400,7 @@ def execute_rename_plan(
         log_debug(
             f"Rename → Failed to rename {fails} layers.\n"
             f"Skips: {results.skips} / Errors: {results.errors})",
-            Qgis.Warning,
+            QML.WARNING,
         )
 
     return results
@@ -420,7 +421,8 @@ def rename_layers() -> ActionResults[None]:
     # Prompt user for words to remove
     remove_strings = prompt_remove_strings()
     if remove_strings is None:
-        raise CustomUserError("Renaming cancelled by user.")
+        msg = "Renaming cancelled by user."
+        raise CustomUserError(msg)
 
     prep: ActionResults[list[Rename]] = prepare_rename_plan(remove_strings)
     renamed: ActionResults[list[tuple[str, str, str]]] = execute_rename_plan(
@@ -460,13 +462,13 @@ def undo_rename_layers() -> ActionResults[list[Rename]]:
     found: bool | None = rename_cache[1]
 
     if not found or not last_rename_json:
-        log_debug("Rename → No rename operation found to undo.", Qgis.Warning)
+        log_debug("Rename → No rename operation found to undo.", QML.WARNING)
         raise_runtime_error("No rename operation found to undo.")
 
     try:
         last_renames: list[tuple[str, str, str]] = json.loads(last_rename_json)
     except json.JSONDecodeError:
-        log_debug("Rename → Could not parse rename history.", Qgis.Critical)
+        log_debug("Rename → Could not parse rename history.", QML.CRITICAL)
         raise_runtime_error("Could not parse rename history.")
 
     results: ActionResults[list[Rename]] = ActionResults([])

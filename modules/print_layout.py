@@ -8,7 +8,6 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from qgis.core import (
-    Qgis,
     QgsExpressionContextUtils,
     QgsLayoutItem,
     QgsLayoutItemLabel,
@@ -40,7 +39,7 @@ from qgis.PyQt.QtXml import QDomDocument
 from .constants import MAP_SCALES, PAPER_SIZES, PaperProps
 from .context import PluginContext
 from .general import enforce_text_edit_limits
-from .logs_and_errors import log_debug, raise_runtime_error
+from .logs_and_errors import QML, log_debug, raise_runtime_error
 from .project_variables import (
     ProjectVariable,
     get_current_variable_value,
@@ -320,7 +319,10 @@ def _add_map_to_layout(
     iface: QgisInterface = PluginContext.iface()
     canvas: QgsMapCanvas | None = iface.mapCanvas()
     if not canvas:
-        log_debug("No map canvas found. Layout created without map.", Qgis.Warning)
+        log_debug(
+            "No map canvas found. Layout created without map.",
+            QML.WARNING,
+        )
         return None
 
     map_item = QgsLayoutItemMap(layout)
@@ -372,7 +374,7 @@ def _add_frame_to_layout(layout: QgsPrintLayout, paper_props: PaperProps) -> Non
     if not frame_svg_path.exists():
         log_debug(
             f"Frame SVG not found: {frame_svg_path}. Layout created without frame.",
-            Qgis.Warning,
+            QML.WARNING,
         )
         return
 
@@ -411,7 +413,7 @@ def _auto_dynamic_elements(
     """
     can_link_map: bool = bool(map_item and map_item.id())
     if map_item and not can_link_map:
-        log_debug("Main map has no ID, cannot link template items.", Qgis.Warning)
+        log_debug("Main map has no ID, cannot link template items.", QML.WARNING)
 
     for item in new_items:
         if not (item_id := item.id()):
@@ -616,7 +618,7 @@ def create_print_layout(paper_size_name: str) -> None:
 
     dialog = NewLayoutDialog(project, suggested_name)
     if not dialog.exec_():
-        log_debug("Layout creation cancelled by user.", Qgis.Info)
+        log_debug("Layout creation cancelled by user.", QML.INFO)
         return
 
     # Package metadata into a dataclass to reduce argument counts

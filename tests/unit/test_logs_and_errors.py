@@ -3,10 +3,10 @@
 from unittest.mock import MagicMock, patch
 
 import pytest
-from qgis.core import Qgis
 
 from modules.constants import Issue
 from modules.logs_and_errors import (
+    QML,
     CustomRuntimeError,
     CustomUserError,
     log_debug,
@@ -33,12 +33,12 @@ def test_file_line() -> None:
 @patch("qgis.core.QgsMessageLog.logMessage")
 def test_log_debug(mock_log_message: MagicMock) -> None:
     """Test log_debug dispatches to QgsMessageLog."""
-    log_debug("test message", level=Qgis.Info, icon="🔍", prefix="PRE:")
+    log_debug("test message", level=QML.INFO, icon="🔍", prefix="PRE:")
 
     mock_log_message.assert_called_once()
     args, kwargs = mock_log_message.call_args
     assert "🔍 PRE: test message" in args[0]
-    assert kwargs["level"] == Qgis.Info
+    assert kwargs["level"] == QML.INFO
 
 
 @patch("modules.context.PluginContext.message_bar")
@@ -47,11 +47,11 @@ def test_show_message(mock_message_bar: MagicMock) -> None:
     bar = MagicMock()
     mock_message_bar.return_value = bar
 
-    show_message("test user message", level=Qgis.Warning, duration=5)
+    show_message("test user message", level=QML.WARNING, duration=5)
 
     bar.clearWidgets.assert_called_once()
     bar.pushMessage.assert_called_with(
-        "💥 test user message", level=Qgis.Warning, duration=5
+        "💥 test user message", level=QML.WARNING, duration=5
     )
 
 

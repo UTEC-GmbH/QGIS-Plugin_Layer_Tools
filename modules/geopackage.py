@@ -30,7 +30,7 @@ from qgis.PyQt.QtWidgets import QMessageBox
 from .constants import GEOMETRY_SUFFIX_MAP, LAYER_TYPES, ActionResults, Issue
 from .context import PluginContext
 from .general import clear_attribute_table, get_selected_layers
-from .logs_and_errors import log_debug, raise_runtime_error
+from .logs_and_errors import QML, log_debug, raise_runtime_error
 from .rename import geometry_type_suffix
 
 if TYPE_CHECKING:
@@ -208,13 +208,13 @@ def add_vector_layer_to_gpkg(
         log_debug(
             f"GeoPackage → Vector Layer '{layer_name}' "
             "added to GeoPackage successfully.",
-            Qgis.Success,
+            QML.SUCCESS,
         )
         return ActionResults(result_write, successes=[layer_name])
 
     log_debug(
         f"GeoPackage → Failed to add vector layer '{layer_name}' to GeoPackage.",
-        Qgis.Critical,
+        QML.CRITICAL,
     )
     return ActionResults(
         result_write,
@@ -299,14 +299,14 @@ def add_raster_layer_to_gpkg(
     if success:
         log_debug(
             f"GeoPackage → Raster Layer '{layer_name}' added to GeoPackage.",
-            Qgis.Success,
+            QML.SUCCESS,
         )
         return ActionResults(str(gpkg_path), successes=[layer_name])
 
     log_debug(
         f"GeoPackage → Failed to add raster layer '{layer_name}' to GeoPackage. "
         f"Error: {error}",
-        Qgis.Critical,
+        QML.CRITICAL,
     )
     return ActionResults(
         None,
@@ -340,7 +340,7 @@ def clear_autocad_attributes(layer: QgsMapLayer, gpkg_path: Path) -> None:
     else:
         log_debug(
             f"GeoPackage → Could not reload layer '{layer_name}' from GeoPackage.",
-            Qgis.Warning,
+            Qgis.MessageLevel.Warning,
         )
 
 
@@ -548,7 +548,7 @@ def add_layers_to_gpkg(
             log_debug(
                 f"GeoPackage → Failed to add layer '{layer_name}' to GeoPackage: "
                 f"Unsupported layer type '{layer.type()}'.",
-                Qgis.Critical,
+                QML.CRITICAL,
             )
 
     return results
@@ -645,9 +645,7 @@ def _handle_web_service_layer(
     gpkg_layer: QgsMapLayer | None = layer_to_find.clone()
     if gpkg_layer:
         gpkg_layer.setName(layer_name)
-        log_debug(
-            f"GeoPackage → Web service layer '{layer_name}' cloned.", Qgis.Success
-        )
+        log_debug(f"GeoPackage → Web service layer '{layer_name}' cloned.", QML.SUCCESS)
     return gpkg_layer
 
 
@@ -733,7 +731,7 @@ def add_layers_from_gpkg_to_project(
             msg = f"GeoPackage → Layer '{layer_name}' not found in GeoPackage."
             if uri:
                 msg += f"\nlooked for: {uri}"
-            log_debug(msg, Qgis.Warning)
+            log_debug(msg, Qgis.MessageLevel.Warning)
             results.errors.append(
                 Issue(
                     layer_name,
@@ -754,13 +752,13 @@ def add_layers_from_gpkg_to_project(
         log_debug(
             f"GeoPackage → Added '{len(results.successes)}' layer(s) "
             "from the GeoPackage to the project.",
-            Qgis.Success,
+            QML.SUCCESS,
         )
     if results.errors:
         log_debug(
             f"GeoPackage → Could not find {len(results.errors)} layer(s) "
             "in GeoPackage.",
-            Qgis.Warning,
+            Qgis.MessageLevel.Warning,
         )
 
     return results
