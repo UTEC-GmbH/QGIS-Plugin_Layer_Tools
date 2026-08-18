@@ -20,6 +20,7 @@ from qgis.PyQt.QtWidgets import (
     QFormLayout,
     QFrame,
     QHBoxLayout,
+    QLabel,
     QLineEdit,
     QListWidget,
     QListWidgetItem,
@@ -27,6 +28,7 @@ from qgis.PyQt.QtWidgets import (
     QSpinBox,
     QToolButton,
     QVBoxLayout,
+    QWidget,
 )
 
 from .constants import ActionResults, Issue
@@ -47,8 +49,8 @@ class LayoutSelectionDialog(QDialog):
         self.setWindowTitle(
             QCoreApplication.translate("PrintLayout", "Export Layouts as PDF")
         )
-        self.setMinimumWidth(500)
-        self.setMinimumHeight(400)
+        self.setMinimumWidth(800)
+        self.setMinimumHeight(500)
 
         self.main_container: QVBoxLayout = QVBoxLayout(self)
 
@@ -83,7 +85,7 @@ class LayoutSelectionDialog(QDialog):
         """Set up the collapsible export settings section."""
         self.settings_toggle: QToolButton = QToolButton()
         self.settings_toggle.setCheckable(True)
-        self.settings_toggle.setChecked(False)
+        self.settings_toggle.setChecked(True)
 
         # Setup visual styles based on Qt version
         is_qt6: bool = PluginContext.is_qt6()
@@ -109,13 +111,40 @@ class LayoutSelectionDialog(QDialog):
 
         self.settings_container: QFrame = QFrame()
         self.settings_container.setFrameShape(shape)
-        self.settings_container.setVisible(False)
+        self.settings_container.setVisible(True)
         self.settings_form: QFormLayout = QFormLayout(self.settings_container)
 
+        self._setup_file_prefix()
         self._setup_folder_selection()
         self._setup_export_options()
 
         self.main_container.addWidget(self.settings_container)
+        self._toggle_settings(expanded=True)
+
+    def _setup_file_prefix(self) -> None:
+        """Add a configurable prefix for exported PDF filenames."""
+        self.prefix_edit: QLineEdit = QLineEdit()
+        self.prefix_edit.setText(self.get_default_file_prefix())
+        self.prefix_edit.textChanged.connect(self._refresh_prefix_preview)
+
+        self.prefix_preview: QLabel = QLabel()
+        self.prefix_preview.setWordWrap(True)
+        self.prefix_preview.setStyleSheet(
+            "color: gray; font-size: smaller; font-style: italic;"
+        )
+
+        prefix_container: QWidget = QWidget()
+        prefix_layout: QVBoxLayout = QVBoxLayout(prefix_container)
+        prefix_layout.setContentsMargins(0, 0, 0, 0)
+        prefix_layout.setSpacing(2)
+        prefix_layout.addWidget(self.prefix_edit)
+        prefix_layout.addWidget(self.prefix_preview)
+
+        self.settings_form.addRow(
+            QCoreApplication.translate("PrintLayout", "File Name Prefix:"),
+            prefix_container,
+        )
+        self._refresh_prefix_preview()
 
     def _setup_folder_selection(self) -> None:
         """Add the folder selection widgets to the settings form."""
@@ -153,7 +182,7 @@ class LayoutSelectionDialog(QDialog):
         # Resolution
         self.dpi_spin: QSpinBox = QSpinBox()
         self.dpi_spin.setRange(72, 3000)
-        self.dpi_spin.setValue(200)
+        self.dpi_spin.setValue(144)
         self.dpi_spin.setSuffix(" dpi")
         self.settings_form.addRow(resolution_label, self.dpi_spin)
 
@@ -184,6 +213,35 @@ class LayoutSelectionDialog(QDialog):
         self.settings_form.addRow(label_text, checkbox)
 
         return checkbox
+
+    def get_default_file_prefix(self) -> str:
+        """Return the default project-based file-name prefix."""
+        project_name: str = PluginContext.project_path().stem
+        return f"{project_name} - " if project_name else ""
+
+    def _first_list_layout_name(self) -> str:
+        """Return the name of the first layout in the list for the preview."""
+        if self.list_widget.count():
+            first_item = self.list_widget.item(0)
+            if first_item is not None:
+                first_layout = first_item.data(Qt.UserRole)
+                if first_layout is not None:
+                    return first_layout.name()
+
+        return "Layout"
+
+    def _refresh_prefix_preview(self) -> None:
+        """Refresh the preview text for the first layout in the list."""
+        self.prefix_preview.setText(
+            self.get_export_filename(self._first_list_layout_name())
+        )
+
+    def get_export_filename(self, layout_name: str) -> str:
+        """Return the final PDF file name for a layout with the current prefix."""
+        prefix = self.prefix_edit.text()
+        if not prefix:
+            return f"{layout_name}.pdf"
+        return f"{prefix}{layout_name}.pdf"
 
     def get_selected_layouts(self) -> list[QgsPrintLayout]:
         """Retrieve the list of selected layout objects.
@@ -316,7 +374,7 @@ def export_layouts_to_pdf() -> ActionResults[None] | None:
         for index, layout in enumerate(selected_layouts):
             layout_name: str = layout.name()
             results.processed.append(layout_name)
-            pdf_path: Path = pdf_dir / f"{layout_name}.pdf"
+            pdf_path: Path = pdf_dir / dialog.get_export_filename(layout_name)
 
             # Archive existing file if it exists
             _archive_existing_pdf(pdf_path)
