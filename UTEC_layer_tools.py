@@ -144,7 +144,13 @@ class UTECLayerTools(QObject):
         """Create the menu entries and toolbar icons for the plugin."""
         self._setup_main_menu()
 
-        # -- Section 1: Project Metadata & Layouts --
+        # -- Data Management --
+        self._add_geopackage_actions()
+
+        if self.plugin_menu:
+            self.plugin_menu.addSeparator()
+
+        # -- Project Metadata & Layouts --
         self._add_project_variables_action()
         self._add_print_layout_menu()
         self._add_export_layouts_action()
@@ -152,13 +158,7 @@ class UTECLayerTools(QObject):
         if self.plugin_menu:
             self.plugin_menu.addSeparator()
 
-        # -- Section 2: Data Management --
-        self._add_geopackage_actions()
-
-        if self.plugin_menu:
-            self.plugin_menu.addSeparator()
-
-        # -- Section 3: Layer Management --
+        # -- Layer Management --
         self._add_rename_actions()
 
         # Integrate the plugin menu into QGIS

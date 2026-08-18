@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from modules.context import ContextRuntimeError, PluginContext
+from modules.print_layout_export import LayoutSelectionDialog
 
 
 class TestPluginContext:
@@ -98,3 +99,52 @@ class TestPluginContext:
         # Light theme (value >= 128)
         color.value.return_value = 200
         assert PluginContext.is_dark_theme() is False
+
+
+class TestLayoutSelectionDialog:
+    """Tests for the layout export dialog filename settings."""
+
+    @patch("modules.print_layout_export.PluginContext.project_path")
+    @patch("modules.print_layout_export.PluginContext.iface")
+    def test_default_prefix_and_preview(
+        self,
+        mock_iface: MagicMock,
+        mock_project_path: MagicMock,
+    ) -> None:
+        """The prefix should default to the project name with a trailing separator."""
+        mock_project_path.return_value = Path("/data/example_project.qgz")
+        mock_iface.return_value.mainWindow.return_value = MagicMock()
+
+        layout_a = MagicMock()
+        layout_a.name.return_value = "First Layout"
+        layout_b = MagicMock()
+        layout_b.name.return_value = "Second Layout"
+
+        dialog = LayoutSelectionDialog([layout_a, layout_b])
+
+        assert dialog.prefix_edit.text() == "example_project - "
+        assert dialog.prefix_preview.text() == "example_project - First Layout.pdf"
+
+    @patch("modules.print_layout_export.PluginContext.project_path")
+    @patch("modules.print_layout_export.PluginContext.iface")
+    def test_custom_prefix_uses_selected_layout_name(
+        self,
+        mock_iface: MagicMock,
+        mock_project_path: MagicMock,
+    ) -> None:
+        """A custom prefix should be applied to the exported file name."""
+        mock_project_path.return_value = Path("/data/example_project.qgz")
+        mock_iface.return_value.mainWindow.return_value = MagicMock()
+
+        layout_a = MagicMock()
+        layout_a.name.return_value = "First Layout"
+        layout_b = MagicMock()
+        layout_b.name.return_value = "Second Layout"
+
+        dialog = LayoutSelectionDialog([layout_a, layout_b])
+        dialog.prefix_edit.setText("Custom prefix - ")
+
+        assert (
+            dialog.get_export_filename("Second Layout")
+            == "Custom prefix - Second Layout.pdf"
+        )
