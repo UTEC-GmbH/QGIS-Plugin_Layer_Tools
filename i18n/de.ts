@@ -26,37 +26,37 @@ Do you want to continue?</source>
 <context>
     <name>LayerLocation</name>
     <message>
-        <location filename="../modules/constants.py" line="457"/>
+        <location filename="../modules/constants.py" line="462"/>
         <source>&lt;p&gt;🔗&lt;b&gt;Cloud Layer&lt;/b&gt;🔗&lt;/p&gt;This layer is from a cloud-based service or database.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</source>
         <translation>&lt;p&gt;🔗&lt;b&gt;Cloud Layer&lt;/b&gt;🔗&lt;/p&gt;Dieser Layer wird online oder von einer Datenbank bezogen.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="461"/>
+        <location filename="../modules/constants.py" line="466"/>
         <source>&lt;p&gt;❓&lt;b&gt;Empty Layer&lt;/b&gt;❓&lt;/p&gt;This Layer does not contain any objects.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</source>
         <translation>&lt;p&gt;❓&lt;b&gt;Layer leer&lt;/b&gt;❓&lt;/p&gt;Dieser Layer enthält keine Objekte.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="465"/>
+        <location filename="../modules/constants.py" line="470"/>
         <source>&lt;p&gt;💥💥💥&lt;b&gt;Caution&lt;/b&gt;💥💥💥&lt;/p&gt;This layer is stored outside the project folder. Please move to the project folder.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</source>
         <translation>&lt;p&gt;💥💥💥&lt;b&gt;Vorsicht&lt;/b&gt;💥💥💥&lt;/p&gt;Dieser Layer ist nicht im Projektordner abgespeichert. Bitte in den Projektordner verschieben.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="469"/>
+        <location filename="../modules/constants.py" line="474"/>
         <source>&lt;p&gt;⚠️&lt;b&gt;Layer in Project Folder but not GeoPackage&lt;/b&gt;⚠️&lt;/p&gt;This layer is stored in the project folder, but not in a GeoPackage. Consider saving to the Project-GeoPackage (a GeoPackage with the same name as the project file).&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</source>
         <translation>&lt;p&gt;⚠️&lt;b&gt;Layer im Projektordner, aber nicht in einem GeoPackage&lt;/b&gt;⚠️&lt;/p&gt;Dieser Layer ist im Projektordner, aber nicht in einem GeoPackage abgespeichert. Falls möglich und sinnvoll sollte er in das Projekt-Geopackage (ein GeoPackage mit dem gleichen Namen wie die Projektdatei) verschoben werden.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="473"/>
+        <location filename="../modules/constants.py" line="478"/>
         <source>&lt;p&gt;⚠️&lt;b&gt;Layer in GeoPackge in Project Folder&lt;/b&gt;⚠️&lt;/p&gt;This layer is stored in a GeoPackage in the project folder, but not in the Project-GeoPackage. Consider saving to the Project-GeoPackage (a GeoPackage with the same name as the project file).&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</source>
         <translation>&lt;p&gt;⚠️&lt;b&gt;Layer in einem GeoPackge im Projektordner&lt;/b&gt;⚠️&lt;/p&gt;Dieser Layer ist in einem GeoPackage im Projektordner, aber nicht im Projekt-GeoPackage abgespeichert. Falls möglich und sinnvoll sollte er in das Projekt-Geopackage (ein GeoPackage mit dem gleichen Namen wie die Projektdatei) verschoben werden.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="477"/>
+        <location filename="../modules/constants.py" line="482"/>
         <source>&lt;p&gt;👍&lt;b&gt;Layer in Project-Geopackage&lt;/b&gt;👍&lt;/p&gt;This layer is stored in the Project-GeoPackage (a GeoPackage with the same name as the project file).&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</source>
         <translation>&lt;p&gt;👍&lt;b&gt;Layer im Projekt-Geopackage&lt;/b&gt;👍&lt;/p&gt;Dieser Layer ist im Projekt-GeoPackage (ein GeoPackage mit dem gleichen Namen wie die Projektdatei) abgespeichert.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="481"/>
+        <location filename="../modules/constants.py" line="486"/>
         <source>&lt;p&gt;❓&lt;b&gt;Data Source Unknown&lt;/b&gt;❓&lt;/p&gt;The data source of this Layer could not be determined.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</source>
         <translation>&lt;p&gt;❓&lt;b&gt;Datenquelle Unbekannt&lt;/b&gt;❓&lt;/p&gt;Die Quelle der Daten dieses Layers konnten nicht ermittelt werden.&lt;br&gt;&lt;i&gt;(Plugin: UTEC Layer Tools)&lt;/i&gt;</translation>
     </message>
@@ -109,88 +109,88 @@ Do you want to continue?</source>
     <message>
         <location filename="../UTEC_layer_tools.py" line="246"/>
         <source>&lt;p&gt;&lt;b&gt;Copy Selected Layers to Project&apos;s GeoPackage&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Selected layers and layers in selected groups are copied to the project&apos;s GeoPackage and added back from the GeoPackage to the top of the layer tree of the current project. The original layers can be removed from the project if desired.&lt;/p&gt;&lt;p&gt;The project&apos;s GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;CAUTION: This will overwrite layers with the same name and geometry type in the project&apos;s GeoPackage!&lt;/b&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer in das Projekt-GeoPackage Kopieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Gewählte Layer und Layer in gewählten Gruppen werden in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.&lt;/p&gt;&lt;p&gt;Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!&lt;/b&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer in das Projekt-GeoPackage Kopieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Gewählte Layer und Layer in gewählten Gruppen werden in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.&lt;/p&gt;&lt;p&gt;Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!&lt;/b&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../UTEC_layer_tools.py" line="284"/>
         <source>&lt;p&gt;&lt;b&gt;Rename Selected Layers by Group Name&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Selected layers and layers in selected groups are renamed according to their parent group names. If a layer is not in a group, it is not renamed.&lt;/p&gt;&lt;p&gt;(Mostly useful for renaming layers imported from AutoCAD)&lt;/span&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer nach Gruppenname Umbenennen&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen. Layer, die sich nicht in einer Gruppe befinden, wird er nicht umbenannt.&lt;/p&gt;&lt;p&gt;(Nützlich für das Umbenennen von Layern, die aus AutoCAD importiert wurden)&lt;/span&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer nach Gruppenname Umbenennen&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen. Layer, die sich nicht in einer Gruppe befinden, wird er nicht umbenannt.&lt;/p&gt;&lt;p&gt;(Nützlich für das Umbenennen von Layern, die aus AutoCAD importiert wurden)&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../UTEC_layer_tools.py" line="302"/>
         <source>&lt;p&gt;&lt;b&gt;Rename and Copy Selected Layers to Project&apos;s GeoPackage&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Selected layers and layers in selected groups are renamed according to their parent group names, then copied to the project&apos;s GeoPackage and then added back from the GeoPackage to the top of the layer tree of the current project. The original layers can be removed from the project if desired.&lt;/p&gt;&lt;p&gt;The project&apos;s GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;b&gt;CAUTION: This will overwrite layers with the same name and geometry type in the project&apos;s GeoPackage!&lt;/b&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer Umbenennen und in das Projekt-GeoPackage Kopieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen, danach in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.&lt;/p&gt;&lt;p&gt;Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!&lt;/b&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer Umbenennen und in das Projekt-GeoPackage Kopieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen, danach in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.&lt;/p&gt;&lt;p&gt;Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!&lt;/b&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../UTEC_layer_tools.py" line="320"/>
         <source>&lt;p&gt;&lt;b&gt;Undo Last Rename&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Undoes the most recent layer renaming operation performed by this plugin.&lt;/span&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;Letzte Umbenennung Rückgängig Machen&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Die letzte Umbenennung, die von diesem Plugin ausgeführt wurde, wird rückgängig gemacht.&lt;/span&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;&lt;b&gt;Letzte Umbenennung Rückgängig Machen&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Die letzte Umbenennung, die von diesem Plugin ausgeführt wurde, wird rückgängig gemacht.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../UTEC_layer_tools.py" line="264"/>
         <source>&lt;p&gt;&lt;b&gt;Prepare Selected Layers for Sending&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Creates a subfolder in the project folder with a GeoPackage (.gpkg) and a project file (.qgz) containing the selected layers. These two files can be sent e.g. via email.&lt;/span&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;Gewälte Layer für Versand Vorbereiten&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Im Projektordner wird ein Unterordner mit einem GeoPackage (.gpkg) und einer Projektdatei (.qgz) erstellt, die die gewählten Layer enthalten. Diese beiden Dateien können z.B. per E-Mail versendet werden.&lt;/span&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;&lt;b&gt;Gewälte Layer für Versand Vorbereiten&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Im Projektordner wird ein Unterordner mit einem GeoPackage (.gpkg) und einer Projektdatei (.qgz) erstellt, die die gewählten Layer enthalten. Diese beiden Dateien können z.B. per E-Mail versendet werden.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../UTEC_layer_tools.py" line="190"/>
-        <source>&lt;p&gt;&lt;b&gt;Edit Project Variables&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Define project-specific metadata like project number and name. These are stored as project variables (see Project → Properties...) and can be used in expressions, e.g. [% @project_number %].&lt;/span&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;Projektvariablen bearbeiten&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Metadaten wie Projektnummer und Name definieren. Diese werden als Projektvariablen gespeichert (siehe Projekt → Eigenschaften...) und können in Ausdrücken verwendet werden, z.B. [% @project_number %].&lt;/span&gt;&lt;/p&gt;</translation>
+        <source>&lt;p&gt;&lt;b&gt;Edit Project Variables&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Define project-specific metadata like project number and name. These are stored as project variables (see Project → Properties...) and can be used in expressions, e.g. [% @project_number %].&lt;/span&gt;&lt;/p&gt;</source>
+        <translation>&lt;p&gt;&lt;b&gt;Projektvariablen bearbeiten&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Metadaten wie Projektnummer und Name definieren. Diese werden als Projektvariablen gespeichert (siehe Projekt → Eigenschaften...) und können in Ausdrücken verwendet werden, z.B. [% @project_number %].&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
         <location filename="../UTEC_layer_tools.py" line="226"/>
         <source>&lt;p&gt;&lt;b&gt;Export Layouts as PDF&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Select layouts to be exported as PDF files. The PDFs will be saved in the specified folder (defaults to &apos;pdf&apos; within the project directory) without overwriting existing files. Existing files with the same name will be moved to a folder called &apos;alt&apos;.&lt;/span&gt;&lt;/p&gt;</source>
-        <translation>&lt;p&gt;&lt;b&gt;Layouts als PDF exportieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Layouts wählen, die als PDF-Dateien exportiert werden sollen. Die Dateien werden im angegebenen Ordner (Standardordner: &apos;pdf&apos; im Projektverzeichnis) gespeichert ohne vorhandene Dateien zu überschreiben. Vorhandene Dateien mit demselben Namen werden in einen Unterordner namens &apos;alt&apos; verschoben.&lt;/span&gt;&lt;/p&gt;</translation>
+        <translation>&lt;p&gt;&lt;b&gt;Layouts als PDF exportieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style='font-weight:normal; font-style:normal;'&gt;Layouts wählen, die als PDF-Dateien exportiert werden sollen. Die Dateien werden im angegebenen Ordner (Standardordner: 'pdf' im Projektverzeichnis) gespeichert ohne vorhandene Dateien zu überschreiben. Vorhandene Dateien mit demselben Namen werden in einen Unterordner namens 'alt' verschoben.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
 </context>
 <context>
     <name>PaperSizes</name>
     <message>
-        <location filename="../modules/constants.py" line="110"/>
+        <location filename="../modules/constants.py" line="111"/>
         <source>A4 Landscape</source>
         <translation>A4 Querformat</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="121"/>
+        <location filename="../modules/constants.py" line="123"/>
         <source>A4 Portrait</source>
         <translation>A4 Hochformat</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="132"/>
+        <location filename="../modules/constants.py" line="135"/>
         <source>A3 Landscape</source>
         <translation>A3 Querformat</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="143"/>
+        <location filename="../modules/constants.py" line="147"/>
         <source>A3 Portrait</source>
         <translation>A3 Hochformat</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="154"/>
+        <location filename="../modules/constants.py" line="159"/>
         <source>A2 Landscape</source>
         <translation>A2 Querformat</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="165"/>
+        <location filename="../modules/constants.py" line="170"/>
         <source>A2 Portrait</source>
         <translation>A2 Hochformat</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="176"/>
+        <location filename="../modules/constants.py" line="181"/>
         <source>A1 Landscape</source>
         <translation>A1 Querformat</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="187"/>
+        <location filename="../modules/constants.py" line="192"/>
         <source>A1 Portrait</source>
         <translation>A1 Hochformat</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="198"/>
+        <location filename="../modules/constants.py" line="203"/>
         <source>A0 Landscape</source>
         <translation>A0 Querformat</translation>
     </message>
     <message>
-        <location filename="../modules/constants.py" line="209"/>
+        <location filename="../modules/constants.py" line="214"/>
         <source>A0 Portrait</source>
         <translation>A0 Hochformat</translation>
     </message>
@@ -198,37 +198,37 @@ Do you want to continue?</source>
 <context>
     <name>PrintLayout</name>
     <message>
-        <location filename="../modules/print_layout.py" line="103"/>
+        <location filename="../modules/print_layout.py" line="105"/>
         <source>Create Print Layout</source>
         <translation>Neues Drucklayout Erzeugen</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="166"/>
+        <location filename="../modules/print_layout.py" line="165"/>
         <source>Paper Format</source>
         <translation>Papierformat</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="147"/>
+        <location filename="../modules/print_layout.py" line="146"/>
         <source>Landscape</source>
         <translation>Querformat</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="148"/>
+        <location filename="../modules/print_layout.py" line="147"/>
         <source>Portrait</source>
         <translation>Hochformat</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="83"/>
+        <location filename="../modules/print_layout.py" line="85"/>
         <source>Overview</source>
         <translation>Übersichtsplan</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="487"/>
+        <location filename="../modules/print_layout.py" line="523"/>
         <source>Frame</source>
         <translation>Rahmen</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="233"/>
+        <location filename="../modules/print_layout.py" line="229"/>
         <source>Source</source>
         <translation>Quelle</translation>
     </message>
@@ -288,22 +288,22 @@ Do you want to continue?</source>
         <translation>Dies kann die Größe und Komplexität der Exportdatei reduzieren.</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="123"/>
+        <location filename="../modules/print_layout.py" line="125"/>
         <source>Drawing Type</source>
         <translation>Planart</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="257"/>
+        <location filename="../tests/qgis/test_print_layout.py" line="98"/>
         <source>Drafter</source>
         <translation>gezeichnet</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="260"/>
+        <location filename="../tests/qgis/test_print_layout.py" line="100"/>
         <source>Checker</source>
         <translation>geprüft</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="220"/>
+        <location filename="../modules/print_layout.py" line="216"/>
         <source>Source of Background Maps: LGLN Niedersachsen</source>
         <translation>Quelle Hintergrundkarte: LGLN Niedersachsen</translation>
     </message>
@@ -313,7 +313,7 @@ Do you want to continue?</source>
         <translation>Dateinamenprefix:</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="212"/>
+        <location filename="../modules/print_layout.py" line="208"/>
         <source>Legend</source>
         <translation>Legende</translation>
     </message>
