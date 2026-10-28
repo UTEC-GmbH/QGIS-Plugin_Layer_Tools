@@ -61,13 +61,13 @@ def get_project_variables() -> list[ProjectVariable]:
     return [
         ProjectVariable(
             id="project_number",
-            label=QCoreApplication.translate("ProjectVariables", "Project Number:"),
+            label=QCoreApplication.translate("ProjectVariables", "Project Number"),
             max_chars_per_line=8,
             default_callback=get_default_number,
         ),
         ProjectVariable(
             id="project_developer",
-            label=QCoreApplication.translate("ProjectVariables", "Project Developer:"),
+            label=QCoreApplication.translate("ProjectVariables", "Project Developer"),
             default_callback=lambda _: QCoreApplication.translate("ProjectVariables", "Developer"),
             is_multi_line=True,
             max_lines=3,
@@ -75,7 +75,7 @@ def get_project_variables() -> list[ProjectVariable]:
         ),
         ProjectVariable(
             id="project_name",
-            label=QCoreApplication.translate("ProjectVariables", "Project Name:"),
+            label=QCoreApplication.translate("ProjectVariables", "Project Name"),
             default_callback=lambda _: QCoreApplication.translate("ProjectVariables", "Project"),
             is_multi_line=True,
             max_lines=3,

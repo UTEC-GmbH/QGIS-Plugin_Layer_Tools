@@ -12,12 +12,14 @@ from qgis.core import (
     QgsExpressionContextUtils,
     QgsLayoutItem,
     QgsLayoutItemLabel,
+    QgsLayoutItemLegend,
     QgsLayoutItemMap,
     QgsLayoutItemPicture,
     QgsLayoutManager,
     QgsLayoutObject,
     QgsLayoutPoint,
     QgsLayoutSize,
+    QgsLegendStyle,
     QgsPathResolver,
     QgsPrintLayout,
     QgsProject,
@@ -28,12 +30,16 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QCoreApplication, QRectF
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
     QFrame,
+    QHBoxLayout,
+    QLabel,
     QLineEdit,
     QTextEdit,
+    QWidget,
 )
 from qgis.PyQt.QtXml import QDomDocument
 
@@ -61,7 +67,9 @@ class LayoutMetadata:
     source_visible: bool
     source_text: str
     drafter: str
+    drafter_date: str
     checker: str
+    checker_date: str
 
 
 def _get_unique_layout_name(layout_manager: QgsLayoutManager) -> str:
@@ -109,7 +117,7 @@ class NewLayoutDialog(QDialog):
         self._setup_dialog_buttons()
 
     def _setup_layout_inputs(self, suggested_name: str) -> None:
-        """Set up inputs for layout name and drafter/checker initials.
+        """Set up inputs for layout name, paper, and drafter/checker metadata.
 
         Args:
             suggested_name: The default name suggested for the layout.
@@ -119,12 +127,59 @@ class NewLayoutDialog(QDialog):
             30,
             QCoreApplication.translate("PrintLayout", "Drawing Type"),
         )
-        self.drafter_edit = self._add_labeled_line_edit(
-            "XY", 6, QCoreApplication.translate("PrintLayout", "Drafter")
+
+        separator: QFrame = QFrame()
+        separator.setFixedHeight(15)
+        self.form_layout.addRow(separator)
+
+        available_sizes: set[str] = {
+            paper_props.size_name.split("_")[0] for paper_props in PAPER_SIZES
+        }
+        self.paper_size_combo = QComboBox()
+        for size in sorted(available_sizes, key=lambda value: int(value[1:])):
+            self.paper_size_combo.addItem(size.upper(), size)
+
+        available_orientations: set[str] = {
+            paper_props.size_name.split("_")[1] for paper_props in PAPER_SIZES
+        }
+        orientation_labels: dict[str, str] = {
+            "landscape": QCoreApplication.translate("PrintLayout", "Landscape"),
+            "portrait": QCoreApplication.translate("PrintLayout", "Portrait"),
+        }
+        self.paper_orientation_combo = QComboBox()
+        for orientation in ("landscape", "portrait"):
+            if orientation in available_orientations:
+                self.paper_orientation_combo.addItem(
+                    orientation_labels[orientation],
+                    orientation,
+                )
+
+        paper_options_widget = QWidget()
+        paper_options_layout = QHBoxLayout(paper_options_widget)
+        paper_options_layout.setContentsMargins(0, 0, 0, 0)
+
+        paper_options_layout.addWidget(self.paper_size_combo)
+
+        paper_options_layout.addWidget(self.paper_orientation_combo)
+
+        paper_format_label = QLabel(
+            QCoreApplication.translate("PrintLayout", "Paper Format")
         )
-        self.checker_edit = self._add_labeled_line_edit(
-            "", 6, QCoreApplication.translate("PrintLayout", "Checker")
+        paper_format_label.setBuddy(self.paper_size_combo)
+        self.form_layout.addRow(paper_format_label, paper_options_widget)
+
+        default_size_index: int = self.paper_size_combo.findData("a3")
+        default_orientation_index: int = self.paper_orientation_combo.findData(
+            "landscape"
         )
+        if default_size_index < 0 or default_orientation_index < 0:
+            raise_runtime_error("A3 Landscape is not available as a paper size")
+        self.paper_size_combo.setCurrentIndex(default_size_index)
+        self.paper_orientation_combo.setCurrentIndex(default_orientation_index)
+
+        separator_end: QFrame = QFrame()
+        separator_end.setFixedHeight(15)
+        self.form_layout.addRow(separator_end)
 
     def _add_labeled_line_edit(
         self, default_value: str, max_length: int, label_text: str
@@ -147,31 +202,96 @@ class NewLayoutDialog(QDialog):
 
     def _setup_source_inputs(self) -> None:
         """Set up inputs for the background map source."""
-        self.source_checkbox = QCheckBox(
-            QCoreApplication.translate("PrintLayout", "Show Background Map Source")
+
+        self.legend_checkbox = QCheckBox()
+        self.legend_checkbox.setChecked(True)
+        self.form_layout.addRow(
+            QCoreApplication.translate("PrintLayout", "Legend"),
+            self.legend_checkbox,
         )
+
+        self.source_checkbox = QCheckBox()
         self.source_checkbox.setChecked(False)
-        self.form_layout.addRow(self.source_checkbox)
 
         self.source_edit = QLineEdit(
-            QCoreApplication.translate("PrintLayout", "Source of Background Maps: ")
+            QCoreApplication.translate(
+                "PrintLayout", "Source of Background Maps: LGLN Niedersachsen"
+            )
         )
         self.source_edit.setEnabled(False)
         self.source_checkbox.toggled.connect(self.source_edit.setEnabled)
+
+        source_options_widget = QWidget()
+        source_options_layout = QHBoxLayout(source_options_widget)
+        source_options_layout.setContentsMargins(0, 0, 0, 0)
+        source_options_layout.addWidget(self.source_checkbox)
+        source_options_layout.addWidget(self.source_edit, 1)
         self.form_layout.addRow(
-            QCoreApplication.translate("PrintLayout", "Source"), self.source_edit
+            QCoreApplication.translate("PrintLayout", "Source"),
+            source_options_widget,
         )
+
+        separator_end: QFrame = QFrame()
+        separator_end.setFixedHeight(15)
+        self.form_layout.addRow(separator_end)
 
     def _setup_variable_inputs(self) -> None:
         """Add inputs for project-specific metadata variables."""
-        separator: QFrame = QFrame()
-        separator.setFixedHeight(15)
-        self.form_layout.addRow(separator)
 
         for variable in self.variables:
             edit: QLineEdit | QTextEdit = self._create_variable_widget(variable)
             self.variable_edits[variable.id] = edit
             self.form_layout.addRow(variable.label, edit)
+
+        separator: QFrame = QFrame()
+        separator.setFixedHeight(15)
+        self.form_layout.addRow(separator)
+
+        self.drafter_edit, self.drafter_date_edit = self._add_person_inputs(
+            "XY",
+            datetime.now().astimezone().strftime("%d.%m.%Y"),
+            QCoreApplication.translate("PrintLayout", "Drafter"),
+        )
+        self.checker_edit, self.checker_date_edit = self._add_person_inputs(
+            "",
+            "",
+            QCoreApplication.translate("PrintLayout", "Checker"),
+        )
+
+        separator_end: QFrame = QFrame()
+        separator_end.setFixedHeight(15)
+        self.form_layout.addRow(separator_end)
+
+    def _add_person_inputs(
+        self, initials: str, date: str, label_text: str
+    ) -> tuple[QLineEdit, QLineEdit]:
+        """Add a row with initials and date inputs for a drawing role.
+
+        Args:
+            initials: The initial text for the initials input.
+            date: The initial text for the date input.
+            label_text: The text displayed for this drawing role.
+
+        Returns:
+            The initials and date input widgets.
+        """
+        initials_edit = QLineEdit(initials)
+        initials_edit.setMaxLength(6)
+
+        date_edit = QLineEdit(date)
+        date_edit.setMaxLength(10)
+
+        inputs_widget = QWidget()
+        inputs_layout = QHBoxLayout(inputs_widget)
+        inputs_layout.setContentsMargins(0, 0, 0, 0)
+        inputs_layout.addWidget(initials_edit)
+        inputs_layout.addWidget(date_edit)
+
+        label = QLabel(label_text)
+        label.setBuddy(initials_edit)
+        self.form_layout.addRow(label, inputs_widget)
+
+        return initials_edit, date_edit
 
     def _create_variable_widget(
         self, variable: ProjectVariable
@@ -222,6 +342,17 @@ class NewLayoutDialog(QDialog):
         """Return the entered layout name."""
         return self.name_edit.text().strip()
 
+    def get_paper_size_name(self) -> str:
+        """Return the selected paper size and orientation identifier."""
+        paper_size = self.paper_size_combo.currentData()
+        orientation = self.paper_orientation_combo.currentData()
+        if not isinstance(paper_size, str) or not isinstance(orientation, str):
+            raise_runtime_error("Paper size and orientation must be selected")
+        paper_size_name = f"{paper_size}_{orientation}"
+        if not hasattr(PAPER_SIZES, paper_size_name):
+            raise_runtime_error(f"Unknown paper size: {paper_size_name}")
+        return paper_size_name
+
     def get_source_visibility(self) -> bool:
         """Return True if the source should be visible."""
         return self.source_checkbox.isChecked()
@@ -230,6 +361,10 @@ class NewLayoutDialog(QDialog):
         """Return the source text."""
         return self.source_edit.text().strip()
 
+    def get_add_legend(self) -> bool:
+        """Return True if a legend should be added to the layout."""
+        return self.legend_checkbox.isChecked()
+
     def get_drafter_initials(self) -> str:
         """Return the entered drafter initials."""
         return self.drafter_edit.text().strip().upper()
@@ -237,6 +372,14 @@ class NewLayoutDialog(QDialog):
     def get_checker_initials(self) -> str:
         """Return the entered checker initials."""
         return self.checker_edit.text().strip().upper()
+
+    def get_drafter_date(self) -> str:
+        """Return the entered drafter date."""
+        return self.drafter_date_edit.text().strip()
+
+    def get_checker_date(self) -> str:
+        """Return the entered checker date."""
+        return self.checker_date_edit.text().strip()
 
     def save_variables(self) -> None:
         """Save entered project variables to the project."""
@@ -401,6 +544,7 @@ def _auto_dynamic_elements(
     - "Maßstab": for a QgsLayoutItemLabel that should display the map scale.
     - "Quelle": for a QgsLayoutItemLabel that should display the map source.
     - "gezeichnet - Name": for a QgsLayoutItemLabel for the drafter initials.
+    - "gezeichnet - Datum": for a QgsLayoutItemLabel for the drafter date.
     - "geprüft - Name": for a QgsLayoutItemLabel for the checker initials.
     - "geprüft - Datum": for a QgsLayoutItemLabel for the check date.
 
@@ -463,11 +607,13 @@ def _handle_static_labels(
         item.refresh()
         return True
 
+    if item_id == "gezeichnet - Datum":
+        item.setText(metadata.drafter_date)
+        item.refresh()
+        return True
+
     if item_id == "geprüft - Datum":
-        if metadata.checker:
-            item.setText(datetime.now().astimezone().strftime("%d.%m.%Y"))
-        else:
-            item.setText("")
+        item.setText(metadata.checker_date)
         item.refresh()
         return True
 
@@ -539,18 +685,86 @@ def _load_template_document() -> QDomDocument:
     return doc
 
 
+def _scale_title_block_template(doc: QDomDocument, scaling: float) -> None:
+    """Scale the title block group and its contents in the template document."""
+    if scaling <= 0:
+        raise_runtime_error(f"Invalid title block scaling: {scaling}")
+    if scaling == 1.0:
+        return
+
+    layout_items = doc.elementsByTagName("LayoutItem")
+    group_element = next(
+        (
+            layout_items.at(index).toElement()
+            for index in range(layout_items.count())
+            if layout_items.at(index).toElement().attribute("id")
+            == "Title_Block_Gruppe"
+        ),
+        None,
+    )
+    if group_element is None:
+        raise_runtime_error("Title block group not found in template")
+
+    group_uuid: str = group_element.attribute("uuid")
+    if not group_uuid:
+        raise_runtime_error("Title block group has no UUID in template")
+
+    origin_x, origin_y, _ = group_element.attribute("position").split(",")
+    origin_x = float(origin_x)
+    origin_y = float(origin_y)
+
+    for index in range(layout_items.count()):
+        item_element = layout_items.at(index).toElement()
+        if item_element == group_element:
+            width, height, unit = item_element.attribute("size").split(",")
+            item_element.setAttribute(
+                "size",
+                f"{float(width) * scaling},{float(height) * scaling},{unit}",
+            )
+        elif item_element.attribute("groupUuid") == group_uuid:
+            for attribute in ("position", "positionOnPage"):
+                if not item_element.hasAttribute(attribute):
+                    continue
+                x, y, unit = item_element.attribute(attribute).split(",")
+                item_element.setAttribute(
+                    attribute,
+                    (
+                        f"{origin_x + (float(x) - origin_x) * scaling},"
+                        f"{origin_y + (float(y) - origin_y) * scaling},"
+                        f"{unit}"
+                    ),
+                )
+
+            width, height, unit = item_element.attribute("size").split(",")
+            item_element.setAttribute(
+                "size",
+                f"{float(width) * scaling},{float(height) * scaling},{unit}",
+            )
+
+            text_styles = item_element.elementsByTagName("text-style")
+            for style_index in range(text_styles.count()):
+                style_element = text_styles.at(style_index).toElement()
+                if style_element.hasAttribute("fontSize"):
+                    font_size = float(style_element.attribute("fontSize"))
+                    style_element.setAttribute("fontSize", str(font_size * scaling))
+
+
 def _move_title_block_to_corner(
     new_items: list[QgsLayoutItem], page_width: float, page_height: float
-) -> None:
-    """Move the newly added title block items to the bottom-right corner.
+) -> QRectF | None:
+    """Align the title block frame to the bottom-right corner of the page.
 
     Args:
         new_items: The list of new items added from the template.
         page_width: The width of the page.
         page_height: The height of the page.
+
+    Returns:
+        The bounding box of the moved title block frame, or None if it has no
+        top-level items.
     """
     margin_right_mm: float = 5.0
-    margin_bottom_mm: float = 1.0
+    margin_bottom_mm: float = 5.0
 
     top_level_items: list[QgsLayoutItem] = [
         item
@@ -559,14 +773,17 @@ def _move_title_block_to_corner(
     ]
 
     if not top_level_items:
-        return
+        return None
 
-    # Calculate bounding box of the added template items
-    bbox = top_level_items[0].sceneBoundingRect()
-    for item in top_level_items[1:]:
-        bbox = bbox.united(item.sceneBoundingRect())
+    title_block_frame = next(
+        (item for item in new_items if item.id() == "Plankopf"),
+        None,
+    )
+    if title_block_frame is None:
+        raise_runtime_error("Title block frame not found in template")
+    bbox = title_block_frame.sceneBoundingRect()
 
-    # Current bottom-right of the title block group
+    # Align to the title block frame, not the group bounds which include Quelle.
     current_max_x: float = bbox.right()
     current_max_y: float = bbox.bottom()
 
@@ -587,9 +804,49 @@ def _move_title_block_to_corner(
         )
         item.attemptMove(new_pos)
 
+    return bbox.translated(shift_x, shift_y)
 
-def create_print_layout(paper_size_name: str) -> None:
-    """Create a new print layout with a specific paper size and title block.
+
+def _add_legend_to_layout(
+    layout: QgsPrintLayout,
+    map_item: QgsLayoutItemMap,
+    title_block_bbox: QRectF,
+    scaling: float = 1.0,
+) -> None:
+    """Add a framed, map-filtered, optionally scaled legend above the title block."""
+    legend = QgsLayoutItemLegend(layout)
+    legend.setTitle("Legende")
+    legend.setLinkedMap(map_item)
+    legend.setLegendFilterByMapEnabled(True)
+    legend.setFrameEnabled(True)
+    legend.setStyleMargin(QgsLegendStyle.Group, 6)
+    legend.setStyleMargin(QgsLegendStyle.Group, QgsLegendStyle.Bottom, 1)
+
+    title_style = legend.rstyle(QgsLegendStyle.Title)
+    title_format = title_style.textFormat()
+    title_font = title_format.font()
+    title_font.setUnderline(True)
+    title_format.setFont(title_font)
+    title_style.setTextFormat(title_format)
+    legend.setStyle(QgsLegendStyle.Title, title_style)
+
+    if scaling <= 0:
+        raise_runtime_error(f"Invalid legend scaling: {scaling}")
+    legend.setScale(scaling)
+    legend.setReferencePoint(QgsLayoutItem.ReferencePoint.LowerRight)
+    layout.addLayoutItem(legend)
+    legend.adjustBoxSize()
+    legend.attemptMove(
+        QgsLayoutPoint(
+            title_block_bbox.right(),
+            title_block_bbox.top(),
+            QgsUnitTypes.LayoutMillimeters,
+        )
+    )
+
+
+def create_print_layout() -> None:
+    """Create a new print layout with the selected paper size and title block.
 
     This function orchestrates the creation of a complete print layout. It:
     1. Creates a new layout with a unique name.
@@ -597,11 +854,9 @@ def create_print_layout(paper_size_name: str) -> None:
     3. Adds a map item reflecting the current canvas view.
     4. Adds a decorative frame from an SVG file.
     5. Loads and adds a title block from a .qpt template.
-    6. Sets layout-specific variables.
-    7. Adds the new layout to the project and opens it in the layout designer.
-
-    Args:
-        paper_size_name: The name of the paper size (e.g., "a4_landscape").
+    6. Optionally adds a legend linked to the main map.
+    7. Sets layout-specific variables.
+    8. Adds the new layout to the project and opens it in the layout designer.
 
     Raises:
         RuntimeError: If the project has no layout manager, or if a required
@@ -619,12 +874,17 @@ def create_print_layout(paper_size_name: str) -> None:
         log_debug("Layout creation cancelled by user.", Qgis.Info)
         return
 
+    add_legend: bool = dialog.get_add_legend()
+    paper_size_name: str = dialog.get_paper_size_name()
+
     # Package metadata into a dataclass to reduce argument counts
     metadata: LayoutMetadata = LayoutMetadata(
         source_visible=dialog.get_source_visibility(),
         source_text=dialog.get_source_text(),
         drafter=dialog.get_drafter_initials(),
+        drafter_date=dialog.get_drafter_date(),
         checker=dialog.get_checker_initials(),
+        checker_date=dialog.get_checker_date(),
     )
 
     final_name_entry: str = dialog.get_layout_name()
@@ -646,6 +906,7 @@ def create_print_layout(paper_size_name: str) -> None:
 
     # 5. Load and add Title Block from Template
     doc: QDomDocument = _load_template_document()
+    _scale_title_block_template(doc, paper_props.title_block_scaling)
 
     # Configure context to resolve relative paths (e.g. images)
     # against the template file location
@@ -655,11 +916,28 @@ def create_print_layout(paper_size_name: str) -> None:
     rw_context = QgsReadWriteContext()
     rw_context.setPathResolver(QgsPathResolver(str(template_path)))
 
+    title_block_bbox: QRectF | None = None
     if new_items := layout.addItemsFromXml(
         doc.documentElement(), doc, rw_context, pasteInPlace=False
     ):
         _auto_dynamic_elements(new_items, map_item, metadata)
-        _move_title_block_to_corner(new_items, paper_props.width, paper_props.height)
+        title_block_bbox = _move_title_block_to_corner(
+            new_items, paper_props.width, paper_props.height
+        )
+
+    if add_legend:
+        if map_item and title_block_bbox:
+            _add_legend_to_layout(
+                layout,
+                map_item,
+                title_block_bbox,
+                paper_props.title_block_scaling,
+            )
+        else:
+            log_debug(
+                "Cannot add legend without a main map and title block.",
+                Qgis.Warning,
+            )
 
     # 6. Set Dynamic Variables (Layout Variables)
     QgsExpressionContextUtils.setLayoutVariable(

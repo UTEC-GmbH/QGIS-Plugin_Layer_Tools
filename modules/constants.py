@@ -75,13 +75,14 @@ else:
 
 @dataclass
 class PaperProps:
-    """Stores width and height for a specific paper orientation."""
+    """Stores paper dimensions and scaling settings for an orientation."""
 
     size_name: str
     name: str
     width: float
     height: float
     frame: Path
+    title_block_scaling: float = 1.0
 
 
 class PaperSizes:
@@ -113,6 +114,7 @@ class PaperSizes:
             width=297,
             height=210,
             frame=self._print_layout_templ_path / "A4_L.svg",
+            title_block_scaling=0.75,
         )
 
     @property
@@ -124,6 +126,7 @@ class PaperSizes:
             width=210,
             height=297,
             frame=self._print_layout_templ_path / "A4_P.svg",
+            title_block_scaling=0.75,
         )
 
     @property
@@ -135,6 +138,7 @@ class PaperSizes:
             width=420,
             height=297,
             frame=self._print_layout_templ_path / "A3_L.svg",
+            title_block_scaling=0.75,
         )
 
     @property
@@ -146,6 +150,7 @@ class PaperSizes:
             width=297,
             height=420,
             frame=self._print_layout_templ_path / "A3_P.svg",
+            title_block_scaling=0.75,
         )
 
     @property

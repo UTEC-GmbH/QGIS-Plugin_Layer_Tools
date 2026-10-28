@@ -3,7 +3,6 @@
 import configparser
 import contextlib
 from collections.abc import Callable
-from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -19,7 +18,7 @@ except ImportError:
     from qgis.PyQt.QtGui import QAction
 
 
-from .modules.constants import ICONS, PAPER_SIZES
+from .modules.constants import ICONS
 from .modules.context import PluginContext
 from .modules.geopackage import copy_layers_to_gpkg
 from .modules.layer_location import LocationIndicatorManager
@@ -152,7 +151,7 @@ class UTECLayerTools(QObject):
 
         # -- Project Metadata & Layouts --
         self._add_project_variables_action()
-        self._add_print_layout_menu()
+        self._add_print_layout_action()
         self._add_export_layouts_action()
 
         if self.plugin_menu:
@@ -203,32 +202,21 @@ class UTECLayerTools(QObject):
         if self.plugin_menu:
             self.plugin_menu.addAction(project_vars_action)
 
-    def _add_print_layout_menu(self) -> None:
-        """Add a fly-out menu for creating specific print layouts."""
+    def _add_print_layout_action(self) -> None:
+        """Add a direct action for creating a print layout."""
         # fmt: off
-        layout_menu_title: str = QCoreApplication.translate("Menu_Button", "Create Print Layout")
+        create_layout_label: str = QCoreApplication.translate("Menu_Button", "Create Layout")
         # fmt: on
-        print_layout_menu = QMenu(layout_menu_title, self.plugin_menu)
-        print_layout_menu.setIcon(ICONS.main_menu_print)
-
-        last_prefix: str = ""
-        for paper_props in PAPER_SIZES:
-            current_prefix: str = paper_props.size_name.split("_")[0]
-            if last_prefix and last_prefix != current_prefix:
-                print_layout_menu.addSeparator()
-            last_prefix = current_prefix
-
-            icon: QIcon = (
-                ICONS.print_menu_landscape
-                if paper_props.width > paper_props.height
-                else ICONS.print_menu_portrait
-            )
-            action = QAction(icon, paper_props.name, self.iface.mainWindow())
-            action.triggered.connect(partial(self.create_layout, paper_props.size_name))
-            print_layout_menu.addAction(action)
-
+        create_layout_action = self.add_action(
+            icon=ICONS.main_menu_print,
+            button_text=create_layout_label,
+            callback=self.create_layout,
+            parent=self.iface.mainWindow(),
+            add_to_menu=False,
+            add_to_toolbar=False,
+        )
         if self.plugin_menu:
-            self.plugin_menu.addMenu(print_layout_menu)
+            self.plugin_menu.addAction(create_layout_action)
 
     def _add_export_layouts_action(self) -> None:
         """Add the action for exporting layouts as PDF."""
@@ -413,15 +401,11 @@ class UTECLayerTools(QObject):
                 errors=results.errors,
             )
 
-    def create_layout(self, size: str) -> None:
-        """Create a new print layout for the specified paper size.
-
-        Args:
-            size: The paper size string (e.g., 'A3').
-        """
-        log_debug(f"... STARTING PLUGIN RUN ... (create_layout {size})", icon="✨✨✨")
+    def create_layout(self) -> None:
+        """Open the dialog to create a print layout."""
+        log_debug("... STARTING PLUGIN RUN ... (create_layout)", icon="✨✨✨")
         with contextlib.suppress(CustomUserError, CustomRuntimeError):
-            create_print_layout(size)
+            create_print_layout()
 
     def export_layouts(self) -> None:
         """Export selected layouts as PDF files."""
