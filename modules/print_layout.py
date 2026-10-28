@@ -646,6 +646,72 @@ def _load_template_document() -> QDomDocument:
     return doc
 
 
+def _scale_title_block_template(doc: QDomDocument, scaling: float) -> None:
+    """Scale the title block group and its contents in the template document."""
+    if scaling <= 0:
+        raise_runtime_error(f"Invalid title block scaling: {scaling}")
+    if scaling == 1.0:
+        return
+
+    layout_items = doc.elementsByTagName("LayoutItem")
+    group_element = next(
+        (
+            layout_items.at(index).toElement()
+            for index in range(layout_items.count())
+            if layout_items.at(index).toElement().attribute("id")
+            == "Title_Block_Gruppe"
+        ),
+        None,
+    )
+    if group_element is None:
+        raise_runtime_error("Title block group not found in template")
+
+    group_uuid: str = group_element.attribute("uuid")
+    if not group_uuid:
+        raise_runtime_error("Title block group has no UUID in template")
+
+    origin_x, origin_y, _ = group_element.attribute("position").split(",")
+    origin_x = float(origin_x)
+    origin_y = float(origin_y)
+
+    for index in range(layout_items.count()):
+        item_element = layout_items.at(index).toElement()
+        if item_element == group_element:
+            width, height, unit = item_element.attribute("size").split(",")
+            item_element.setAttribute(
+                "size",
+                f"{float(width) * scaling},{float(height) * scaling},{unit}",
+            )
+        elif item_element.attribute("groupUuid") == group_uuid:
+            for attribute in ("position", "positionOnPage"):
+                if not item_element.hasAttribute(attribute):
+                    continue
+                x, y, unit = item_element.attribute(attribute).split(",")
+                item_element.setAttribute(
+                    attribute,
+                    (
+                        f"{origin_x + (float(x) - origin_x) * scaling},"
+                        f"{origin_y + (float(y) - origin_y) * scaling},"
+                        f"{unit}"
+                    ),
+                )
+
+            width, height, unit = item_element.attribute("size").split(",")
+            item_element.setAttribute(
+                "size",
+                f"{float(width) * scaling},{float(height) * scaling},{unit}",
+            )
+
+            text_styles = item_element.elementsByTagName("text-style")
+            for style_index in range(text_styles.count()):
+                style_element = text_styles.at(style_index).toElement()
+                if style_element.hasAttribute("fontSize"):
+                    font_size = float(style_element.attribute("fontSize"))
+                    style_element.setAttribute(
+                        "fontSize", str(font_size * scaling)
+                    )
+
+
 def _move_title_block_to_corner(
     new_items: list[QgsLayoutItem], page_width: float, page_height: float
 ) -> QRectF | None:
@@ -791,6 +857,7 @@ def create_print_layout() -> None:
 
     # 5. Load and add Title Block from Template
     doc: QDomDocument = _load_template_document()
+    _scale_title_block_template(doc, paper_props.title_block_scaling)
 
     # Configure context to resolve relative paths (e.g. images)
     # against the template file location

@@ -7,7 +7,7 @@ changelog=
     - 👍 Verbesserung: kleine Verbesserungen am pdf-Export
     - 👍 Verbesserung: verbessertes Drucklayout-Menu
     - 👍 Verbesserung: Legende in Drucklayout eingefügt
-    - 👍 Verbesserung: Plankopf in A3-Layout verkleinert
+    - 👍 Verbesserung: Plankopf in A3 und A4 verkleinert
     
     Version 1.5:
     - ✨ Neue Funktion: Layouts als pdf exportieren (mehrere gleichzeitig)

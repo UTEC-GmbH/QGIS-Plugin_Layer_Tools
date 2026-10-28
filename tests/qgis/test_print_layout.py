@@ -3,16 +3,23 @@
 import pytest
 from qgis.core import (
     QgsLayoutItem,
+    QgsLayoutItemGroup,
+    QgsLayoutItemLabel,
     QgsLayoutItemLegend,
     QgsLayoutItemMap,
     QgsLegendStyle,
     QgsPrintLayout,
+    QgsReadWriteContext,
 )
 from qgis.PyQt.QtCore import QRectF
 
+from modules.constants import PAPER_SIZES
 from modules.print_layout import (
     NewLayoutDialog,
     _add_legend_to_layout,
+    _load_template_document,
+    _move_title_block_to_corner,
+    _scale_title_block_template,
 )
 
 
@@ -99,3 +106,54 @@ def test_add_legend_uses_map_and_title_block_corner(clean_project) -> None:
     )
     assert legend.positionWithUnits().x() == pytest.approx(title_block_bbox.right())
     assert legend.positionWithUnits().y() == pytest.approx(title_block_bbox.top())
+
+
+@pytest.mark.parametrize(
+    ("paper_size", "expected_scaling"),
+    [
+        ("a3_landscape", 0.9),
+        ("a3_portrait", 0.9),
+        ("a4_landscape", 0.75),
+        ("a4_portrait", 0.75),
+        ("a2_landscape", 1.0),
+    ],
+)
+def test_paper_size_title_block_scaling(paper_size, expected_scaling) -> None:
+    assert getattr(PAPER_SIZES, paper_size).title_block_scaling == expected_scaling
+
+
+def test_scale_title_block_template_scales_group_geometry_and_text(
+    clean_project,
+) -> None:
+    doc = _load_template_document()
+    _scale_title_block_template(doc, 0.75)
+
+    layout = QgsPrintLayout(clean_project)
+    layout.initializeDefaults()
+    items = layout.addItemsFromXml(
+        doc.documentElement(),
+        doc,
+        QgsReadWriteContext(),
+        pasteInPlace=False,
+    )
+
+    title_block = next(
+        item for item in items if isinstance(item, QgsLayoutItemGroup)
+    )
+    assert title_block.sizeWithUnits().width() == pytest.approx(138.75)
+    assert title_block.sizeWithUnits().height() == pytest.approx(72.93)
+
+    title_block_bbox = _move_title_block_to_corner(items, 420, 297)
+    assert title_block_bbox is not None
+    assert title_block_bbox.width() == pytest.approx(138.75)
+    assert title_block_bbox.height() == pytest.approx(72.93)
+    assert title_block_bbox.right() == pytest.approx(415)
+    assert title_block_bbox.bottom() == pytest.approx(296)
+
+    drafter_label = next(
+        item
+        for item in items
+        if isinstance(item, QgsLayoutItemLabel) and "gezeichnet" in item.id()
+    )
+    assert drafter_label.sizeWithUnits().width() == pytest.approx(11.25)
+    assert drafter_label.textFormat().size() == pytest.approx(7.5)
