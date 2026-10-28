@@ -1,5 +1,7 @@
 """Tests for print layout creation options."""
 
+from datetime import datetime
+
 import pytest
 from qgis.core import (
     QgsLayoutItem,
@@ -11,12 +13,14 @@ from qgis.core import (
     QgsPrintLayout,
     QgsReadWriteContext,
 )
-from qgis.PyQt.QtCore import QRectF
+from qgis.PyQt.QtCore import QCoreApplication, QRectF
 
 from modules.constants import PAPER_SIZES
 from modules.print_layout import (
+    LayoutMetadata,
     NewLayoutDialog,
     _add_legend_to_layout,
+    _auto_dynamic_elements,
     _load_template_document,
     _move_title_block_to_corner,
     _scale_title_block_template,
@@ -78,6 +82,64 @@ def test_layout_options_use_separate_paper_size_and_orientation(clean_project) -
     assert dialog.get_add_legend()
 
 
+def test_layout_dialog_initializes_drafter_and_checker_dates(clean_project) -> None:
+    dialog = NewLayoutDialog(clean_project, "Test Layout")
+
+    assert dialog.get_drafter_initials() == "XY"
+    assert dialog.get_drafter_date() == datetime.now().astimezone().strftime("%d.%m.%Y")
+    assert dialog.get_checker_initials() == ""
+    assert dialog.get_checker_date() == ""
+
+    drafter_row = dialog.drafter_edit.parentWidget()
+    checker_row = dialog.checker_edit.parentWidget()
+    drafter_label = dialog.form_layout.labelForField(drafter_row)
+    checker_label = dialog.form_layout.labelForField(checker_row)
+    assert drafter_label is not None
+    assert drafter_label.text() == QCoreApplication.translate("PrintLayout", "Drafter")
+    assert checker_label is not None
+    assert checker_label.text() == QCoreApplication.translate("PrintLayout", "Checker")
+    assert dialog.drafter_date_edit.parentWidget() == drafter_row
+    assert dialog.checker_date_edit.parentWidget() == checker_row
+
+    dialog.drafter_edit.setText("ab")
+    dialog.drafter_date_edit.setText("01.02.2025")
+    dialog.checker_edit.setText("cd")
+    dialog.checker_date_edit.setText("03.04.2025")
+
+    assert dialog.get_drafter_initials() == "AB"
+    assert dialog.get_drafter_date() == "01.02.2025"
+    assert dialog.get_checker_initials() == "CD"
+    assert dialog.get_checker_date() == "03.04.2025"
+
+
+def test_auto_dynamic_elements_applies_both_entered_dates(clean_project) -> None:
+    layout = QgsPrintLayout(clean_project)
+    layout.initializeDefaults()
+    doc = _load_template_document()
+    items = layout.addItemsFromXml(
+        doc.documentElement(),
+        doc,
+        QgsReadWriteContext(),
+        pasteInPlace=False,
+    )
+    metadata = LayoutMetadata(
+        source_visible=False,
+        source_text="",
+        drafter="AB",
+        drafter_date="01.02.2025",
+        checker="CD",
+        checker_date="03.04.2025",
+    )
+
+    _auto_dynamic_elements(items, None, metadata)
+
+    labels = {
+        item.id(): item.text() for item in items if isinstance(item, QgsLayoutItemLabel)
+    }
+    assert labels["gezeichnet - Datum"] == "01.02.2025"
+    assert labels["geprüft - Datum"] == "03.04.2025"
+
+
 def test_add_legend_uses_map_and_title_block_corner(clean_project) -> None:
     layout = QgsPrintLayout(clean_project)
     layout.initializeDefaults()
@@ -108,18 +170,38 @@ def test_add_legend_uses_map_and_title_block_corner(clean_project) -> None:
     assert legend.positionWithUnits().y() == pytest.approx(title_block_bbox.top())
 
 
+def test_add_legend_applies_scaling(clean_project) -> None:
+    layout = QgsPrintLayout(clean_project)
+    layout.initializeDefaults()
+    map_item = QgsLayoutItemMap(layout)
+    layout.addLayoutItem(map_item)
+
+    _add_legend_to_layout(layout, map_item, QRectF(100, 50, 40, 30), 0.75)
+
+    legend = next(
+        item for item in layout.items() if isinstance(item, QgsLayoutItemLegend)
+    )
+    assert legend.scale() == pytest.approx(0.75)
+    assert legend.positionWithUnits().x() == pytest.approx(140)
+    assert legend.positionWithUnits().y() == pytest.approx(50)
+
+
 @pytest.mark.parametrize(
-    ("paper_size", "expected_scaling"),
+    ("paper_size", "expected_title_block_scaling", "expected_legend_scaling"),
     [
-        ("a3_landscape", 0.9),
-        ("a3_portrait", 0.9),
-        ("a4_landscape", 0.75),
-        ("a4_portrait", 0.75),
-        ("a2_landscape", 1.0),
+        ("a3_landscape", 0.9, 0.9),
+        ("a3_portrait", 0.9, 0.9),
+        ("a4_landscape", 0.75, 0.75),
+        ("a4_portrait", 0.75, 0.75),
+        ("a2_landscape", 1.0, 1.0),
     ],
 )
-def test_paper_size_title_block_scaling(paper_size, expected_scaling) -> None:
-    assert getattr(PAPER_SIZES, paper_size).title_block_scaling == expected_scaling
+def test_paper_size_layout_item_scaling(
+    paper_size, expected_title_block_scaling, expected_legend_scaling
+) -> None:
+    paper_props = getattr(PAPER_SIZES, paper_size)
+    assert paper_props.title_block_scaling == expected_title_block_scaling
+    assert paper_props.legend_scaling == expected_legend_scaling
 
 
 def test_scale_title_block_template_scales_group_geometry_and_text(

@@ -67,7 +67,9 @@ class LayoutMetadata:
     source_visible: bool
     source_text: str
     drafter: str
+    drafter_date: str
     checker: str
+    checker_date: str
 
 
 def _get_unique_layout_name(layout_manager: QgsLayoutManager) -> str:
@@ -115,7 +117,7 @@ class NewLayoutDialog(QDialog):
         self._setup_dialog_buttons()
 
     def _setup_layout_inputs(self, suggested_name: str) -> None:
-        """Set up inputs for layout name, paper, and drafter/checker initials.
+        """Set up inputs for layout name, paper, and drafter/checker metadata.
 
         Args:
             suggested_name: The default name suggested for the layout.
@@ -128,9 +130,6 @@ class NewLayoutDialog(QDialog):
 
         separator: QFrame = QFrame()
         separator.setFixedHeight(15)
-        separator.setFrameShape(QFrame.HLine)
-        separator.setLineWidth(2)
-        separator.setFrameShadow(QFrame.Sunken)
         self.form_layout.addRow(separator)
 
         available_sizes: set[str] = {
@@ -180,9 +179,6 @@ class NewLayoutDialog(QDialog):
 
         separator_end: QFrame = QFrame()
         separator_end.setFixedHeight(15)
-        separator_end.setFrameShape(QFrame.HLine)
-        separator_end.setLineWidth(2)
-        separator_end.setFrameShadow(QFrame.Sunken)
         self.form_layout.addRow(separator_end)
 
     def _add_labeled_line_edit(
@@ -237,9 +233,6 @@ class NewLayoutDialog(QDialog):
 
         separator_end: QFrame = QFrame()
         separator_end.setFixedHeight(15)
-        separator_end.setFrameShape(QFrame.HLine)
-        separator_end.setLineWidth(2)
-        separator_end.setFrameShadow(QFrame.Sunken)
         self.form_layout.addRow(separator_end)
 
     def _setup_variable_inputs(self) -> None:
@@ -254,16 +247,51 @@ class NewLayoutDialog(QDialog):
         separator.setFixedHeight(15)
         self.form_layout.addRow(separator)
 
-        self.drafter_edit = self._add_labeled_line_edit(
-            "XY", 6, QCoreApplication.translate("PrintLayout", "Drafter")
+        self.drafter_edit, self.drafter_date_edit = self._add_person_inputs(
+            "XY",
+            datetime.now().astimezone().strftime("%d.%m.%Y"),
+            QCoreApplication.translate("PrintLayout", "Drafter"),
         )
-        self.checker_edit = self._add_labeled_line_edit(
-            "", 6, QCoreApplication.translate("PrintLayout", "Checker")
+        self.checker_edit, self.checker_date_edit = self._add_person_inputs(
+            "",
+            "",
+            QCoreApplication.translate("PrintLayout", "Checker"),
         )
 
         separator_end: QFrame = QFrame()
         separator_end.setFixedHeight(15)
         self.form_layout.addRow(separator_end)
+
+    def _add_person_inputs(
+        self, initials: str, date: str, label_text: str
+    ) -> tuple[QLineEdit, QLineEdit]:
+        """Add a row with initials and date inputs for a drawing role.
+
+        Args:
+            initials: The initial text for the initials input.
+            date: The initial text for the date input.
+            label_text: The text displayed for this drawing role.
+
+        Returns:
+            The initials and date input widgets.
+        """
+        initials_edit = QLineEdit(initials)
+        initials_edit.setMaxLength(6)
+
+        date_edit = QLineEdit(date)
+        date_edit.setMaxLength(10)
+
+        inputs_widget = QWidget()
+        inputs_layout = QHBoxLayout(inputs_widget)
+        inputs_layout.setContentsMargins(0, 0, 0, 0)
+        inputs_layout.addWidget(initials_edit)
+        inputs_layout.addWidget(date_edit)
+
+        label = QLabel(label_text)
+        label.setBuddy(initials_edit)
+        self.form_layout.addRow(label, inputs_widget)
+
+        return initials_edit, date_edit
 
     def _create_variable_widget(
         self, variable: ProjectVariable
@@ -344,6 +372,14 @@ class NewLayoutDialog(QDialog):
     def get_checker_initials(self) -> str:
         """Return the entered checker initials."""
         return self.checker_edit.text().strip().upper()
+
+    def get_drafter_date(self) -> str:
+        """Return the entered drafter date."""
+        return self.drafter_date_edit.text().strip()
+
+    def get_checker_date(self) -> str:
+        """Return the entered checker date."""
+        return self.checker_date_edit.text().strip()
 
     def save_variables(self) -> None:
         """Save entered project variables to the project."""
@@ -508,6 +544,7 @@ def _auto_dynamic_elements(
     - "Maßstab": for a QgsLayoutItemLabel that should display the map scale.
     - "Quelle": for a QgsLayoutItemLabel that should display the map source.
     - "gezeichnet - Name": for a QgsLayoutItemLabel for the drafter initials.
+    - "gezeichnet - Datum": for a QgsLayoutItemLabel for the drafter date.
     - "geprüft - Name": for a QgsLayoutItemLabel for the checker initials.
     - "geprüft - Datum": for a QgsLayoutItemLabel for the check date.
 
@@ -570,11 +607,13 @@ def _handle_static_labels(
         item.refresh()
         return True
 
+    if item_id == "gezeichnet - Datum":
+        item.setText(metadata.drafter_date)
+        item.refresh()
+        return True
+
     if item_id == "geprüft - Datum":
-        if metadata.checker:
-            item.setText(datetime.now().astimezone().strftime("%d.%m.%Y"))
-        else:
-            item.setText("")
+        item.setText(metadata.checker_date)
         item.refresh()
         return True
 
@@ -707,9 +746,7 @@ def _scale_title_block_template(doc: QDomDocument, scaling: float) -> None:
                 style_element = text_styles.at(style_index).toElement()
                 if style_element.hasAttribute("fontSize"):
                     font_size = float(style_element.attribute("fontSize"))
-                    style_element.setAttribute(
-                        "fontSize", str(font_size * scaling)
-                    )
+                    style_element.setAttribute("fontSize", str(font_size * scaling))
 
 
 def _move_title_block_to_corner(
@@ -767,9 +804,12 @@ def _move_title_block_to_corner(
 
 
 def _add_legend_to_layout(
-    layout: QgsPrintLayout, map_item: QgsLayoutItemMap, title_block_bbox: QRectF
+    layout: QgsPrintLayout,
+    map_item: QgsLayoutItemMap,
+    title_block_bbox: QRectF,
+    scaling: float = 1.0,
 ) -> None:
-    """Add a framed, map-filtered legend above the title block."""
+    """Add a framed, map-filtered, optionally scaled legend above the title block."""
     legend = QgsLayoutItemLegend(layout)
     legend.setTitle("Legende")
     legend.setLinkedMap(map_item)
@@ -786,6 +826,9 @@ def _add_legend_to_layout(
     title_style.setTextFormat(title_format)
     legend.setStyle(QgsLegendStyle.Title, title_style)
 
+    if scaling <= 0:
+        raise_runtime_error(f"Invalid legend scaling: {scaling}")
+    legend.setScale(scaling)
     legend.setReferencePoint(QgsLayoutItem.ReferencePoint.LowerRight)
     layout.addLayoutItem(legend)
     legend.adjustBoxSize()
@@ -835,7 +878,9 @@ def create_print_layout() -> None:
         source_visible=dialog.get_source_visibility(),
         source_text=dialog.get_source_text(),
         drafter=dialog.get_drafter_initials(),
+        drafter_date=dialog.get_drafter_date(),
         checker=dialog.get_checker_initials(),
+        checker_date=dialog.get_checker_date(),
     )
 
     final_name_entry: str = dialog.get_layout_name()
@@ -878,7 +923,12 @@ def create_print_layout() -> None:
 
     if add_legend:
         if map_item and title_block_bbox:
-            _add_legend_to_layout(layout, map_item, title_block_bbox)
+            _add_legend_to_layout(
+                layout,
+                map_item,
+                title_block_bbox,
+                paper_props.title_block_scaling,
+            )
         else:
             log_debug(
                 "Cannot add legend without a main map and title block.",

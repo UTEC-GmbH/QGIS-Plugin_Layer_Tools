@@ -295,12 +295,12 @@ Do you want to continue?</source>
     <message>
         <location filename="../modules/print_layout.py" line="257"/>
         <source>Drafter</source>
-        <translation>gezeichnet - Name</translation>
+        <translation>gezeichnet</translation>
     </message>
     <message>
         <location filename="../modules/print_layout.py" line="260"/>
         <source>Checker</source>
-        <translation>geprüft - Name</translation>
+        <translation>geprüft</translation>
     </message>
     <message>
         <location filename="../modules/print_layout.py" line="220"/>
