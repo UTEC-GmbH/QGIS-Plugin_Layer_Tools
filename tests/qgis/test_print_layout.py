@@ -225,12 +225,17 @@ def test_scale_title_block_template_scales_group_geometry_and_text(
     assert title_block.sizeWithUnits().width() == pytest.approx(138.75)
     assert title_block.sizeWithUnits().height() == pytest.approx(72.93)
 
+    frame = next(item for item in items if item.id() == "Plankopf")
+    source_label = next(item for item in items if item.id() == "Quelle")
     title_block_bbox = _move_title_block_to_corner(items, 420, 297)
     assert title_block_bbox is not None
     assert title_block_bbox.width() == pytest.approx(138.75)
-    assert title_block_bbox.height() == pytest.approx(72.93)
+    assert title_block_bbox.height() == pytest.approx(69.93)
     assert title_block_bbox.right() == pytest.approx(415)
-    assert title_block_bbox.bottom() == pytest.approx(296)
+    assert title_block_bbox.bottom() == pytest.approx(292)
+    assert frame.sceneBoundingRect().right() == pytest.approx(415)
+    assert frame.sceneBoundingRect().bottom() == pytest.approx(292)
+    assert source_label.sceneBoundingRect().bottom() == pytest.approx(295)
 
     drafter_label = next(
         item

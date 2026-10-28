@@ -752,7 +752,7 @@ def _scale_title_block_template(doc: QDomDocument, scaling: float) -> None:
 def _move_title_block_to_corner(
     new_items: list[QgsLayoutItem], page_width: float, page_height: float
 ) -> QRectF | None:
-    """Move the newly added title block items to the bottom-right corner.
+    """Align the title block frame to the bottom-right corner of the page.
 
     Args:
         new_items: The list of new items added from the template.
@@ -760,10 +760,11 @@ def _move_title_block_to_corner(
         page_height: The height of the page.
 
     Returns:
-        The bounding box of the moved title block, or None if it has no items.
+        The bounding box of the moved title block frame, or None if it has no
+        top-level items.
     """
     margin_right_mm: float = 5.0
-    margin_bottom_mm: float = 1.0
+    margin_bottom_mm: float = 5.0
 
     top_level_items: list[QgsLayoutItem] = [
         item
@@ -774,12 +775,15 @@ def _move_title_block_to_corner(
     if not top_level_items:
         return None
 
-    # Calculate bounding box of the added template items
-    bbox = top_level_items[0].sceneBoundingRect()
-    for item in top_level_items[1:]:
-        bbox = bbox.united(item.sceneBoundingRect())
+    title_block_frame = next(
+        (item for item in new_items if item.id() == "Plankopf"),
+        None,
+    )
+    if title_block_frame is None:
+        raise_runtime_error("Title block frame not found in template")
+    bbox = title_block_frame.sceneBoundingRect()
 
-    # Current bottom-right of the title block group
+    # Align to the title block frame, not the group bounds which include Quelle.
     current_max_x: float = bbox.right()
     current_max_y: float = bbox.bottom()
 
