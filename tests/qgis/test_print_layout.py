@@ -158,8 +158,17 @@ def test_add_legend_uses_map_and_title_block_corner(clean_project) -> None:
     assert legend.frameEnabled()
     assert legend.referencePoint() == QgsLayoutItem.ReferencePoint.LowerRight
     group_style = legend.rstyle(QgsLegendStyle.Group)
+    assert group_style.indent() == 4
     assert group_style.margin(QgsLegendStyle.Top) == 6
     assert group_style.margin(QgsLegendStyle.Bottom) == 1
+    assert (
+        legend.rstyle(QgsLegendStyle.Subgroup).margin(QgsLegendStyle.Bottom)
+        == 1
+    )
+    assert (
+        legend.rstyle(QgsLegendStyle.SymbolLabel).margin(QgsLegendStyle.Left)
+        == 3
+    )
     assert (
         legend.rstyle(QgsLegendStyle.Title)
         .textFormat()

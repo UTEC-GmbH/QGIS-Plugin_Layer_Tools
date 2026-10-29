@@ -819,8 +819,11 @@ def _add_legend_to_layout(
     legend.setLinkedMap(map_item)
     legend.setLegendFilterByMapEnabled(True)
     legend.setFrameEnabled(True)
-    legend.setStyleMargin(QgsLegendStyle.Group, 6)
+    legend.setStyleMargin(QgsLegendStyle.Group, QgsLegendStyle.Top, 6)
+    legend.rstyle(QgsLegendStyle.Group).setIndent(4)
     legend.setStyleMargin(QgsLegendStyle.Group, QgsLegendStyle.Bottom, 1)
+    legend.setStyleMargin(QgsLegendStyle.Subgroup, QgsLegendStyle.Bottom, 1)
+    legend.setStyleMargin(QgsLegendStyle.SymbolLabel, QgsLegendStyle.Left, 3)
 
     title_style = legend.rstyle(QgsLegendStyle.Title)
     title_format = title_style.textFormat()
