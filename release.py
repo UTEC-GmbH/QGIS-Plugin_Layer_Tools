@@ -1,7 +1,7 @@
 """A script to automate the plugin release process.
 
 This script reads the plugin version from metadata.txt, compiles translations,
-packages the plugin, and updates the central public repository's plugins.xml.
+packages the plugin, and updates the separate GitHub Pages release repository.
 
 To use:
 1. Update the 'version' in metadata.txt.
@@ -23,6 +23,7 @@ from typing import TypedDict
 from xml.etree.ElementTree import Element, ElementTree, SubElement
 
 try:
+    # pyrefly: ignore[untyped-import]
     from defusedxml import ElementTree as DefET
 except ImportError:
     print("\nError: The 'defusedxml' library is missing.")
@@ -174,7 +175,8 @@ def _load_or_create_xml_tree(xml_path: Path) -> tuple[ElementTree, Element]:
         logger.info("Reading master repository file: %s", xml_path)
         try:
             tree: ElementTree = DefET.parse(xml_path)
-            root: Element = tree.getroot()  # pyright: ignore[reportAssignmentType]
+            # pyrefly: ignore[bad-assignment]
+            root: Element = tree.getroot()
         except DefET.ParseError as e:
             msg: str = f"Error parsing {xml_path}."
             logger.exception("❌ %s", msg)
@@ -321,6 +323,7 @@ def update_repository_file(metadata: PluginMetadata, output_dir: Path) -> None:
 
     Args:
         metadata: A dictionary containing the plugin's core metadata.
+        output_dir: The local directory where repository files are published.
 
     Raises:
         ReleaseScriptError: If any step in the process fails.
@@ -458,7 +461,7 @@ def _add_directories_to_zip(
 
 def package_plugin(metadata: PluginMetadata, output_dir: Path) -> None:
     # sourcery skip: extract-method
-    """Create a zip archive of the plugin in the local repository directory.
+    """Create a zip archive of the plugin in the release repository directory.
 
     This function orchestrates packaging by collecting files and creating a zip
     archive in the local repository directory.
@@ -517,7 +520,7 @@ def package_plugin(metadata: PluginMetadata, output_dir: Path) -> None:
         )
 
     logger.info(
-        "✅ Successfully created plugin package in shared repository: %s", zip_path
+        "✅ Successfully created plugin package in release repository: %s", zip_path
     )
 
 
@@ -647,8 +650,8 @@ def run_release_process(output_dir: Path) -> None:
 def main() -> int:
     """CLI entry point. Sets up logging and runs the release process.
 
-    The output directory must be the docs folder of the cloned central
-    QGIS-Plugin-Releases repository.
+    The output directory must be the docs folder of the cloned
+    QGIS-Plugin-Releases repository, which is published via GitHub Pages.
 
     Returns:
         An exit code: 0 for success, 1 for failure.
@@ -658,7 +661,7 @@ def main() -> int:
         "--output-dir",
         type=Path,
         default=Path(r"C:\Github_Repos\QGIS-Plugin-Releases\docs"),
-        help="Local docs directory of the central plugin repository",
+        help="Local docs directory of the GitHub Pages release repository",
     )
     args = parser.parse_args()
 
