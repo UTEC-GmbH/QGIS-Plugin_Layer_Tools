@@ -19,8 +19,12 @@ except ImportError:
 
 
 from .modules.constants import ICONS
-from .modules.context import PluginContext
-from .modules.geopackage import copy_layers_to_gpkg
+from .modules.context import ContextRuntimeError, PluginContext
+from .modules.geopackage import (
+    copy_layers_to_gpkg,
+    create_gpkg_layer,
+    delete_gpkg_layers,
+)
 from .modules.layer_location import LocationIndicatorManager
 from .modules.logs_and_errors import (
     CustomRuntimeError,
@@ -242,6 +246,24 @@ class UTECLayerTools(QObject):
         """Add actions for copying layers and preparing shipping packages."""
         # fmt: off
         # ruff: noqa: E501
+        button_new_layer: str = QCoreApplication.translate("Menu_Button", "Create New Layer in Project's GeoPackage")
+        tool_tip_new_layer: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Create New Layer in Project's GeoPackage</b></p><p><span style='font-weight:normal; font-style:normal;'>Creates a new layer in the project's GeoPackage. The new layer is added to the top of the layer tree of the current project.</span></p>")
+        #                                                                <p><b>Neuen Layer im Projekt-GeoPackage Erstellen</b></p><p><span style='font-weight:normal; font-style:normal;'>Erstellt einen neuen Layer im Projekt-GeoPackage. Der neue Layer wird von dort in das Projekt (im Layer-Baum ganz oben) eingefügt.</span></p>
+        # fmt: on
+        new_layer_action = self.add_action(
+            icon=ICONS.main_menu_new_layer,
+            button_text=button_new_layer,
+            callback=self.create_new_gpkg_layer,
+            parent=self.iface.mainWindow(),
+            add_to_menu=False,
+            add_to_toolbar=False,
+            tool_tip=tool_tip_new_layer,
+        )
+        if self.plugin_menu:
+            self.plugin_menu.addAction(new_layer_action)
+
+        # fmt: off
+        # ruff: noqa: E501
         button: str = QCoreApplication.translate("Menu_Button", "Copy Selected Layers to Project's GeoPackage")
         tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Copy Selected Layers to Project's GeoPackage</b></p><p><span style='font-weight:normal; font-style:normal;'>Selected layers and layers in selected groups are copied to the project's GeoPackage and added back from the GeoPackage to the top of the layer tree of the current project. The original layers can be removed from the project if desired.</p><p>The project's GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).</span></p><p><b>CAUTION: This will overwrite layers with the same name and geometry type in the project's GeoPackage!</b></p>")
         #                                                                <p><b>Gewählte Layer in das Projekt-GeoPackage Kopieren</b></p><p><span style='font-weight:normal; font-style:normal;'>Gewählte Layer und Layer in gewählten Gruppen werden in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.</p><p>Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).</span></p><p><b>Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!</b></p>
@@ -275,6 +297,24 @@ class UTECLayerTools(QObject):
         )
         if self.plugin_menu:
             self.plugin_menu.addAction(shipping_action)
+
+        # fmt: off
+        # ruff: noqa: E501
+        button_delete: str = QCoreApplication.translate("Menu_Button", "Delete Selected Layers from the Project and from the Project's GeoPackage")
+        tool_tip_delete: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Delete Selected Layers from the Project and from the Project's GeoPackage</b></p><p><span style='font-weight:normal; font-style:normal;'>!!! CAUTION !!! Selected layers and layers in selected groups are deleted from the project as well as from the project's GeoPackage.</span></p>")
+        #                                                                <p><b>Gewählte Layer aus dem Projekt-GeoPackage Löschen</b></p><p><span style='font-weight:normal; font-style:normal;'>!!! VORSICHT !!!Gewählte Layer und Layer in gewählten Gruppen werden sowohl aus dem Projekt, als auch aus dem Projekt-GeoPackage gelöscht.</span></p>
+        # fmt: on
+        delete_action = self.add_action(
+            icon=ICONS.main_menu_delete_layers,
+            button_text=button_delete,
+            callback=self.delete_selected_gpkg_layers,
+            parent=self.iface.mainWindow(),
+            add_to_menu=False,
+            add_to_toolbar=False,
+            tool_tip=tool_tip_delete,
+        )
+        if self.plugin_menu:
+            self.plugin_menu.addAction(delete_action)
 
     def _add_rename_actions(self) -> None:
         """Add actions for renaming layers and undoing operations."""
@@ -377,6 +417,24 @@ class UTECLayerTools(QObject):
     #
     #
     # --- Plugin actions ---
+
+    def create_new_gpkg_layer(self) -> None:
+        """Create a new layer in the project's GeoPackage."""
+        log_debug("... STARTING PLUGIN RUN ... (create_new_gpkg_layer)", icon="✨✨✨")
+        with contextlib.suppress(
+            CustomUserError, CustomRuntimeError, ContextRuntimeError
+        ):
+            create_gpkg_layer()
+
+    def delete_selected_gpkg_layers(self) -> None:
+        """Delete selected project layers and their GeoPackage tables."""
+        log_debug(
+            "... STARTING PLUGIN RUN ... (delete_selected_gpkg_layers)", icon="✨✨✨"
+        )
+        with contextlib.suppress(
+            CustomUserError, CustomRuntimeError, ContextRuntimeError
+        ):
+            delete_gpkg_layers()
 
     def manage_project_variables(self) -> None:
         """Open the custom project variables editor."""

@@ -314,6 +314,16 @@ class Icons:
         return self._qicon("main_icon.svg")
 
     @property
+    def main_menu_new_layer(self) -> QIcon:
+        """Return the new layer icon, dynamically colored for the current theme."""
+        return self._qicon("main_menu_new.svg", dynamic=True)
+
+    @property
+    def main_menu_delete_layers(self) -> QIcon:
+        """Return the delete layer icon, dynamically colored for the current theme."""
+        return self._qicon("main_menu_delete.svg", dynamic=True)
+
+    @property
     def main_menu_variables(self) -> QIcon:
         """Return the variables icon, dynamically colored for the current theme."""
         return self._qicon("main_menu_variables.svg", dynamic=True)

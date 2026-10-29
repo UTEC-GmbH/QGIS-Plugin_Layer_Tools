@@ -5,16 +5,28 @@ via the ``qgis_app`` fixture (applied automatically at session scope).
 """
 
 from pathlib import Path
+from unittest.mock import patch
 
 from qgis.core import (
+    Qgis,
+    QgsCoordinateReferenceSystem,
     QgsFeature,
     QgsGeometry,
     QgsPointXY,
     QgsProject,
     QgsVectorLayer,
 )
+from qgis.PyQt.QtWidgets import QApplication, QDialogButtonBox, QMessageBox
 
+from modules.context import PluginContext
 from modules.geopackage import (
+    _create_gpkg_vector_layer,
+    _delete_gpkg_tables,
+    _get_gpkg_layer_dependencies,
+    _get_gpkg_layer_table,
+    _NewGpkgLayerDialog,
+    _shared_source_warning_dialog,
+    _validate_gpkg_layer_name,
     add_vector_layer_to_gpkg,
     check_existing_layer,
     create_gpkg,
@@ -243,3 +255,146 @@ class TestAddVectorLayerToGpkg:
             loaded = QgsVectorLayer(uri, "with_features", "ogr")
             assert loaded.isValid()
             assert loaded.featureCount() == 1
+
+
+class TestCreateAndDeleteGpkgLayer:
+    """Tests for creating and deleting empty GeoPackage tables."""
+
+    def test_validates_layer_names(self) -> None:
+        """Names must be non-empty, non-reserved, and unique without case."""
+        assert _validate_gpkg_layer_name("", set())
+        assert _validate_gpkg_layer_name("gpkg_contents", set())
+        assert _validate_gpkg_layer_name("Roads", {"roads"})
+        assert _validate_gpkg_layer_name("roads", set()) is None
+
+    def test_creation_dialog_limits_geometry_choices(self) -> None:
+        """Only point, line, and polygon options are shown."""
+        dialog = _NewGpkgLayerDialog(set())
+
+        assert dialog.geometry_combo.count() == 3
+        assert [
+            dialog.geometry_combo.itemData(index)
+            for index in range(dialog.geometry_combo.count())
+        ] == ["Point", "LineString", "Polygon"]
+        assert dialog.geometry_type() == "Polygon"
+        form = dialog.layout().itemAt(0).layout()
+        assert form.getWidgetPosition(dialog.geometry_combo)[0] < form.getWidgetPosition(
+            dialog.name_edit
+        )[0]
+        assert dialog.warning_label.minimumHeight() >= (
+            dialog.warning_label.fontMetrics().lineSpacing() * 3
+        )
+        assert not dialog.button_box.button(QDialogButtonBox.Ok).isEnabled()
+        dialog.show()
+        QApplication.processEvents()
+        assert dialog.name_edit.hasFocus()
+        dialog.close()
+        dialog.name_edit.setText("new layer")
+        assert dialog.button_box.button(QDialogButtonBox.Ok).isEnabled()
+        dialog.name_edit.setText("gpkg_contents")
+        assert not dialog.button_box.button(QDialogButtonBox.Ok).isEnabled()
+
+    def test_creates_empty_layer_with_project_crs(
+        self, clean_project: QgsProject, tmp_gpkg: Path
+    ) -> None:
+        """The created table has the requested geometry and project CRS."""
+        project = clean_project
+        project.setCrs(QgsCoordinateReferenceSystem("EPSG:25832"))
+        iface = PluginContext.iface()
+
+        with (
+            patch.object(iface, "setActiveLayer") as set_active_layer,
+            patch.object(iface, "layerTreeView") as layer_tree_view,
+        ):
+            layer = _create_gpkg_vector_layer(
+                project, tmp_gpkg, "empty_points", "Point"
+            )
+
+        assert layer.isValid()
+        assert layer.crs() == project.crs()
+        assert layer.geometryType() == Qgis.GeometryType.Point
+        assert layer.fields().names() == ["fid"]
+        assert layer.featureCount() == 0
+        assert layer.isEditable()
+        set_active_layer.assert_called_once_with(layer)
+        layer_tree_view.return_value.setCurrentLayer.assert_called_once_with(layer)
+
+    def test_delete_removes_table(
+        self, clean_project: QgsProject, tmp_gpkg: Path
+    ) -> None:
+        """Deleting a GeoPackage table removes the source table."""
+        layer = _create_gpkg_vector_layer(
+            clean_project, tmp_gpkg, "delete_me", "LineString"
+        )
+        table_name = layer.name()
+
+        _delete_gpkg_tables(tmp_gpkg, {table_name})
+
+        assert table_name not in get_gpkg_layer_names(tmp_gpkg)
+
+    def test_dependencies_identify_shared_sources(
+        self, clean_project: QgsProject, tmp_gpkg: Path
+    ) -> None:
+        """Each project layer using a table is returned as a dependency."""
+        create_gpkg(tmp_gpkg)
+        source_layer = QgsVectorLayer("Point?crs=EPSG:4326", "source", "memory")
+        add_vector_layer_to_gpkg(clean_project, source_layer, tmp_gpkg)
+        first = QgsVectorLayer(
+            f"{tmp_gpkg}|layername=source", "first view", "ogr"
+        )
+        second = QgsVectorLayer(
+            f"{tmp_gpkg}|layername=source", "second view", "ogr"
+        )
+        clean_project.addMapLayer(first)
+        clean_project.addMapLayer(second)
+
+        dependencies = _get_gpkg_layer_dependencies(tmp_gpkg)
+
+        assert {layer.id() for layer in dependencies["source"]} == {
+            first.id(),
+            second.id(),
+        }
+
+    def test_shared_source_warning_uses_available_yes_button_api(self) -> None:
+        """The shared-source prompt labels its Yes button through Qt's API."""
+        dialog = _shared_source_warning_dialog(
+            "• second view (GeoPackage table: source)"
+        )
+
+        assert dialog.button(QMessageBox.Yes).text() == "Delete All Affected Layers"
+        assert "second view" in dialog.text()
+        dialog.close()
+
+    def test_dependencies_identify_gpkg_subdataset_uri(
+        self, clean_project: QgsProject, tmp_gpkg: Path
+    ) -> None:
+        """GPKG:path:table URIs are recognized as project GeoPackage sources."""
+        create_gpkg(tmp_gpkg)
+        source_layer = QgsVectorLayer("Point?crs=EPSG:4326", "source", "memory")
+        add_vector_layer_to_gpkg(clean_project, source_layer, tmp_gpkg)
+        layer = QgsVectorLayer(f"GPKG:{tmp_gpkg}:source", "renamed", "ogr")
+        assert layer.isValid()
+        standard_uri_layer = QgsVectorLayer(
+            f"{tmp_gpkg}|layername=source", "also renamed", "ogr"
+        )
+        assert standard_uri_layer.isValid()
+        clean_project.addMapLayer(layer)
+        clean_project.addMapLayer(standard_uri_layer)
+
+        dependencies = _get_gpkg_layer_dependencies(tmp_gpkg)
+
+        assert {candidate.id() for candidate in dependencies["source"]} == {
+            layer.id(),
+            standard_uri_layer.id(),
+        }
+
+    def test_external_gpkg_source_is_not_a_project_gpkg_table(
+        self, clean_project: QgsProject, tmp_gpkg: Path, tmp_path: Path
+    ) -> None:
+        """A table in another GeoPackage is classified as an external source."""
+        create_gpkg(tmp_gpkg)
+        other_gpkg = tmp_path / "other.gpkg"
+        create_gpkg(other_gpkg)
+        layer = QgsVectorLayer(f"{other_gpkg}|layername=some_table", "external", "ogr")
+
+        assert _get_gpkg_layer_table(layer, tmp_gpkg) is None

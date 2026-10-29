@@ -1,8 +1,13 @@
 [general]
 name=UTEC Layer Tools (dev)
 
-version=1.6
+version=1.7
 changelog=
+    Version 1.7:
+    - ✨ Neue Funktion: Layer direkt im Geopackage erstellen
+    - ✨ Neue Funktion: Layer aus dem Projekt und gleichzeitig aus dem Geopackage löschen
+    - 🤏 Kleine Verbesserungen an der Legende von neu erstellten Layouts
+
     Version 1.6:
     - 👍 Verbesserung: kleine Verbesserungen am pdf-Export
     - 👍 Verbesserung: verbessertes Drucklayout-Menu
