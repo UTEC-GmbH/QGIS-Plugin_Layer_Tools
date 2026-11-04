@@ -8,7 +8,6 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from qgis.core import (
-    Qgis,
     QgsExpressionContextUtils,
     QgsLayoutItem,
     QgsLayoutItemLabel,
@@ -16,14 +15,12 @@ from qgis.core import (
     QgsLayoutItemMap,
     QgsLayoutItemPicture,
     QgsLayoutManager,
-    QgsLayoutObject,
     QgsLayoutPoint,
     QgsLayoutSize,
     QgsLegendStyle,
     QgsPathResolver,
     QgsPrintLayout,
     QgsProject,
-    QgsProperty,
     QgsReadWriteContext,
     QgsUnitTypes,
 )
@@ -46,7 +43,7 @@ from qgis.PyQt.QtXml import QDomDocument
 from .constants import MAP_SCALES, PAPER_SIZES, PaperProps
 from .context import PluginContext
 from .general import enforce_text_edit_limits
-from .logs_and_errors import log_debug, raise_runtime_error
+from .logs_and_errors import log_debug, lvl, raise_runtime_error
 from .project_variables import (
     ProjectVariable,
     get_current_variable_value,
@@ -463,7 +460,7 @@ def _add_map_to_layout(
     iface: QgisInterface = PluginContext.iface()
     canvas: QgsMapCanvas | None = iface.mapCanvas()
     if not canvas:
-        log_debug("No map canvas found. Layout created without map.", Qgis.Warning)
+        log_debug("No map canvas found. Layout created without map.", lvl.Warning)
         return None
 
     map_item = QgsLayoutItemMap(layout)
@@ -515,7 +512,7 @@ def _add_frame_to_layout(layout: QgsPrintLayout, paper_props: PaperProps) -> Non
     if not frame_svg_path.exists():
         log_debug(
             f"Frame SVG not found: {frame_svg_path}. Layout created without frame.",
-            Qgis.Warning,
+            lvl.Warning,
         )
         return
 
@@ -555,7 +552,7 @@ def _auto_dynamic_elements(
     """
     can_link_map: bool = bool(map_item and map_item.id())
     if map_item and not can_link_map:
-        log_debug("Main map has no ID, cannot link template items.", Qgis.Warning)
+        log_debug("Main map has no ID, cannot link template items.", lvl.Warning)
 
     for item in new_items:
         if not (item_id := item.id()):
@@ -635,14 +632,7 @@ def _handle_map_linked_items(
     # Link north arrow
     if item_id == "Nordpfeil" and isinstance(item, QgsLayoutItemPicture):
         item.setLinkedMap(map_item)
-        item.setPictureRotation(0)
         item.setReferencePoint(QgsLayoutItem.ReferencePoint.Middle)
-        item.dataDefinedProperties().setProperty(
-            QgsLayoutObject.ItemRotation,
-            QgsProperty.fromExpression(
-                f"map_get(item_variables('{map_id}'), 'map_rotation')"
-            ),
-        )
 
     # Link scale label
     elif item_id == "Maßstab" and isinstance(item, QgsLayoutItemLabel):
@@ -721,7 +711,10 @@ def _scale_title_block_template(doc: QDomDocument, scaling: float) -> None:
                 "size",
                 f"{float(width) * scaling},{float(height) * scaling},{unit}",
             )
-        elif item_element.attribute("groupUuid") == group_uuid:
+        elif (
+            item_element.attribute("groupUuid") == group_uuid
+            or item_element.attribute("id") == "Nordpfeil"
+        ):
             for attribute in ("position", "positionOnPage"):
                 if not item_element.hasAttribute(attribute):
                     continue
@@ -795,14 +788,27 @@ def _move_title_block_to_corner(
     shift_y: float = target_max_y - current_max_y
 
     # Move all new items
+    reference_offsets = {
+        QgsLayoutItem.ReferencePoint.UpperLeft: (0.0, 0.0),
+        QgsLayoutItem.ReferencePoint.UpperMiddle: (0.5, 0.0),
+        QgsLayoutItem.ReferencePoint.UpperRight: (1.0, 0.0),
+        QgsLayoutItem.ReferencePoint.MiddleLeft: (0.0, 0.5),
+        QgsLayoutItem.ReferencePoint.Middle: (0.5, 0.5),
+        QgsLayoutItem.ReferencePoint.MiddleRight: (1.0, 0.5),
+        QgsLayoutItem.ReferencePoint.LowerLeft: (0.0, 1.0),
+        QgsLayoutItem.ReferencePoint.LowerMiddle: (0.5, 1.0),
+        QgsLayoutItem.ReferencePoint.LowerRight: (1.0, 1.0),
+    }
     for item in top_level_items:
         current_scene_pos = item.pos()
+        reference_x, reference_y = reference_offsets[item.referencePoint()]
+        item_size = item.sizeWithUnits()
         new_pos = QgsLayoutPoint(
-            current_scene_pos.x() + shift_x,
-            current_scene_pos.y() + shift_y,
+            current_scene_pos.x() + shift_x + item_size.width() * reference_x,
+            current_scene_pos.y() + shift_y + item_size.height() * reference_y,
             QgsUnitTypes.LayoutMillimeters,
         )
-        item.attemptMove(new_pos)
+        item.attemptMove(new_pos, True)
 
     return bbox.translated(shift_x, shift_y)
 
@@ -819,11 +825,13 @@ def _add_legend_to_layout(
     legend.setLinkedMap(map_item)
     legend.setLegendFilterByMapEnabled(True)
     legend.setFrameEnabled(True)
-    legend.setStyleMargin(QgsLegendStyle.Group, QgsLegendStyle.Top, 6)
     legend.rstyle(QgsLegendStyle.Group).setIndent(4)
+    legend.rstyle(QgsLegendStyle.Subgroup).setIndent(4)
+    legend.setStyleMargin(QgsLegendStyle.Group, QgsLegendStyle.Top, 6)
     legend.setStyleMargin(QgsLegendStyle.Group, QgsLegendStyle.Bottom, 1)
     legend.setStyleMargin(QgsLegendStyle.Subgroup, QgsLegendStyle.Bottom, 1)
     legend.setStyleMargin(QgsLegendStyle.SymbolLabel, QgsLegendStyle.Left, 3)
+    legend.setSymbolWidth(12)
 
     title_style = legend.rstyle(QgsLegendStyle.Title)
     title_format = title_style.textFormat()
@@ -874,7 +882,7 @@ def create_print_layout() -> None:
 
     dialog = NewLayoutDialog(project, suggested_name)
     if not dialog.exec_():
-        log_debug("Layout creation cancelled by user.", Qgis.Info)
+        log_debug("Layout creation cancelled by user.", lvl.Info)
         return
 
     add_legend: bool = dialog.get_add_legend()
@@ -939,7 +947,7 @@ def create_print_layout() -> None:
         else:
             log_debug(
                 "Cannot add legend without a main map and title block.",
-                Qgis.Warning,
+                lvl.Warning,
             )
 
     # 6. Set Dynamic Variables (Layout Variables)

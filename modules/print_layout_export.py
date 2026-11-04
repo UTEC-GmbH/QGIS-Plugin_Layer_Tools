@@ -6,7 +6,6 @@ This module handles the batch export of QGIS print layouts to PDF files.
 from pathlib import Path
 
 from qgis.core import (
-    Qgis,
     QgsLayoutExporter,
     QgsPrintLayout,
     QgsProject,
@@ -33,7 +32,7 @@ from qgis.PyQt.QtWidgets import (
 
 from .constants import ActionResults, Issue
 from .context import PluginContext
-from .logs_and_errors import log_debug, raise_runtime_error
+from .logs_and_errors import log_debug, lvl, raise_runtime_error
 
 
 class LayoutSelectionDialog(QDialog):
@@ -330,7 +329,7 @@ def _archive_existing_pdf(pdf_path: Path) -> None:
     try:
         pdf_path.rename(target_file_path)
     except OSError as error:
-        log_debug(f"Could not archive existing file: {error}", Qgis.Warning)
+        log_debug(f"Could not archive existing file: {error}", lvl.Warning)
 
 
 def export_layouts_to_pdf() -> ActionResults[None] | None:
@@ -368,7 +367,7 @@ def export_layouts_to_pdf() -> ActionResults[None] | None:
     progress_bar.setValue(0)
 
     if message_bar := PluginContext.message_bar():
-        message_bar.pushWidget(progress_bar, Qgis.Info)
+        message_bar.pushWidget(progress_bar, lvl.Info)
 
     try:
         for index, layout in enumerate(selected_layouts):
@@ -388,16 +387,14 @@ def export_layouts_to_pdf() -> ActionResults[None] | None:
                 and status == QgsLayoutExporter.ExportResult.Success
             ) or (not PluginContext.is_qgis4() and status == QgsLayoutExporter.Success):
                 results.successes.append(layout_name)
-                log_debug(
-                    f"Exported layout '{layout_name}' to {pdf_path}", Qgis.Success
-                )
+                log_debug(f"Exported layout '{layout_name}' to {pdf_path}", lvl.Success)
             else:
                 results.errors.append(
                     Issue(layout_name, f"Export failed with error code: {status}")
                 )
                 log_debug(
                     f"Failed to export layout '{layout_name}'. Error code: {status}",
-                    Qgis.Warning,
+                    lvl.Warning,
                 )
 
             progress_bar.setValue(index + 1)

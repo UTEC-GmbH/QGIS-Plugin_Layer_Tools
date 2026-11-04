@@ -1,8 +1,13 @@
 [general]
 name=UTEC Layer Tools (dev)
 
-version=1.7
+version=1.8
 changelog=
+
+    Version 1.8:
+    - 🐞 Bugfix: Nordpfeil wird nach Drehung der Karte nicht mehr ungewollt verschoben
+    - 🤏 Kleine Verbesserungen an der Legende von neu erstellten Layouts
+    
     Version 1.7:
     - ✨ Neue Funktion: Layer direkt im Geopackage erstellen
     - ✨ Neue Funktion: Layer aus dem Projekt und gleichzeitig aus dem Geopackage löschen
@@ -24,7 +29,7 @@ changelog=
 
     Version 1.4:
     - ✨ Neue Funktion: Projektvariablen → Hiermit können Metadaten wie "Bauherr" oder "Projektname" definiert werden. Diese Daten können z.B. im Plankopf automatisch eingetragen werden.
-     - 👍 Verbesserung: Bei der Erstellung eines Drucklayouts können jetzt Angaben zu Bauherr etc. eingegeben werden. 
+    - 👍 Verbesserung: Bei der Erstellung eines Drucklayouts können jetzt Angaben zu Bauherr etc. eingegeben werden. 
         - Diese Angaben werden dann in den Projektvariablen gespeichert und auf alle Layouts angewendet. 
         - Die Angabe "Planart" ist für jedes Layout individuell.
         - Einige Angaben, wie Projektnummer, werden falls möglich aus dem Dateinamen ermittelt

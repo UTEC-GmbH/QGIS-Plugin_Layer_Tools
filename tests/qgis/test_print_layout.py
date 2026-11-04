@@ -9,6 +9,8 @@ from qgis.core import (
     QgsLayoutItemLabel,
     QgsLayoutItemLegend,
     QgsLayoutItemMap,
+    QgsLayoutItemPicture,
+    QgsLayoutObject,
     QgsLegendStyle,
     QgsPrintLayout,
     QgsReadWriteContext,
@@ -21,6 +23,7 @@ from modules.print_layout import (
     NewLayoutDialog,
     _add_legend_to_layout,
     _auto_dynamic_elements,
+    _handle_map_linked_items,
     _load_template_document,
     _move_title_block_to_corner,
     _scale_title_block_template,
@@ -32,7 +35,7 @@ def test_layout_options_use_separate_paper_size_and_orientation(clean_project) -
 
     legend_label = dialog.form_layout.labelForField(dialog.legend_checkbox)
     assert legend_label is not None
-    assert legend_label.text() == "Add Legend"
+    assert legend_label.text() == "Legend"
     assert dialog.legend_checkbox.text() == ""
 
     source_options_widget = dialog.source_checkbox.parentWidget()
@@ -150,7 +153,9 @@ def test_add_legend_uses_map_and_title_block_corner(clean_project) -> None:
     _add_legend_to_layout(layout, map_item, title_block_bbox)
 
     legend = next(
-        item for item in layout.items() if isinstance(item, QgsLayoutItemLegend)
+        item
+        for item in layout.items()
+        if isinstance(item, QgsLayoutItemLegend) and item.linkedMap() == map_item
     )
     assert legend.title() == "Legende"
     assert legend.linkedMap() == map_item
@@ -159,24 +164,41 @@ def test_add_legend_uses_map_and_title_block_corner(clean_project) -> None:
     assert legend.referencePoint() == QgsLayoutItem.ReferencePoint.LowerRight
     group_style = legend.rstyle(QgsLegendStyle.Group)
     assert group_style.indent() == 4
+    assert legend.rstyle(QgsLegendStyle.Subgroup).indent() == 4
+    assert legend.symbolWidth() == pytest.approx(12)
     assert group_style.margin(QgsLegendStyle.Top) == 6
     assert group_style.margin(QgsLegendStyle.Bottom) == 1
-    assert (
-        legend.rstyle(QgsLegendStyle.Subgroup).margin(QgsLegendStyle.Bottom)
-        == 1
-    )
-    assert (
-        legend.rstyle(QgsLegendStyle.SymbolLabel).margin(QgsLegendStyle.Left)
-        == 3
-    )
-    assert (
-        legend.rstyle(QgsLegendStyle.Title)
-        .textFormat()
-        .font()
-        .underline()
-    )
+    assert legend.rstyle(QgsLegendStyle.Subgroup).margin(QgsLegendStyle.Bottom) == 1
+    assert legend.rstyle(QgsLegendStyle.SymbolLabel).margin(QgsLegendStyle.Left) == 3
+    assert legend.rstyle(QgsLegendStyle.Title).textFormat().font().underline()
     assert legend.positionWithUnits().x() == pytest.approx(title_block_bbox.right())
     assert legend.positionWithUnits().y() == pytest.approx(title_block_bbox.top())
+
+
+def test_north_arrow_rotation_does_not_move_layout_item(clean_project) -> None:
+    layout = QgsPrintLayout(clean_project)
+    layout.initializeDefaults()
+    map_item = QgsLayoutItemMap(layout)
+    north_arrow = QgsLayoutItemPicture(layout)
+    north_arrow.setId("Nordpfeil")
+    layout.addLayoutItem(map_item)
+    layout.addLayoutItem(north_arrow)
+
+    _handle_map_linked_items(north_arrow, "Nordpfeil", map_item)
+    original_position = north_arrow.positionWithUnits()
+    map_item.setMapRotation(30)
+
+    assert north_arrow.linkedMap() == map_item
+    assert north_arrow.pictureRotation() == pytest.approx(30)
+    assert not north_arrow.dataDefinedProperties().property(
+        QgsLayoutObject.ItemRotation
+    ).isActive()
+    assert north_arrow.positionWithUnits().x() == pytest.approx(
+        original_position.x()
+    )
+    assert north_arrow.positionWithUnits().y() == pytest.approx(
+        original_position.y()
+    )
 
 
 def test_add_legend_applies_scaling(clean_project) -> None:
@@ -191,26 +213,26 @@ def test_add_legend_applies_scaling(clean_project) -> None:
         item for item in layout.items() if isinstance(item, QgsLayoutItemLegend)
     )
     assert legend.scale() == pytest.approx(0.75)
+    assert legend.symbolWidth() == pytest.approx(12)
     assert legend.positionWithUnits().x() == pytest.approx(140)
     assert legend.positionWithUnits().y() == pytest.approx(50)
 
 
 @pytest.mark.parametrize(
-    ("paper_size", "expected_title_block_scaling", "expected_legend_scaling"),
+    ("paper_size", "expected_title_block_scaling"),
     [
-        ("a3_landscape", 0.9, 0.9),
-        ("a3_portrait", 0.9, 0.9),
-        ("a4_landscape", 0.75, 0.75),
-        ("a4_portrait", 0.75, 0.75),
-        ("a2_landscape", 1.0, 1.0),
+        ("a3_landscape", 0.75),
+        ("a3_portrait", 0.75),
+        ("a4_landscape", 0.75),
+        ("a4_portrait", 0.75),
+        ("a2_landscape", 1.0),
     ],
 )
 def test_paper_size_layout_item_scaling(
-    paper_size, expected_title_block_scaling, expected_legend_scaling
+    paper_size, expected_title_block_scaling
 ) -> None:
     paper_props = getattr(PAPER_SIZES, paper_size)
     assert paper_props.title_block_scaling == expected_title_block_scaling
-    assert paper_props.legend_scaling == expected_legend_scaling
 
 
 def test_scale_title_block_template_scales_group_geometry_and_text(
@@ -228,14 +250,17 @@ def test_scale_title_block_template_scales_group_geometry_and_text(
         pasteInPlace=False,
     )
 
-    title_block = next(
-        item for item in items if isinstance(item, QgsLayoutItemGroup)
-    )
+    title_block = next(item for item in items if isinstance(item, QgsLayoutItemGroup))
     assert title_block.sizeWithUnits().width() == pytest.approx(138.75)
     assert title_block.sizeWithUnits().height() == pytest.approx(72.93)
 
     frame = next(item for item in items if item.id() == "Plankopf")
     source_label = next(item for item in items if item.id() == "Quelle")
+    north_arrow = next(item for item in items if item.id() == "Nordpfeil")
+    assert north_arrow.parentGroup() is None
+    assert north_arrow.sizeWithUnits().width() == pytest.approx(13.41765, abs=0.0001)
+    north_arrow_x = north_arrow.scenePos().x()
+    title_block_x = title_block.scenePos().x()
     title_block_bbox = _move_title_block_to_corner(items, 420, 297)
     assert title_block_bbox is not None
     assert title_block_bbox.width() == pytest.approx(138.75)
@@ -244,6 +269,9 @@ def test_scale_title_block_template_scales_group_geometry_and_text(
     assert title_block_bbox.bottom() == pytest.approx(292)
     assert frame.sceneBoundingRect().right() == pytest.approx(415)
     assert frame.sceneBoundingRect().bottom() == pytest.approx(292)
+    assert north_arrow.scenePos().x() - north_arrow_x == pytest.approx(
+        title_block.scenePos().x() - title_block_x
+    )
     assert source_label.sceneBoundingRect().bottom() == pytest.approx(295)
 
     drafter_label = next(

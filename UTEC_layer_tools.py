@@ -6,7 +6,6 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from qgis.core import Qgis, QgsProject
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QSettings, QTranslator
 from qgis.PyQt.QtGui import QIcon
@@ -31,6 +30,7 @@ from .modules.logs_and_errors import (
     CustomUserError,
     log_debug,
     log_summary_message,
+    lvl,
     raise_runtime_error,
 )
 from .modules.print_layout import create_print_layout
@@ -40,6 +40,7 @@ from .modules.rename import Rename, rename_layers, undo_rename_layers
 from .modules.shipping import prepare_layers_for_shipping
 
 if TYPE_CHECKING:
+    from qgis.core import QgsProject
     from qgis.gui import QgsMessageBar
 
     from modules.constants import ActionResults
@@ -76,7 +77,7 @@ class UTECLayerTools(QObject):
             try:
                 self.plugin_name = config.get("general", "name")
             except (configparser.NoSectionError, configparser.NoOptionError):
-                log_debug("Could not read name from metadata.txt", Qgis.Warning)
+                log_debug("Could not read name from metadata.txt", lvl.Warning)
 
         self.menu: str = self.plugin_name
 
@@ -85,7 +86,7 @@ class UTECLayerTools(QObject):
         translator_path: Path = self.plugin_dir / "i18n" / f"{locale}.qm"
 
         if not translator_path.exists():
-            log_debug(f"Translator not found in: {translator_path}", Qgis.Warning)
+            log_debug(f"Translator not found in: {translator_path}", lvl.Warning)
         else:
             self.translator = QTranslator()
             if self.translator is not None and self.translator.load(
@@ -93,7 +94,7 @@ class UTECLayerTools(QObject):
             ):
                 QCoreApplication.installTranslator(self.translator)
             else:
-                log_debug("Translator could not be installed.", Qgis.Warning)
+                log_debug("Translator could not be installed.", lvl.Warning)
 
     def add_action(  # noqa: PLR0913 # pylint: disable=too-many-arguments,too-many-positional-arguments
         self,

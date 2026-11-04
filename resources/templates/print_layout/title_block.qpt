@@ -100,7 +100,6 @@
   <ComposerItemGroupElement uuid="{55c8ef1e-1336-4643-b541-0c9189c29146}"/>
   <ComposerItemGroupElement uuid="{fec77549-4486-4ed3-ad75-551facecd127}"/>
   <ComposerItemGroupElement uuid="{e127138e-b9cc-40f0-ae28-1029e615f8eb}"/>
-  <ComposerItemGroupElement uuid="{a5941abe-25a8-4c3a-bbfc-bdd01c4c8398}"/>
   <ComposerItemGroupElement uuid="{da956ed8-15b6-47e7-8ece-0e30c7ca78fb}"/>
   <ComposerItemGroupElement uuid="{c2079f2f-069b-4b3e-880b-bed049bd89c1}"/>
   <ComposerItemGroupElement uuid="{dc3af174-02b3-4042-9f92-d75d2f442f9c}"/>
@@ -1432,7 +1431,7 @@
    </dd_properties>
   </text-style>
  </LayoutItem>
- <LayoutItem referencePoint="4" northMode="0" blendMode="0" mapUuid="" id="Nordpfeil" templateUuid="{a5941abe-25a8-4c3a-bbfc-bdd01c4c8398}" excludeFromExports="0" itemRotation="0" position="264.145,147,mm" svgFillColor="255,255,255,255,rgb:1,1,1,1" northOffset="0" pictureRotation="0" frameJoinStyle="miter" outlineWidthM="0.3,mm" groupUuid="{e9c3c495-299d-465c-b318-5e5b93a23676}" background="false" file="./Nordpfeil.svg" frame="false" svgBorderColor="0,0,0,255,rgb:0,0,0,1" zValue="2" size="17.8902,18,mm" positionOnPage="264.145,147,mm" positionLock="false" anchorPoint="4" opacity="1" uuid="{a5941abe-25a8-4c3a-bbfc-bdd01c4c8398}" resizeMode="3" pictureHeight="18" mode="0" visibility="1" svgBorderWidth="0.2" type="65640" pictureWidth="17.8902">
+ <LayoutItem referencePoint="4" northMode="0" blendMode="0" mapUuid="" id="Nordpfeil" templateUuid="{a5941abe-25a8-4c3a-bbfc-bdd01c4c8398}" excludeFromExports="0" itemRotation="0" position="264.145,147,mm" svgFillColor="255,255,255,255,rgb:1,1,1,1" northOffset="0" pictureRotation="0" frameJoinStyle="miter" outlineWidthM="0.3,mm" groupUuid="" background="false" file="./Nordpfeil.svg" frame="false" svgBorderColor="0,0,0,255,rgb:0,0,0,1" zValue="2" size="17.8902,18,mm" positionOnPage="264.145,147,mm" positionLock="false" anchorPoint="4" opacity="1" uuid="{a5941abe-25a8-4c3a-bbfc-bdd01c4c8398}" resizeMode="3" pictureHeight="18" mode="0" visibility="1" svgBorderWidth="0.2" type="65640" pictureWidth="17.8902">
   <FrameColor green="0" red="0" alpha="255" blue="0"/>
   <BackgroundColor green="255" red="255" alpha="255" blue="255"/>
   <LayoutObject>
