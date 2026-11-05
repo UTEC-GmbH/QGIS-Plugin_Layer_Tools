@@ -23,6 +23,7 @@ from .modules.geopackage import (
     copy_layers_to_gpkg,
     create_gpkg_layer,
     delete_gpkg_layers,
+    manage_gpkg_tables,
 )
 from .modules.layer_location import LocationIndicatorManager
 from .modules.logs_and_errors import (
@@ -148,16 +149,16 @@ class UTECLayerTools(QObject):
         """Create the menu entries and toolbar icons for the plugin."""
         self._setup_main_menu()
 
-        # -- Data Management --
-        self._add_geopackage_actions()
-
-        if self.plugin_menu:
-            self.plugin_menu.addSeparator()
-
         # -- Project Metadata & Layouts --
         self._add_project_variables_action()
         self._add_print_layout_action()
         self._add_export_layouts_action()
+
+        if self.plugin_menu:
+            self.plugin_menu.addSeparator()
+
+        # -- Data Management --
+        self._add_geopackage_actions()
 
         if self.plugin_menu:
             self.plugin_menu.addSeparator()
@@ -262,6 +263,19 @@ class UTECLayerTools(QObject):
         )
         if self.plugin_menu:
             self.plugin_menu.addAction(new_layer_action)
+
+        manage_gpkg_action = self.add_action(
+            icon=ICONS.main_menu_manage_geopackage,
+            button_text=QCoreApplication.translate(
+                "Menu_Button", "Manage Project GeoPackage"
+            ),
+            callback=self.manage_gpkg_tables,
+            parent=self.iface.mainWindow(),
+            add_to_menu=False,
+            add_to_toolbar=False,
+        )
+        if self.plugin_menu:
+            self.plugin_menu.addAction(manage_gpkg_action)
 
         # fmt: off
         # ruff: noqa: E501
@@ -436,6 +450,14 @@ class UTECLayerTools(QObject):
             CustomUserError, CustomRuntimeError, ContextRuntimeError
         ):
             delete_gpkg_layers()
+
+    def manage_gpkg_tables(self) -> None:
+        """Open the project's GeoPackage table manager."""
+        log_debug("... STARTING PLUGIN RUN ... (manage_gpkg_tables)", icon="✨✨✨")
+        with contextlib.suppress(
+            CustomUserError, CustomRuntimeError, ContextRuntimeError
+        ):
+            manage_gpkg_tables()
 
     def manage_project_variables(self) -> None:
         """Open the custom project variables editor."""

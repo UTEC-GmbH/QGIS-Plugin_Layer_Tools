@@ -4,6 +4,7 @@ These tests require a running ``QgsApplication`` provided by ``pytest-qgis``
 via the ``qgis_app`` fixture (applied automatically at session scope).
 """
 
+import sqlite3
 from pathlib import Path
 from unittest.mock import patch
 
@@ -16,7 +17,15 @@ from qgis.core import (
     QgsProject,
     QgsVectorLayer,
 )
-from qgis.PyQt.QtWidgets import QApplication, QDialogButtonBox, QMessageBox
+from qgis.PyQt.QtCore import Qt
+from qgis.PyQt.QtWidgets import (
+    QApplication,
+    QCheckBox,
+    QDialogButtonBox,
+    QInputDialog,
+    QMessageBox,
+    QToolButton,
+)
 
 from modules.context import PluginContext
 from modules.geopackage import (
@@ -24,7 +33,9 @@ from modules.geopackage import (
     _delete_gpkg_tables,
     _get_gpkg_layer_dependencies,
     _get_gpkg_layer_table,
+    _GpkgManagerDialog,
     _NewGpkgLayerDialog,
+    _rename_gpkg_table,
     _shared_source_warning_dialog,
     _validate_gpkg_layer_name,
     add_vector_layer_to_gpkg,
@@ -398,3 +409,130 @@ class TestCreateAndDeleteGpkgLayer:
         layer = QgsVectorLayer(f"{other_gpkg}|layername=some_table", "external", "ogr")
 
         assert _get_gpkg_layer_table(layer, tmp_gpkg) is None
+
+    def test_manager_renames_table_and_reconnects_project_layers(
+        self, clean_project: QgsProject, tmp_gpkg: Path
+    ) -> None:
+        """Renaming a table updates catalog entries and loaded layer sources."""
+        create_gpkg(tmp_gpkg)
+        source_layer = QgsVectorLayer("Point?crs=EPSG:4326", "source", "memory")
+        add_vector_layer_to_gpkg(clean_project, source_layer, tmp_gpkg)
+        dependent = QgsVectorLayer(
+            f"{tmp_gpkg}|layername=source", "dependent", "ogr"
+        )
+        clean_project.addMapLayer(dependent)
+        dialog = _GpkgManagerDialog(tmp_gpkg)
+
+        with patch.object(QInputDialog, "getText", return_value=("renamed", True)):
+            dialog._rename_table("source")
+
+        assert dependent.isValid()
+        assert dependent.source().endswith("|layername=renamed")
+        with sqlite3.connect(tmp_gpkg) as conn:
+            assert conn.execute(
+                "SELECT table_name FROM gpkg_contents"
+            ).fetchone()[0] == "renamed"
+            assert conn.execute(
+                "SELECT table_name FROM gpkg_geometry_columns"
+            ).fetchone()[0] == "renamed"
+        dialog.close()
+
+    def test_manager_lists_usage_on_demand_and_marks_unused_tables(
+        self, clean_project: QgsProject, tmp_gpkg: Path
+    ) -> None:
+        """Layer names are populated only when expanded; unused tables stand out."""
+        create_gpkg(tmp_gpkg)
+        source_layer = QgsVectorLayer("Point?crs=EPSG:4326", "used", "memory")
+        add_vector_layer_to_gpkg(clean_project, source_layer, tmp_gpkg)
+        unused_layer = QgsVectorLayer("Point?crs=EPSG:4326", "unused", "memory")
+        add_vector_layer_to_gpkg(clean_project, unused_layer, tmp_gpkg)
+        dependent = QgsVectorLayer(f"{tmp_gpkg}|layername=used", "project view", "ogr")
+        clean_project.addMapLayer(dependent)
+        dialog = _GpkgManagerDialog(tmp_gpkg)
+        rows = {
+            dialog.tree.topLevelItem(index).data(
+                0, Qt.ItemDataRole.UserRole
+            ): dialog.tree.topLevelItem(index)
+            for index in range(dialog.tree.topLevelItemCount())
+        }
+
+        assert dialog.gpkg_name_label.text() == tmp_gpkg.name
+        assert dialog.gpkg_name_label.toolTip() == str(tmp_gpkg)
+        assert rows["used"].childCount() == 1
+        assert "(Unused)" in rows["unused"].text(0)
+        assert dialog.tree.isHeaderHidden()
+        actions = dialog.tree.itemWidget(rows["used"], 1)
+        assert actions is not None
+        assert len(actions.findChildren(QToolButton)) == 2
+        dialog.tree.expandItem(rows["used"])
+        QApplication.processEvents()
+        assert [
+            rows["used"].child(index).text(0)
+            for index in range(rows["used"].childCount())
+        ] == ["project view"]
+        dialog.close()
+
+    def test_rename_table_updates_gpkg_metadata_catalogs(
+        self, clean_project: QgsProject, tmp_gpkg: Path
+    ) -> None:
+        """Catalog rows referencing a renamed table follow the new table name."""
+        create_gpkg(tmp_gpkg)
+        source_layer = QgsVectorLayer("Point?crs=EPSG:4326", "metadata", "memory")
+        add_vector_layer_to_gpkg(clean_project, source_layer, tmp_gpkg)
+
+        _rename_gpkg_table(tmp_gpkg, "metadata", "renamed_metadata")
+
+        assert "renamed_metadata" in get_gpkg_layer_names(tmp_gpkg)
+        with sqlite3.connect(tmp_gpkg) as conn:
+            assert conn.execute(
+                "SELECT table_name FROM gpkg_geometry_columns"
+            ).fetchone()[0] == "renamed_metadata"
+
+    def test_delete_used_table_warning_lists_dependent_layers(
+        self, clean_project: QgsProject, tmp_gpkg: Path
+    ) -> None:
+        """Deleting a used table warns with the names of layers it affects."""
+        create_gpkg(tmp_gpkg)
+        source_layer = QgsVectorLayer("Point?crs=EPSG:4326", "source", "memory")
+        add_vector_layer_to_gpkg(clean_project, source_layer, tmp_gpkg)
+        dependent = QgsVectorLayer(
+            f"{tmp_gpkg}|layername=source", "affected view", "ogr"
+        )
+        clean_project.addMapLayer(dependent)
+        dialog = _GpkgManagerDialog(tmp_gpkg)
+        warning, checkbox = dialog._used_table_warning([dependent])
+
+        assert "affected view" in warning.text()
+        assert checkbox.text() == "Also remove these layers from the project"
+        assert not checkbox.isChecked()
+        with patch.object(QMessageBox, "exec", return_value=QMessageBox.Cancel):
+            dialog._delete_table("source")
+
+        assert "source" in get_gpkg_layer_names(tmp_gpkg)
+        warning.close()
+        dialog.close()
+
+    def test_delete_used_table_can_remove_affected_project_layers(
+        self, clean_project: QgsProject, tmp_gpkg: Path
+    ) -> None:
+        """Confirming the checkbox removes all dependent layers with the table."""
+        create_gpkg(tmp_gpkg)
+        source_layer = QgsVectorLayer("Point?crs=EPSG:4326", "source", "memory")
+        add_vector_layer_to_gpkg(clean_project, source_layer, tmp_gpkg)
+        first = QgsVectorLayer(f"{tmp_gpkg}|layername=source", "first view", "ogr")
+        second = QgsVectorLayer(f"{tmp_gpkg}|layername=source", "second view", "ogr")
+        first_id = first.id()
+        second_id = second.id()
+        clean_project.addMapLayer(first)
+        clean_project.addMapLayer(second)
+        dialog = _GpkgManagerDialog(tmp_gpkg)
+
+        with patch.object(
+            QMessageBox, "exec", return_value=QMessageBox.Yes
+        ), patch.object(QCheckBox, "isChecked", return_value=True):
+            dialog._delete_table("source")
+
+        assert first_id not in clean_project.mapLayers()
+        assert second_id not in clean_project.mapLayers()
+        assert "source" not in get_gpkg_layer_names(tmp_gpkg)
+        dialog.close()
