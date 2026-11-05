@@ -64,9 +64,9 @@ def get_selected_layers() -> list[QgsMapLayer]:
             for layer_node in node.findLayers():
                 if layer := layer_node.layer():
                     selected_layers.add(layer)
-        elif isinstance(node, QgsLayerTreeLayer) and node.layer():
+        elif isinstance(node, QgsLayerTreeLayer) and (single_layer := node.layer()):
             # Add the single selected layer.
-            selected_layers.add(node.layer())
+            selected_layers.add(single_layer)
         else:
             log_debug(f"Unexpected node type in selection: {type(node)}")
 

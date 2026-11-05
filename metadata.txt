@@ -6,7 +6,7 @@ changelog=
 
     Version 1.8:
     - 🐞 Bugfix: Nordpfeil wird nach Drehung der Karte nicht mehr ungewollt verschoben
-    - 🤏 Kleine Verbesserungen an der Legende von neu erstellten Layouts
+    - 🤏 diverse kleine Verbesserungen an Drucklayouts
     
     Version 1.7:
     - ✨ Neue Funktion: Layer direkt im Geopackage erstellen

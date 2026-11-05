@@ -244,8 +244,15 @@ class NewLayoutDialog(QDialog):
         separator.setFixedHeight(15)
         self.form_layout.addRow(separator)
 
+        project_scope = QgsExpressionContextUtils.projectScope(self.project)
+        project_author = (
+            project_scope.variable("project_author") if project_scope else None
+        )
+        drafter_initials = "".join(
+            name[0] for name in str(project_author or "").split()
+        ).upper()
         self.drafter_edit, self.drafter_date_edit = self._add_person_inputs(
-            "XY",
+            drafter_initials,
             datetime.now().astimezone().strftime("%d.%m.%Y"),
             QCoreApplication.translate("PrintLayout", "Drafter"),
         )
@@ -273,7 +280,7 @@ class NewLayoutDialog(QDialog):
             The initials and date input widgets.
         """
         initials_edit = QLineEdit(initials)
-        initials_edit.setMaxLength(6)
+        initials_edit.setMaxLength(10)
 
         date_edit = QLineEdit(date)
         date_edit.setMaxLength(10)
@@ -313,7 +320,8 @@ class NewLayoutDialog(QDialog):
         text_edit.setAcceptRichText(False)
         text_edit.setTabChangesFocus(True)
         text_edit.setPlainText(current_value)
-        text_edit.setMaximumHeight(50)
+        text_edit.setMinimumHeight(60)
+        text_edit.setMaximumHeight(60)
 
         if (max_lines := variable.max_lines) is not None and (
             max_chars := variable.max_chars_per_line
@@ -329,7 +337,7 @@ class NewLayoutDialog(QDialog):
     def _setup_dialog_buttons(self) -> None:
         """Add standard Ok/Cancel buttons to the dialog."""
         self.button_box = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
         )
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
@@ -382,7 +390,7 @@ class NewLayoutDialog(QDialog):
         """Save entered project variables to the project."""
         for variable in self.variables:
             widget: QLineEdit | QTextEdit = self.variable_edits[variable.id]
-            value: str = (
+            value = (
                 widget.text().strip()
                 if isinstance(widget, QLineEdit)
                 else widget.toPlainText().strip()

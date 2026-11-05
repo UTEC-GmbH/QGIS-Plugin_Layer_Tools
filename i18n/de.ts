@@ -460,6 +460,11 @@ Do you want to continue?</source>
         <source>Project Name</source>
         <translation>Projekt</translation>
     </message>
+    <message>
+        <location filename="../modules/project_variables.py" line="86"/>
+        <source>Drafter</source>
+        <translation>Zeichner</translation>
+    </message>
 </context>
 <context>
     <name>RenameDialog</name>

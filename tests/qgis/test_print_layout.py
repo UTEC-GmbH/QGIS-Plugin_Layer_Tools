@@ -4,6 +4,7 @@ from datetime import datetime
 
 import pytest
 from qgis.core import (
+    QgsExpressionContextUtils,
     QgsLayoutItem,
     QgsLayoutItemGroup,
     QgsLayoutItemLabel,
@@ -15,7 +16,7 @@ from qgis.core import (
     QgsPrintLayout,
     QgsReadWriteContext,
 )
-from qgis.PyQt.QtCore import QCoreApplication, QRectF
+from qgis.PyQt.QtCore import QCoreApplication, QPointF, QRectF
 
 from modules.constants import PAPER_SIZES
 from modules.print_layout import (
@@ -86,9 +87,13 @@ def test_layout_options_use_separate_paper_size_and_orientation(clean_project) -
 
 
 def test_layout_dialog_initializes_drafter_and_checker_dates(clean_project) -> None:
+    metadata = clean_project.metadata()
+    metadata.setAuthor("")
+    clean_project.setMetadata(metadata)
+
     dialog = NewLayoutDialog(clean_project, "Test Layout")
 
-    assert dialog.get_drafter_initials() == "XY"
+    assert dialog.get_drafter_initials() == ""
     assert dialog.get_drafter_date() == datetime.now().astimezone().strftime("%d.%m.%Y")
     assert dialog.get_checker_initials() == ""
     assert dialog.get_checker_date() == ""
@@ -113,6 +118,33 @@ def test_layout_dialog_initializes_drafter_and_checker_dates(clean_project) -> N
     assert dialog.get_drafter_date() == "01.02.2025"
     assert dialog.get_checker_initials() == "CD"
     assert dialog.get_checker_date() == "03.04.2025"
+
+
+def test_layout_dialog_uses_project_author_initials(clean_project) -> None:
+    metadata = clean_project.metadata()
+    metadata.setAuthor("  Ada   Lovelace ")
+    clean_project.setMetadata(metadata)
+
+    dialog = NewLayoutDialog(clean_project, "Test Layout")
+
+    assert dialog.get_drafter_initials() == "AL"
+
+
+def test_layout_dialog_loads_and_saves_drafter_project_variable(clean_project) -> None:
+    QgsExpressionContextUtils.setProjectVariable(
+        clean_project, "UTEC_drafter", "AB"
+    )
+
+    dialog = NewLayoutDialog(clean_project, "Test Layout")
+
+    assert dialog.get_drafter_initials() == "AB"
+    assert "drafter" not in dialog.variable_edits
+
+    dialog.drafter_edit.setText("cd")
+    dialog.save_variables()
+
+    project_scope = QgsExpressionContextUtils.projectScope(clean_project)
+    assert project_scope.variable("UTEC_drafter") == "CD"
 
 
 def test_auto_dynamic_elements_applies_both_entered_dates(clean_project) -> None:
@@ -213,6 +245,19 @@ def test_add_legend_applies_scaling(clean_project) -> None:
         item for item in layout.items() if isinstance(item, QgsLayoutItemLegend)
     )
     assert legend.scale() == pytest.approx(0.75)
+    origin = legend.mapToScene(QPointF(0, 0))
+    unit_x = legend.mapToScene(QPointF(1, 0))
+    assert unit_x.x() - origin.x() == pytest.approx(0.75)
+    default_legend = QgsLayoutItemLegend(layout)
+    for component in (
+        QgsLegendStyle.Title,
+        QgsLegendStyle.Group,
+        QgsLegendStyle.Subgroup,
+        QgsLegendStyle.SymbolLabel,
+    ):
+        assert legend.rstyle(component).textFormat().size() == pytest.approx(
+            default_legend.rstyle(component).textFormat().size()
+        )
     assert legend.symbolWidth() == pytest.approx(12)
     assert legend.positionWithUnits().x() == pytest.approx(140)
     assert legend.positionWithUnits().y() == pytest.approx(50)
