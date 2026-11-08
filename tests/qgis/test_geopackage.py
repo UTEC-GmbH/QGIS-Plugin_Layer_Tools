@@ -456,20 +456,44 @@ class TestCreateAndDeleteGpkgLayer:
             for index in range(dialog.tree.topLevelItemCount())
         }
 
-        assert dialog.gpkg_name_label.text() == tmp_gpkg.name
+        assert dialog.gpkg_name_label.text().endswith(tmp_gpkg.name)
         assert dialog.gpkg_name_label.toolTip() == str(tmp_gpkg)
         assert rows["used"].childCount() == 1
-        assert "(Unused)" in rows["unused"].text(0)
-        assert dialog.tree.isHeaderHidden()
-        actions = dialog.tree.itemWidget(rows["used"], 1)
-        assert actions is not None
-        assert len(actions.findChildren(QToolButton)) == 2
+        assert rows["used"].text(0) == "used"
+        assert rows["used"].text(1) == "1"
+        assert rows["unused"].text(0) == "unused"
+        assert rows["unused"].text(1) == "0"
+        assert not dialog.tree.isHeaderHidden()
+        assert "border: none" in dialog.tree.header().styleSheet()
+        assert [
+            dialog.tree.columnWidth(column) for column in range(1, 4)
+        ] == [80, 80, 80]
+        assert rows["used"].textAlignment(1) == Qt.AlignmentFlag.AlignCenter
+        assert [
+            dialog.tree.headerItem().textAlignment(column)
+            for column in range(1, 4)
+        ] == [Qt.AlignmentFlag.AlignCenter] * 3
+        assert [
+            dialog.tree.headerItem().text(column).replace("\n", " ")
+            for column in range(dialog.tree.columnCount())
+        ] == [
+            "Table in GeoPackage    → Layer using this table",
+            "Use by X Layers",
+            "Rename",
+            "Delete",
+        ]
+        for column in (2, 3):
+            cell = dialog.tree.itemWidget(rows["used"], column)
+            assert cell is not None
+            assert cell.layout().alignment() == Qt.AlignmentFlag.AlignCenter
+            assert len(cell.findChildren(QToolButton)) == 1
         dialog.tree.expandItem(rows["used"])
         QApplication.processEvents()
         assert [
             rows["used"].child(index).text(0)
             for index in range(rows["used"].childCount())
-        ] == ["project view"]
+        ] == ["→ project view"]
+        assert rows["used"].child(0).font(0).italic()
         dialog.close()
 
     def test_rename_table_updates_gpkg_metadata_catalogs(

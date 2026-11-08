@@ -619,15 +619,15 @@ def _source_with_renamed_table(source: str, old_name: str, new_name: str) -> str
 
     table_pattern = re.compile(r"""(?i)(\btable=['"]?)([^'"\s(]+)""")
     table_match = table_pattern.search(source)
-    if table_match and table_match.group(2).casefold() == old_name.casefold():
-        return source[: table_match.start(2)] + new_name + source[table_match.end(2) :]
-
-    raise_runtime_error(
-        QCoreApplication.translate(
-            "GeoPackage", "Could not update a project layer's GeoPackage source: "
+    if not (table_match and table_match.group(2).casefold() == old_name.casefold()):
+        raise_runtime_error(
+            QCoreApplication.translate(
+                "GeoPackage", "Could not update a project layer's GeoPackage source: "
+            )
+            + source
         )
-        + source
-    )
+
+    return source[: table_match.start(2)] + new_name + source[table_match.end(2) :]
 
 
 class _GpkgManagerDialog(QDialog):
@@ -635,25 +635,45 @@ class _GpkgManagerDialog(QDialog):
 
     def __init__(self, gpkg_path: Path, parent: QWidget | None = None) -> None:
         super().__init__(parent)
-        self.gpkg_path = gpkg_path
         self.setWindowTitle(
             QCoreApplication.translate("GeoPackage", "Manage Project GeoPackage")
         )
         self.resize(760, 520)
-
         layout = QVBoxLayout(self)
-        self.gpkg_name_label = QLabel(self.gpkg_path.name)
+
+        self.gpkg_path = gpkg_path
+        gpkg_suffix = QCoreApplication.translate("GeoPackage", "Project's GeoPackage")
+        self.gpkg_name_label = QLabel(f"{gpkg_suffix}: {self.gpkg_path.name}")
         self.gpkg_name_label.setToolTip(str(self.gpkg_path))
         font = self.gpkg_name_label.font()
         font.setBold(True)
+        font.setPointSize(font.pointSize() + 2)
         self.gpkg_name_label.setFont(font)
+
+        layout.addSpacing(12)
         layout.addWidget(self.gpkg_name_label)
+        layout.addSpacing(12)
 
         self.tree = QTreeWidget()
-        self.tree.setColumnCount(2)
-        self.tree.setHeaderHidden(True)
+        self.tree.setColumnCount(4)
+        self.tree.setHeaderLabels(
+            [
+                QCoreApplication.translate(
+                    "GeoPackage", "Table in GeoPackage\n   → Layer using this table"
+                ),
+                QCoreApplication.translate("GeoPackage", "Use by\nX Layers"),
+                QCoreApplication.translate("GeoPackage", "Rename"),
+                QCoreApplication.translate("GeoPackage", "Delete"),
+            ]
+        )
         self.tree.setRootIsDecorated(True)
+        header_item = self.tree.headerItem()
+        for column in range(1, 4):
+            header_item.setTextAlignment(column, Qt.AlignmentFlag.AlignCenter)
         header = self.tree.header()
+        header.setStyleSheet(
+            "QHeaderView::section { border: none; background: transparent; }"
+        )
         stretch_mode = (
             QHeaderView.ResizeMode.Stretch
             if PluginContext.is_qt6()
@@ -665,8 +685,10 @@ class _GpkgManagerDialog(QDialog):
             else QHeaderView.Fixed
         )
         header.setSectionResizeMode(0, stretch_mode)
-        header.setSectionResizeMode(1, fixed_mode)
-        self.tree.setColumnWidth(1, 58)
+        header.setStretchLastSection(False)
+        for column in range(1, 4):
+            header.setSectionResizeMode(column, fixed_mode)
+            self.tree.setColumnWidth(column, 80)
         self.tree.itemExpanded.connect(self._show_dependencies)
         layout.addWidget(self.tree)
 
@@ -686,49 +708,46 @@ class _GpkgManagerDialog(QDialog):
             layers = dependencies_by_name.get(table_name.casefold(), [])
             item = QTreeWidgetItem()
             item.setData(0, Qt.ItemDataRole.UserRole, table_name)
+            item.setText(0, table_name)
+            item.setText(1, str(len(layers)))
+            item.setTextAlignment(1, Qt.AlignmentFlag.AlignCenter)
             if layers:
-                item.setText(
-                    0,
-                    QCoreApplication.translate(
-                        "GeoPackage", "%1 (%n project layer(s))", None, len(layers)
-                    ).replace("%1", table_name),
-                )
                 placeholder = QTreeWidgetItem()
                 placeholder.setData(0, Qt.ItemDataRole.UserRole, "pending")
                 item.addChild(placeholder)
             else:
-                item.setText(
-                    0,
-                    QCoreApplication.translate("GeoPackage", "%1 (Unused)").replace(
-                        "%1", table_name
-                    ),
-                )
                 font = item.font(0)
                 font.setBold(True)
                 item.setFont(0, font)
             self.tree.addTopLevelItem(item)
 
-            actions = QWidget(self.tree)
-            action_layout = QHBoxLayout(actions)
-            action_layout.setContentsMargins(0, 0, 0, 0)
-            action_layout.setSpacing(0)
-            rename_button = QToolButton(actions)
+            rename_cell = QWidget(self.tree)
+            rename_layout = QHBoxLayout(rename_cell)
+            rename_layout.setContentsMargins(0, 0, 0, 0)
+            rename_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            rename_button = QToolButton(rename_cell)
             rename_button.setAutoRaise(True)
             rename_button.setIcon(ICONS.main_menu_rename)
             rename_button.setToolTip(QCoreApplication.translate("GeoPackage", "Rename"))
-            delete_button = QToolButton(actions)
+            rename_layout.addWidget(rename_button)
+
+            delete_cell = QWidget(self.tree)
+            delete_layout = QHBoxLayout(delete_cell)
+            delete_layout.setContentsMargins(0, 0, 0, 0)
+            delete_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            delete_button = QToolButton(delete_cell)
             delete_button.setAutoRaise(True)
             delete_button.setIcon(ICONS.main_menu_delete_layers)
             delete_button.setToolTip(QCoreApplication.translate("GeoPackage", "Delete"))
+            delete_layout.addWidget(delete_button)
             rename_button.clicked.connect(
                 lambda _checked=False, name=table_name: self._rename_table(name)
             )
             delete_button.clicked.connect(
                 lambda _checked=False, name=table_name: self._delete_table(name)
             )
-            action_layout.addWidget(rename_button)
-            action_layout.addWidget(delete_button)
-            self.tree.setItemWidget(item, 1, actions)
+            self.tree.setItemWidget(item, 2, rename_cell)
+            self.tree.setItemWidget(item, 3, delete_cell)
 
     def _show_dependencies(self, item: QTreeWidgetItem) -> None:
         """Populate a table's layer list the first time its row is expanded."""
@@ -749,7 +768,11 @@ class _GpkgManagerDialog(QDialog):
             [],
         )
         for layer in layers:
-            item.addChild(QTreeWidgetItem([layer.name()]))
+            layer_item = QTreeWidgetItem([f"→ {layer.name()}"])
+            font = layer_item.font(0)
+            font.setItalic(True)
+            layer_item.setFont(0, font)
+            item.addChild(layer_item)
 
     def _rename_table(self, table_name: str) -> None:
         """Prompt for a new table name, then keep dependent project layers connected."""

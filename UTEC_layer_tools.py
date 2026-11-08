@@ -277,6 +277,8 @@ class UTECLayerTools(QObject):
         if self.plugin_menu:
             self.plugin_menu.addAction(manage_gpkg_action)
 
+            self.plugin_menu.addSeparator()
+
         # fmt: off
         # ruff: noqa: E501
         button: str = QCoreApplication.translate("Menu_Button", "Copy Selected Layers to Project's GeoPackage")
