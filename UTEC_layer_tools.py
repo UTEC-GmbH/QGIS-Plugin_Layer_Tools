@@ -4,7 +4,7 @@ import configparser
 import contextlib
 from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from qgis.gui import QgisInterface
 from qgis.PyQt.QtCore import QCoreApplication, QObject, QSettings, QTranslator
@@ -394,12 +394,12 @@ class UTECLayerTools(QObject):
         toolbar_button = QToolButton()
         toolbar_button.setIcon(self.plugin_icon)
         toolbar_button.setToolTip(self.plugin_name)
-        toolbar_button.setMenu(self.plugin_menu)
+        if self.plugin_menu is not None:
+            toolbar_button.setMenu(self.plugin_menu)
 
-        mode: QToolButton.ToolButtonPopupMode = (
-            QToolButton.ToolButtonPopupMode.InstantPopup
-            if PluginContext.is_qt6()
-            else QToolButton.InstantPopup
+        mode = cast(
+            "QToolButton.ToolButtonPopupMode",
+            QToolButton.ToolButtonPopupMode.InstantPopup,
         )
         toolbar_button.setPopupMode(mode)
 
