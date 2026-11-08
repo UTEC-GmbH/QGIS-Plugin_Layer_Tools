@@ -8,11 +8,12 @@ import os
 import re
 import sqlite3
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 from osgeo import ogr
 from qgis.core import (
     Qgis,
+    QgsCoordinateTransformContext,
     QgsLayerTree,
     QgsMapLayer,
     QgsProject,
@@ -28,18 +29,26 @@ from qgis.core import (
 from qgis.PyQt.QtCore import QCoreApplication, Qt
 from qgis.PyQt.QtGui import QShowEvent
 from qgis.PyQt.QtWidgets import (
+    QCheckBox,
     QComboBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
+    QHBoxLayout,
+    QHeaderView,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QMessageBox,
+    QToolButton,
+    QTreeWidget,
+    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
+from typing_extensions import override
 
-from .constants import GEOMETRY_SUFFIX_MAP, LAYER_TYPES, ActionResults, Issue
+from .constants import GEOMETRY_SUFFIX_MAP, ICONS, LAYER_TYPES, ActionResults, Issue
 from .context import PluginContext
 from .general import clear_attribute_table, get_selected_layers
 from .logs_and_errors import log_debug, lvl, raise_runtime_error
@@ -47,6 +56,22 @@ from .rename import geometry_type_suffix
 
 if TYPE_CHECKING:
     from qgis.core import QgsMapLayerStyle, QgsMapLayerStyleManager
+
+
+_DIALOG_OK = cast("QDialogButtonBox.StandardButton", QDialogButtonBox.Ok)
+_DIALOG_CANCEL = cast("QDialogButtonBox.StandardButton", QDialogButtonBox.Cancel)
+_DIALOG_CLOSE = cast("QDialogButtonBox.StandardButton", QDialogButtonBox.Close)
+_MESSAGE_OK = cast("QMessageBox.StandardButton", QMessageBox.Ok)
+_MESSAGE_YES = cast("QMessageBox.StandardButton", QMessageBox.Yes)
+_MESSAGE_NO = cast("QMessageBox.StandardButton", QMessageBox.No)
+_MESSAGE_CANCEL = cast("QMessageBox.StandardButton", QMessageBox.Cancel)
+_MESSAGE_WARNING = cast("QMessageBox.Icon", QMessageBox.Warning)
+_ALIGN_CENTER = cast("Qt.AlignmentFlag", Qt.AlignmentFlag.AlignCenter)
+_ALIGN_VCENTER = cast("Qt.AlignmentFlag", Qt.AlignmentFlag.AlignVCenter)
+_USER_ROLE = cast("int", Qt.ItemDataRole.UserRole)
+_HEADER_STRETCH = cast("QHeaderView.ResizeMode", QHeaderView.ResizeMode.Stretch)
+_HEADER_FIXED = cast("QHeaderView.ResizeMode", QHeaderView.ResizeMode.Fixed)
+_LEGACY_OVERWRITE_ACTION_NAME = "CreateOrOverwriteLayer"
 
 
 def create_gpkg(
@@ -136,7 +161,7 @@ class _NewGpkgLayerDialog(QDialog):
 
         self.warning_label = QLabel()
         self.warning_label.setWordWrap(True)
-        self.warning_label.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        self.warning_label.setAlignment(_ALIGN_VCENTER)
         self.warning_label.setContentsMargins(0, 4, 0, 4)
         self.warning_label.setMinimumHeight(
             self.warning_label.fontMetrics().lineSpacing() * 3 + 8
@@ -144,9 +169,7 @@ class _NewGpkgLayerDialog(QDialog):
         form.addRow("", self.warning_label)
         layout.addLayout(form)
 
-        self.button_box = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel
-        )
+        self.button_box = QDialogButtonBox(_DIALOG_OK | _DIALOG_CANCEL)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         layout.addWidget(self.button_box)
@@ -154,16 +177,18 @@ class _NewGpkgLayerDialog(QDialog):
         self.name_edit.textChanged.connect(self._update_name_warning)
         self._update_name_warning(self.name_edit.text())
 
-    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+    @override
+    # pyrefly: ignore[bad-override]
+    def showEvent(self, a0: QShowEvent) -> None:
         """Focus the layer name field as soon as the dialog is shown."""
-        super().showEvent(event)
+        super().showEvent(a0)
         self.name_edit.setFocus()
 
     def _update_name_warning(self, name: str) -> None:
         """Show live validation feedback and disable OK for invalid names."""
         warning = _validate_gpkg_layer_name(name, self.existing_layers)
         self.warning_label.setText(warning or "")
-        self.button_box.button(QDialogButtonBox.Ok).setEnabled(warning is None)
+        self.button_box.button(_DIALOG_OK).setEnabled(warning is None)
 
     def layer_name(self) -> str:
         """Return the entered layer name."""
@@ -212,7 +237,7 @@ def _create_gpkg_vector_layer(
             )
         )
 
-    project.addMapLayer(gpkg_layer, False)
+    project.addMapLayer(gpkg_layer, addToLegend=False)
     if root := project.layerTreeRoot():
         root.insertLayer(0, gpkg_layer)
     iface = PluginContext.iface()
@@ -256,6 +281,67 @@ def create_gpkg_layer() -> None:
     _create_gpkg_vector_layer(project, gpkg_path, layer_name, geometry_type)
 
 
+def _delete_vector_gpkg_tables(gpkg_path: Path, table_names: set[str]) -> None:
+    """Delete vector tables from a GeoPackage through GDAL."""
+    dataset = ogr.Open(str(gpkg_path), 1)
+    if dataset is None:
+        raise_runtime_error(
+            QCoreApplication.translate(
+                "GeoPackage", "Could not open the GeoPackage for editing."
+            )
+        )
+    for table_name in sorted(table_names):
+        layer_index = next(
+            (
+                index
+                for index in range(dataset.GetLayerCount())
+                if (layer := dataset.GetLayer(index))
+                and layer.GetName().casefold() == table_name.casefold()
+            ),
+            None,
+        )
+        if layer_index is None or dataset.DeleteLayer(layer_index) != 0:
+            dataset = None
+            raise_runtime_error(
+                QCoreApplication.translate(
+                    "GeoPackage", "Could not delete GeoPackage table: "
+                )
+                + table_name
+            )
+    dataset = None
+
+
+def _delete_raster_gpkg_tables(gpkg_path: Path, table_names: set[str]) -> None:
+    """Delete raster tables and their GeoPackage catalog entries."""
+    catalog_queries = {
+        "gpkg_extensions": 'DELETE FROM "gpkg_extensions" WHERE "table_name" = ?',
+        "gpkg_tile_matrix": 'DELETE FROM "gpkg_tile_matrix" WHERE "table_name" = ?',
+        "gpkg_tile_matrix_set": (
+            'DELETE FROM "gpkg_tile_matrix_set" WHERE "table_name" = ?'
+        ),
+        "gpkg_metadata_reference": (
+            'DELETE FROM "gpkg_metadata_reference" WHERE "table_name" = ?'
+        ),
+    }
+    with sqlite3.connect(str(gpkg_path)) as conn:
+        cursor = conn.cursor()
+        existing_catalog_tables = {
+            row[0]
+            for row in cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table'"
+            )
+        }
+        for table_name in sorted(table_names):
+            safe_name = table_name.replace('"', '""')
+            for catalog_table, query in catalog_queries.items():
+                if catalog_table in existing_catalog_tables:
+                    cursor.execute(query, (table_name,))
+            cursor.execute(f'DROP TABLE "{safe_name}"')
+            cursor.execute(
+                "DELETE FROM gpkg_contents WHERE table_name = ?", (table_name,)
+            )
+
+
 def _delete_gpkg_tables(gpkg_path: Path, layer_names: set[str]) -> None:
     """Delete vector and raster tables from a GeoPackage."""
     if not layer_names:
@@ -269,10 +355,9 @@ def _delete_gpkg_tables(gpkg_path: Path, layer_names: set[str]) -> None:
         )
 
     with sqlite3.connect(str(gpkg_path)) as conn:
-        cursor = conn.cursor()
         contents = {
             name.casefold(): (name, data_type)
-            for name, data_type in cursor.execute(
+            for name, data_type in conn.execute(
                 "SELECT table_name, data_type FROM gpkg_contents"
             )
         }
@@ -293,61 +378,10 @@ def _delete_gpkg_tables(gpkg_path: Path, layer_names: set[str]) -> None:
     raster_tables = {
         contents[key][0] for key in requested if contents[key][1] == "tiles"
     }
-
     if vector_tables:
-        dataset = ogr.Open(str(gpkg_path), 1)
-        if dataset is None:
-            raise_runtime_error(
-                QCoreApplication.translate(
-                    "GeoPackage", "Could not open the GeoPackage for editing."
-                )
-            )
-        for table_name in sorted(vector_tables):
-            layer_index = next(
-                (
-                    index
-                    for index in range(dataset.GetLayerCount())
-                    if (layer := dataset.GetLayer(index))
-                    and layer.GetName().casefold() == table_name.casefold()
-                ),
-                None,
-            )
-            if layer_index is None or dataset.DeleteLayer(layer_index) != 0:
-                dataset = None
-                raise_runtime_error(
-                    QCoreApplication.translate(
-                        "GeoPackage", "Could not delete GeoPackage table: "
-                    )
-                    + table_name
-                )
-        dataset = None
-
+        _delete_vector_gpkg_tables(gpkg_path, vector_tables)
     if raster_tables:
-        with sqlite3.connect(str(gpkg_path)) as conn:
-            cursor = conn.cursor()
-            existing_catalog_tables = {
-                row[0]
-                for row in cursor.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table'"
-                )
-            }
-            for table_name in sorted(raster_tables):
-                safe_name = table_name.replace('"', '""')
-                for catalog_table, column in (
-                    ("gpkg_extensions", "table_name"),
-                    ("gpkg_tile_matrix", "table_name"),
-                    ("gpkg_tile_matrix_set", "table_name"),
-                    ("gpkg_metadata_reference", "table_name"),
-                ):
-                    if catalog_table in existing_catalog_tables:
-                        cursor.execute(
-                            f'DELETE FROM "{catalog_table}" WHERE "{column}" = ?',
-                            (table_name,),
-                        )
-                cursor.execute(f'DROP TABLE "{safe_name}"')
-                cursor.execute(
-                    "DELETE FROM gpkg_contents WHERE table_name = ?", (table_name,)
-                )
+        _delete_raster_gpkg_tables(gpkg_path, raster_tables)
 
 
 def delete_gpkg_layers() -> None:
@@ -388,10 +422,10 @@ def delete_gpkg_layers() -> None:
             "Selected layers:\n",
         )
         + selected_details,
-        QMessageBox.Ok | QMessageBox.Cancel,
-        QMessageBox.Cancel,
+        _MESSAGE_OK | _MESSAGE_CANCEL,
+        _MESSAGE_CANCEL,
     )
-    if reply != QMessageBox.Ok:
+    if reply != _MESSAGE_OK:
         return
 
     dependencies = _get_gpkg_layer_dependencies(gpkg_path)
@@ -418,7 +452,7 @@ def delete_gpkg_layers() -> None:
         dialog = _shared_source_warning_dialog(
             affected_details, PluginContext.iface().mainWindow()
         )
-        if dialog.exec() != QMessageBox.Yes:
+        if dialog.exec() != _MESSAGE_YES:
             return
 
     layer_count = len(selected_layers) + len(affected_layers)
@@ -442,7 +476,7 @@ def _shared_source_warning_dialog(
 ) -> QMessageBox:
     """Build the confirmation dialog for deleting shared GeoPackage tables."""
     dialog = QMessageBox(
-        QMessageBox.Warning,
+        _MESSAGE_WARNING,
         QCoreApplication.translate("GeoPackage", "Shared Data Source Warning"),
         QCoreApplication.translate(
             "GeoPackage",
@@ -454,10 +488,10 @@ def _shared_source_warning_dialog(
             "\n\nDelete these layers as well as the selected layers and "
             "their data sources?",
         ),
-        QMessageBox.Yes | QMessageBox.Cancel,
+        _MESSAGE_YES | _MESSAGE_CANCEL,
         parent,
     )
-    yes_button = dialog.button(QMessageBox.Yes)
+    yes_button = dialog.button(_MESSAGE_YES)
     if yes_button is None:
         raise_runtime_error(
             QCoreApplication.translate(
@@ -467,8 +501,440 @@ def _shared_source_warning_dialog(
     yes_button.setText(
         QCoreApplication.translate("GeoPackage", "Delete All Affected Layers")
     )
-    dialog.setDefaultButton(QMessageBox.Cancel)
+    dialog.setDefaultButton(_MESSAGE_CANCEL)
     return dialog
+
+
+def _gpkg_contents(gpkg_path: Path) -> list[tuple[str, str]]:
+    """Return user-facing table names and data types from a GeoPackage."""
+    if not gpkg_path.exists():
+        raise_runtime_error(
+            QCoreApplication.translate(
+                "GeoPackage", "The project's GeoPackage does not exist."
+            )
+        )
+    try:
+        with sqlite3.connect(str(gpkg_path)) as conn:
+            return list(
+                conn.execute(
+                    "SELECT table_name, data_type FROM gpkg_contents "
+                    "ORDER BY table_name COLLATE NOCASE"
+                )
+            )
+    except sqlite3.Error as error:
+        raise_runtime_error(
+            QCoreApplication.translate(
+                "GeoPackage", "Could not read the project's GeoPackage: "
+            )
+            + str(error)
+        )
+
+
+def _rename_gpkg_table(gpkg_path: Path, old_name: str, new_name: str) -> None:
+    """Rename a GeoPackage table and update its catalog references."""
+    contents = _gpkg_contents(gpkg_path)
+    existing_names = {name for name, _ in contents}
+    actual_name = next(
+        (name for name in existing_names if name.casefold() == old_name.casefold()),
+        None,
+    )
+    if actual_name is None:
+        raise_runtime_error(
+            QCoreApplication.translate(
+                "GeoPackage", "Could not find this table in the GeoPackage: "
+            )
+            + old_name
+        )
+    if new_name.casefold() == actual_name.casefold():
+        return
+    existing_tables = get_gpkg_layer_names(gpkg_path)
+    if warning := _validate_gpkg_layer_name(new_name, existing_tables - {actual_name}):
+        raise_runtime_error(warning)
+
+    safe_old_name = actual_name.replace('"', '""')
+    safe_new_name = new_name.replace('"', '""')
+    try:
+        with sqlite3.connect(str(gpkg_path)) as conn:
+            cursor = conn.cursor()
+            cursor.execute(f'ALTER TABLE "{safe_old_name}" RENAME TO "{safe_new_name}"')
+            catalog_updates = (
+                (
+                    "gpkg_contents",
+                    "UPDATE gpkg_contents SET table_name = ? WHERE table_name = ?",
+                ),
+                (
+                    "gpkg_geometry_columns",
+                    (
+                        "UPDATE gpkg_geometry_columns "
+                        "SET table_name = ? WHERE table_name = ?"
+                    ),
+                ),
+                (
+                    "gpkg_tile_matrix",
+                    "UPDATE gpkg_tile_matrix SET table_name = ? WHERE table_name = ?",
+                ),
+                (
+                    "gpkg_tile_matrix_set",
+                    (
+                        "UPDATE gpkg_tile_matrix_set "
+                        "SET table_name = ? WHERE table_name = ?"
+                    ),
+                ),
+                (
+                    "gpkg_extensions",
+                    "UPDATE gpkg_extensions SET table_name = ? WHERE table_name = ?",
+                ),
+                (
+                    "gpkg_data_columns",
+                    (
+                        "UPDATE gpkg_data_columns "
+                        "SET table_name = ? WHERE table_name = ?"
+                    ),
+                ),
+                (
+                    "gpkg_metadata_reference",
+                    (
+                        "UPDATE gpkg_metadata_reference "
+                        "SET table_name = ? WHERE table_name = ?"
+                    ),
+                ),
+                (
+                    "gpkg_ogr_contents",
+                    (
+                        "UPDATE gpkg_ogr_contents "
+                        "SET table_name = ? WHERE table_name = ?"
+                    ),
+                ),
+                (
+                    "gpkgext_relations",
+                    (
+                        "UPDATE gpkgext_relations "
+                        "SET base_table_name = ? WHERE base_table_name = ?"
+                    ),
+                ),
+                (
+                    "gpkgext_relations",
+                    (
+                        "UPDATE gpkgext_relations "
+                        "SET related_table_name = ? WHERE related_table_name = ?"
+                    ),
+                ),
+                (
+                    "gpkgext_relations",
+                    (
+                        "UPDATE gpkgext_relations "
+                        "SET mapping_table_name = ? WHERE mapping_table_name = ?"
+                    ),
+                ),
+            )
+            existing_catalogs = {
+                row[0]
+                for row in cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type = 'table'"
+                )
+            }
+            for catalog_table, query in catalog_updates:
+                if catalog_table in existing_catalogs:
+                    cursor.execute(query, (new_name, actual_name))
+    except sqlite3.Error as error:
+        raise_runtime_error(
+            QCoreApplication.translate(
+                "GeoPackage", "Could not rename the GeoPackage table: "
+            )
+            + str(error)
+        )
+
+
+def _source_with_renamed_table(source: str, old_name: str, new_name: str) -> str:
+    """Return a provider URI with only its GeoPackage table component changed."""
+    gpkg_match = re.match(r"(?i)^(GPKG:.+?\.gpkg:)(.+)$", source)
+    if gpkg_match and gpkg_match.group(2).casefold() == old_name.casefold():
+        return gpkg_match.group(1) + new_name
+
+    layername_pattern = re.compile(r"(?i)(\|layername=)([^|]+)")
+    layername_match = layername_pattern.search(source)
+    if layername_match and layername_match.group(2).casefold() == old_name.casefold():
+        return (
+            source[: layername_match.start(2)]
+            + new_name
+            + source[layername_match.end(2) :]
+        )
+
+    table_pattern = re.compile(r"""(?i)(\btable=['"]?)([^'"\s(]+)""")
+    table_match = table_pattern.search(source)
+    if not (table_match and table_match.group(2).casefold() == old_name.casefold()):
+        raise_runtime_error(
+            QCoreApplication.translate(
+                "GeoPackage", "Could not update a project layer's GeoPackage source: "
+            )
+            + source
+        )
+
+    return source[: table_match.start(2)] + new_name + source[table_match.end(2) :]
+
+
+class _GpkgManagerDialog(QDialog):
+    """Show GeoPackage tables, project usage, and per-table actions."""
+
+    def __init__(self, gpkg_path: Path, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setWindowTitle(
+            QCoreApplication.translate("GeoPackage", "Manage Project GeoPackage")
+        )
+        self.resize(760, 520)
+        layout = QVBoxLayout(self)
+
+        self.gpkg_path = gpkg_path
+        gpkg_suffix = QCoreApplication.translate("GeoPackage", "Project's GeoPackage")
+        self.gpkg_name_label = QLabel(f"{gpkg_suffix}: {self.gpkg_path.name}")
+        self.gpkg_name_label.setToolTip(str(self.gpkg_path))
+        font = self.gpkg_name_label.font()
+        font.setBold(True)
+        font.setPointSize(font.pointSize() + 2)
+        self.gpkg_name_label.setFont(font)
+
+        layout.addSpacing(12)
+        layout.addWidget(self.gpkg_name_label)
+        layout.addSpacing(12)
+
+        self.tree = QTreeWidget()
+        self.tree.setColumnCount(4)
+        self.tree.setHeaderLabels(
+            [
+                QCoreApplication.translate(
+                    "GeoPackage", "Table in GeoPackage\n   → Layer using this table"
+                ),
+                QCoreApplication.translate("GeoPackage", "Use by\nX Layers"),
+                QCoreApplication.translate("GeoPackage", "Rename"),
+                QCoreApplication.translate("GeoPackage", "Delete"),
+            ]
+        )
+        self.tree.setRootIsDecorated(True)
+        header_item = self.tree.headerItem()
+        if header_item is not None:
+            for column in range(1, 4):
+                header_item.setTextAlignment(column, int(_ALIGN_CENTER))
+        header = self.tree.header()
+        header.setStyleSheet(
+            "QHeaderView::section { border: none; background: transparent; }"
+        )
+        header.setSectionResizeMode(0, _HEADER_STRETCH)
+        header.setStretchLastSection(False)
+        for column in range(1, 4):
+            header.setSectionResizeMode(column, _HEADER_FIXED)
+            self.tree.setColumnWidth(column, 80)
+        self.tree.itemExpanded.connect(self._show_dependencies)
+        layout.addWidget(self.tree)
+
+        buttons = QDialogButtonBox(_DIALOG_CLOSE)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+        self.refresh()
+
+    def refresh(self) -> None:
+        """Reload table rows and their current project dependencies."""
+        self.tree.clear()
+        dependencies = _get_gpkg_layer_dependencies(self.gpkg_path)
+        dependencies_by_name = {
+            name.casefold(): layers for name, layers in dependencies.items()
+        }
+        for table_name, _data_type in _gpkg_contents(self.gpkg_path):
+            layers = dependencies_by_name.get(table_name.casefold(), [])
+            item = QTreeWidgetItem()
+            item.setData(0, _USER_ROLE, table_name)
+            item.setText(0, table_name)
+            item.setText(1, str(len(layers)))
+            item.setTextAlignment(1, int(_ALIGN_CENTER))
+            if layers:
+                placeholder = QTreeWidgetItem()
+                placeholder.setData(0, _USER_ROLE, "pending")
+                item.addChild(placeholder)
+            else:
+                font = item.font(0)
+                font.setBold(True)
+                item.setFont(0, font)
+            self.tree.addTopLevelItem(item)
+
+            rename_cell = QWidget(self.tree)
+            rename_layout = QHBoxLayout(rename_cell)
+            rename_layout.setContentsMargins(0, 0, 0, 0)
+            rename_layout.setAlignment(_ALIGN_CENTER)
+            rename_button = QToolButton(rename_cell)
+            rename_button.setAutoRaise(True)
+            rename_button.setIcon(ICONS.main_menu_rename)
+            rename_button.setToolTip(QCoreApplication.translate("GeoPackage", "Rename"))
+            rename_layout.addWidget(rename_button)
+
+            delete_cell = QWidget(self.tree)
+            delete_layout = QHBoxLayout(delete_cell)
+            delete_layout.setContentsMargins(0, 0, 0, 0)
+            delete_layout.setAlignment(_ALIGN_CENTER)
+            delete_button = QToolButton(delete_cell)
+            delete_button.setAutoRaise(True)
+            delete_button.setIcon(ICONS.main_menu_delete_layers)
+            delete_button.setToolTip(QCoreApplication.translate("GeoPackage", "Delete"))
+            delete_layout.addWidget(delete_button)
+            rename_button.clicked.connect(
+                lambda _checked=False, name=table_name: self._rename_table(name)
+            )
+            delete_button.clicked.connect(
+                lambda _checked=False, name=table_name: self._delete_table(name)
+            )
+            self.tree.setItemWidget(item, 2, rename_cell)
+            self.tree.setItemWidget(item, 3, delete_cell)
+
+    def _show_dependencies(self, item: QTreeWidgetItem) -> None:
+        """Populate a table's layer list the first time its row is expanded."""
+        if not item.childCount() or item.child(0).data(0, _USER_ROLE) != "pending":
+            return
+        item.takeChild(0)
+        table_name = item.data(0, _USER_ROLE)
+        dependencies = _get_gpkg_layer_dependencies(self.gpkg_path)
+        layers = next(
+            (
+                values
+                for name, values in dependencies.items()
+                if name.casefold() == table_name.casefold()
+            ),
+            [],
+        )
+        for layer in layers:
+            layer_item = QTreeWidgetItem([f"→ {layer.name()}"])
+            font = layer_item.font(0)
+            font.setItalic(True)
+            layer_item.setFont(0, font)
+            item.addChild(layer_item)
+
+    def _rename_table(self, table_name: str) -> None:
+        """Prompt for a new table name, then keep dependent project layers connected."""
+        new_name, accepted = QInputDialog.getText(
+            self,
+            QCoreApplication.translate("GeoPackage", "Rename GeoPackage Table"),
+            QCoreApplication.translate("GeoPackage", "New table name:"),
+            text=table_name,
+        )
+        if not accepted or new_name.casefold() == table_name.casefold():
+            return
+        existing_names = get_gpkg_layer_names(self.gpkg_path)
+        if warning := _validate_gpkg_layer_name(
+            new_name, existing_names - {table_name}
+        ):
+            QMessageBox.warning(
+                self,
+                QCoreApplication.translate("GeoPackage", "Invalid Table Name"),
+                warning,
+            )
+            return
+
+        dependencies = _get_gpkg_layer_dependencies(self.gpkg_path)
+        layers = next(
+            (
+                values
+                for name, values in dependencies.items()
+                if name.casefold() == table_name.casefold()
+            ),
+            [],
+        )
+        updated_sources = [
+            (layer, _source_with_renamed_table(layer.source(), table_name, new_name))
+            for layer in layers
+        ]
+        _rename_gpkg_table(self.gpkg_path, table_name, new_name)
+        invalid_layers = []
+        for layer, source in updated_sources:
+            layer.setDataSource(source, layer.name(), layer.providerType())
+            if not layer.isValid():
+                invalid_layers.append(layer.name())
+        if invalid_layers:
+            QMessageBox.warning(
+                self,
+                QCoreApplication.translate("GeoPackage", "Layer Source Update Failed"),
+                QCoreApplication.translate(
+                    "GeoPackage",
+                    "The table was renamed, but these project layers could not be "
+                    "reconnected:\n%1",
+                ).replace("%1", "\n".join(invalid_layers)),
+            )
+        self.refresh()
+
+    def _delete_table(self, table_name: str) -> None:
+        """Confirm deletion, explicitly warning when project layers use the table."""
+        dependencies = _get_gpkg_layer_dependencies(self.gpkg_path)
+        layers = next(
+            (
+                values
+                for name, values in dependencies.items()
+                if name.casefold() == table_name.casefold()
+            ),
+            [],
+        )
+        if layers:
+            warning, remove_layers_checkbox = self._used_table_warning(layers)
+            reply = warning.exec()
+            remove_affected_layers = remove_layers_checkbox.isChecked()
+        else:
+            reply = QMessageBox.question(
+                self,
+                QCoreApplication.translate("GeoPackage", "Delete GeoPackage Table?"),
+                QCoreApplication.translate(
+                    "GeoPackage", "Delete the unused table '%1'?"
+                ).replace("%1", table_name),
+                _MESSAGE_YES | _MESSAGE_CANCEL,
+                _MESSAGE_CANCEL,
+            )
+            remove_affected_layers = False
+        if reply != _MESSAGE_YES:
+            return
+        if remove_affected_layers:
+            project = PluginContext.project()
+            for layer in layers:
+                project.removeMapLayer(layer.id())
+            layers.clear()
+            dependencies.clear()
+            layer = None
+        _delete_gpkg_tables(self.gpkg_path, {table_name})
+        self.refresh()
+
+    def _used_table_warning(
+        self, layers: list[QgsMapLayer]
+    ) -> tuple[QMessageBox, QCheckBox]:
+        """Create a used-table warning with an optional project-layer removal."""
+        details = "\n".join(f"• {layer.name()}" for layer in layers)
+        warning = QMessageBox(
+            _MESSAGE_WARNING,
+            QCoreApplication.translate("GeoPackage", "Delete Used GeoPackage Table?"),
+            QCoreApplication.translate(
+                "GeoPackage",
+                "The following project layers use this table and will lose "
+                "their data source:\n\n%1\n\nDelete the table?",
+            ).replace("%1", details),
+            _MESSAGE_YES | _MESSAGE_CANCEL,
+            self,
+        )
+        remove_layers_checkbox = QCheckBox(
+            QCoreApplication.translate(
+                "GeoPackage", "Also remove these layers from the project"
+            )
+        )
+        warning.setCheckBox(remove_layers_checkbox)
+        warning.setDefaultButton(_MESSAGE_CANCEL)
+        return warning, remove_layers_checkbox
+
+
+def manage_gpkg_tables() -> None:
+    """Open the manager for the current project's GeoPackage."""
+    gpkg_path = PluginContext.project_gpkg()
+    if not gpkg_path.exists():
+        QMessageBox.warning(
+            PluginContext.iface().mainWindow(),
+            QCoreApplication.translate("GeoPackage", "GeoPackage Not Found"),
+            QCoreApplication.translate(
+                "GeoPackage", "The project's GeoPackage does not exist."
+            ),
+        )
+        return
+    dialog = _GpkgManagerDialog(gpkg_path, PluginContext.iface().mainWindow())
+    dialog.exec()
 
 
 def _get_gpkg_layer_table(layer: QgsMapLayer, gpkg_path: Path) -> str | None:
@@ -510,8 +976,8 @@ def _get_gpkg_layer_table(layer: QgsMapLayer, gpkg_path: Path) -> str | None:
         normalized_source = os.path.normcase(str(source_path_obj.resolve()))
         normalized_expected = os.path.normcase(str(expected_path.resolve()))
     except OSError:
-        normalized_source = os.path.normcase(os.path.abspath(source_path))
-        normalized_expected = os.path.normcase(os.path.abspath(str(expected_path)))
+        normalized_source = os.path.normcase(str(Path(source_path).absolute()))
+        normalized_expected = os.path.normcase(str(expected_path.absolute()))
 
     if normalized_source != normalized_expected:
         return None
@@ -617,7 +1083,7 @@ def check_existing_layer(
 
 def add_vector_layer_to_gpkg(
     project: QgsProject,
-    layer: QgsMapLayer,
+    layer: QgsVectorLayer,
     gpkg_path: Path,
     existing_layers: set[str] | None = None,
 ) -> ActionResults[tuple]:
@@ -635,14 +1101,20 @@ def add_vector_layer_to_gpkg(
     """
     layer_name: str = layer.name()
     options = QgsVectorFileWriter.SaveVectorOptions()
+    # pyrefly: ignore[bad-assignment]
     options.driverName = "GPKG"
+    # pyrefly: ignore[bad-assignment]
     options.layerName = check_existing_layer(gpkg_path, layer, existing_layers)
     if PluginContext.is_qgis4():
         options.actionOnExistingFile = (
             QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteLayer
         )
     else:
-        options.actionOnExistingFile = QgsVectorFileWriter.CreateOrOverwriteLayer
+        # pyrefly: ignore[bad-assignment]
+        options.actionOnExistingFile = cast(
+            "QgsVectorFileWriter.ActionOnExistingFile",
+            getattr(QgsVectorFileWriter, _LEGACY_OVERWRITE_ACTION_NAME),
+        )
 
     result_write: tuple = QgsVectorFileWriter.writeAsVectorFormatV3(
         layer, str(gpkg_path), project.transformContext(), options
@@ -651,7 +1123,7 @@ def add_vector_layer_to_gpkg(
     if PluginContext.is_qgis4():
         success = result_write[0] == QgsVectorFileWriter.WriterError.NoError
     else:
-        success = result_write[0] == QgsVectorFileWriter.NoError
+        success = int(result_write[0]) == 0
 
     if success:
         log_debug(
@@ -727,23 +1199,22 @@ def add_raster_layer_to_gpkg(
         "USE_GPKG_METADATA_TABLES": "YES",
     }
     create_options: list[str] = [f"{k}={v}" for k, v in options.items()]
-    writer.setCreateOptions(create_options)
+    writer.setCreationOptions(create_options)
 
     pipe = QgsRasterPipe()
     pipe.set(provider.clone())
+    transform_context: QgsCoordinateTransformContext = project.transformContext()
     error: QgsRasterFileWriter.WriterError = writer.writeRaster(
         pipe,
         layer.width(),
         layer.height(),
         layer.extent(),
         layer.crs(),
-        project.transformContext(),
+        transform_context,
+        None,
     )
 
-    if PluginContext.is_qgis4():
-        success = error == QgsRasterFileWriter.WriterError.NoError
-    else:
-        success = error == QgsRasterFileWriter.NoError
+    success = int(error) == 0
 
     if success:
         log_debug(
@@ -859,10 +1330,11 @@ def _confirm_overwrites(
     if not used_overwrites:
         return True
 
-    # fmt: off
-    msg: str = QCoreApplication.translate("GeoPackage", "The following layers in the project's GeoPackage are currently in use in the project and will be overwritten:\n",  # noqa: E501
+    msg: str = QCoreApplication.translate(
+        "GeoPackage",
+        "The following layers in the project's GeoPackage are currently in use "
+        "in the project and will be overwritten:\n",
     )
-    # fmt: on
 
     for table in sorted(used_overwrites):
         msg += f"\n• {table}"
@@ -871,19 +1343,21 @@ def _confirm_overwrites(
             usage_text = QCoreApplication.translate("GeoPackage", "used by")
             msg += f" ({usage_text}: {dep_str})"
 
-    # fmt: off
-    msg += QCoreApplication.translate("GeoPackage", "\n\nThis can lead to to unexpected results (especially if used by multiple layers). \n\nDo you want to continue?")  # noqa: E501
-    # fmt: on
+    msg += QCoreApplication.translate(
+        "GeoPackage",
+        "\n\nThis can lead to to unexpected results (especially if used by "
+        "multiple layers). \n\nDo you want to continue?",
+    )
 
     reply = QMessageBox.question(
         PluginContext.iface().mainWindow(),
         QCoreApplication.translate("GeoPackage", "Overwrite Warning"),
         msg,
-        QMessageBox.Yes | QMessageBox.No,
-        QMessageBox.No,
+        _MESSAGE_YES | _MESSAGE_NO,
+        _MESSAGE_NO,
     )
 
-    return reply == QMessageBox.Yes
+    return reply == _MESSAGE_YES
 
 
 def add_layers_to_gpkg(
@@ -1128,9 +1602,9 @@ def add_layers_from_gpkg_to_project(
 
     root: QgsLayerTree | None = project.layerTreeRoot()
     if not root:
-        # fmt: off
-        msg: str = QCoreApplication.translate("RuntimeError", "Could not get layer tree root.")  # noqa: E501
-        # fmt: on
+        msg: str = QCoreApplication.translate(
+            "RuntimeError", "Could not get layer tree root."
+        )
         raise_runtime_error(msg)
 
     results: ActionResults[None] = ActionResults(None)

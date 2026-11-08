@@ -364,14 +364,9 @@ class Icons:
         return self._qicon("main_menu_undo.svg", dynamic=True)
 
     @property
-    def print_menu_landscape(self) -> QIcon:
-        """Return the landscape icon, dynamically colored for the current theme."""
-        return self._qicon("print_menu_landscape.svg", dynamic=True)
-
-    @property
-    def print_menu_portrait(self) -> QIcon:
-        """Return the portrait icon, dynamically colored for the current theme."""
-        return self._qicon("print_menu_portrait.svg", dynamic=True)
+    def main_menu_manage_geopackage(self) -> QIcon:
+        """Return the manage geopackage icon, dynamically colored for the current theme."""
+        return self._qicon("main_menu_manage_geopackage.svg", dynamic=True)
 
     @property
     def location_empty(self) -> QIcon:
