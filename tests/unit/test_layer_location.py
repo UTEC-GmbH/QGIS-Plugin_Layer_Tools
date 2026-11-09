@@ -1,6 +1,7 @@
 """Unit tests for the layer_location module."""
 
 import os
+from collections.abc import Generator
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -27,7 +28,7 @@ def mock_layer() -> MagicMock:
 
 
 @pytest.fixture
-def mock_registry() -> MagicMock:
+def mock_registry() -> Generator[MagicMock, None, None]:
     """Fixture for a mocked QgsProviderRegistry."""
     with patch("qgis.core.QgsProviderRegistry.instance") as mock_instance:
         registry = MagicMock()

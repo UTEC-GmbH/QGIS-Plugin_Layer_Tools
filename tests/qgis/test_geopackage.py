@@ -84,7 +84,6 @@ class TestCreateGpkg:
             tmp_gpkg: Fixture providing a non-existing tmp path.
         """
         create_gpkg(tmp_gpkg)
-        mtime_first: float = tmp_gpkg.stat().st_mtime
 
         create_gpkg(tmp_gpkg, delete_existing=True)
 

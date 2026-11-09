@@ -25,6 +25,7 @@ from qgis.core import (
     QgsUnitTypes,
 )
 from qgis.PyQt.QtCore import QCoreApplication, QRectF
+from qgis.PyQt.QtGui import QShowEvent
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -39,6 +40,7 @@ from qgis.PyQt.QtWidgets import (
     QWidget,
 )
 from qgis.PyQt.QtXml import QDomDocument
+from typing_extensions import override
 
 from .constants import MAP_SCALES, PAPER_SIZES, PaperProps
 from .context import PluginContext
@@ -112,6 +114,13 @@ class NewLayoutDialog(QDialog):
         self._setup_source_inputs()
         self._setup_variable_inputs()
         self._setup_dialog_buttons()
+
+    @override
+    def showEvent(self, a0: QShowEvent) -> None:
+        """Focus and select the suggested layout name when the dialog opens."""
+        super().showEvent(a0)
+        self.name_edit.setFocus()
+        self.name_edit.selectAll()
 
     def _setup_layout_inputs(self, suggested_name: str) -> None:
         """Set up inputs for layout name, paper, and drafter/checker metadata.
@@ -796,7 +805,7 @@ def _move_title_block_to_corner(
     shift_y: float = target_max_y - current_max_y
 
     # Move all new items
-    reference_offsets = {
+    reference_offsets: dict[object, tuple[float, float]] = {
         QgsLayoutItem.ReferencePoint.UpperLeft: (0.0, 0.0),
         QgsLayoutItem.ReferencePoint.UpperMiddle: (0.5, 0.0),
         QgsLayoutItem.ReferencePoint.UpperRight: (1.0, 0.0),
@@ -816,7 +825,7 @@ def _move_title_block_to_corner(
             current_scene_pos.y() + shift_y + item_size.height() * reference_y,
             QgsUnitTypes.LayoutMillimeters,
         )
-        item.attemptMove(new_pos, True)
+        item.attemptMove(new_pos, useReferencePoint=True)
 
     return bbox.translated(shift_x, shift_y)
 

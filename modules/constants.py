@@ -365,7 +365,7 @@ class Icons:
 
     @property
     def main_menu_manage_geopackage(self) -> QIcon:
-        """Return the manage geopackage icon, dynamically colored for the current theme."""
+        """Return the mng geopackage icon, dynamically colored for the current theme."""
         return self._qicon("main_menu_manage_geopackage.svg", dynamic=True)
 
     @property

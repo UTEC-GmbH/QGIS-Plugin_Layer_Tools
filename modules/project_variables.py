@@ -122,7 +122,7 @@ class ProjectVariablesDialog(QDialog):
         )
         self.setMinimumWidth(400)
 
-        self.layout: QFormLayout = QFormLayout(self)
+        self.form_layout: QFormLayout = QFormLayout(self)
         self.edits: dict[str, QLineEdit | QTextEdit] = {}
         self.variables: list[ProjectVariable] = get_project_variables()
 
@@ -150,7 +150,7 @@ class ProjectVariablesDialog(QDialog):
 
             self.edits[variable.id] = edit
             label_text: str = f"{variable.label} ({variable.name})"
-            self.layout.addRow(label_text, edit)
+            self.form_layout.addRow(label_text, edit)
 
         # Buttons
         self.button_box = QDialogButtonBox(
@@ -158,7 +158,7 @@ class ProjectVariablesDialog(QDialog):
         )
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
-        self.layout.addRow(self.button_box)
+        self.form_layout.addRow(self.button_box)
 
     def save_variables(self) -> None:
         """Write the values from the UI back to the project properties."""

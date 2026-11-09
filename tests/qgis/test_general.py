@@ -85,7 +85,7 @@ class TestClearAttributeTable:
                 ]
             )
         layer.updateFields()
-        assert layer.fields().count() == 2  # noqa: PLR2004
+        assert layer.fields().count() == 2
 
         clear_attribute_table(layer)
         assert layer.fields().count() == 0

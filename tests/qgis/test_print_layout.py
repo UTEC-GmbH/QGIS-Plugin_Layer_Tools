@@ -17,6 +17,7 @@ from qgis.core import (
     QgsReadWriteContext,
 )
 from qgis.PyQt.QtCore import QCoreApplication, QPointF, QRectF
+from qgis.PyQt.QtWidgets import QApplication
 
 from modules.constants import PAPER_SIZES
 from modules.print_layout import (
@@ -29,6 +30,18 @@ from modules.print_layout import (
     _move_title_block_to_corner,
     _scale_title_block_template,
 )
+
+
+def test_layout_name_is_focused_and_selected_when_dialog_opens(clean_project) -> None:
+    suggested_name = "Overview (1)"
+    dialog = NewLayoutDialog(clean_project, suggested_name)
+
+    dialog.show()
+    QApplication.processEvents()
+
+    assert dialog.name_edit.hasFocus()
+    assert dialog.name_edit.selectedText() == suggested_name
+    dialog.close()
 
 
 def test_layout_options_use_separate_paper_size_and_orientation(clean_project) -> None:

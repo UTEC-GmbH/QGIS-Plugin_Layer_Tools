@@ -160,9 +160,9 @@ def enforce_text_edit_limits(
 
     if modified:
         cursor_position: int = edit.textCursor().position()
-        edit.blockSignals(True)
+        edit.blockSignals(b=True)
         edit.setPlainText("\n".join(lines))
-        edit.blockSignals(False)
+        edit.blockSignals(b=False)
 
         # Restore cursor position
         cursor = edit.textCursor()

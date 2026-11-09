@@ -28,6 +28,7 @@ from qgis.PyQt.QtWidgets import (
     QGroupBox,
     QLineEdit,
     QVBoxLayout,
+    QWidget,
 )
 
 from .constants import GEOMETRY_SUFFIX_MAP, ActionResults, Issue
@@ -61,7 +62,7 @@ class Rename:
 class RemoveStringsDialog(QDialog):
     """Dialog for entering words to remove from layer names."""
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         """Initialize the dialog.
 
         Args:

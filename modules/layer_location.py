@@ -570,7 +570,7 @@ class LocationIndicatorManager:
                 cached_state[1] if cached_state else None
             )
             cached_multi: tuple | None = (
-                cached_state[2] if cached_state and len(cached_state) > 2 else None  # noqa: PLR2004
+                cached_state[2] if cached_state and len(cached_state) > 2 else None
             )
 
             # If state matches, skip update

@@ -73,7 +73,7 @@ class LayoutSelectionDialog(QDialog):
 
         for layout in layouts:
             item = QListWidgetItem(layout.name())
-            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
+            item.setFlags(item.flags() | Qt.ItemIsUserCheckable)  # pyrefly: ignore[unsupported-operation]
             item.setCheckState(Qt.Checked)
             item.setData(Qt.UserRole, layout)
             self.list_widget.addItem(item)
