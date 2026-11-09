@@ -13,7 +13,6 @@ from typing import Final, NoReturn
 from qgis.core import Qgis, QgsMessageLog, QgsProject
 from qgis.gui import QgisInterface, QgsMessageBar
 from qgis.PyQt.QtCore import QT_VERSION_STR, QCoreApplication
-from .logs_and_errors import lvl
 
 # A value of 128 is used as a threshold for determining if a color is "dark".
 # This is based on the color's luminance, where values closer to 0 are darker
@@ -60,7 +59,7 @@ def raise_context_runtime_error(error_msg: str) -> NoReturn:
     QgsMessageLog.logMessage(
         message=f"💀 {error_msg}",
         tag="UTEC Plugin ERROR",
-        level=lvl.Critical,
+        level=Qgis.Critical,
         notifyUser=True,
     )
 
