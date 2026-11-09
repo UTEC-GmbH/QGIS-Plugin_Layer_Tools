@@ -1,6 +1,7 @@
 """Unit tests for the layer_location module."""
 
 import os
+from collections.abc import Generator
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -27,7 +28,7 @@ def mock_layer() -> MagicMock:
 
 
 @pytest.fixture
-def mock_registry() -> MagicMock:
+def mock_registry() -> Generator[MagicMock, None, None]:
     """Fixture for a mocked QgsProviderRegistry."""
     with patch("qgis.core.QgsProviderRegistry.instance") as mock_instance:
         registry = MagicMock()
@@ -128,6 +129,46 @@ class TestGetLayerLocation:
 
         assert get_layer_location(mock_layer) == LayerLocation.EXTERNAL
 
+    @patch("modules.layer_location.PluginContext.project_gpkg")
+    @patch("qgis.core.QgsProject.instance")
+    def test_sibling_folder_with_project_name_is_external(
+        self,
+        mock_project_instance: MagicMock,
+        mock_project_gpkg: MagicMock,
+        mock_layer: MagicMock,
+        mock_registry: MagicMock,
+    ) -> None:
+        """A sibling directory sharing the project-folder prefix is external."""
+        project = MagicMock()
+        project.fileName.return_value = "C:/projects/test/test.qgz"
+        mock_project_instance.return_value = project
+        mock_project_gpkg.return_value = Path("C:/projects/test/test.gpkg")
+        mock_registry.decodeUri.return_value = {
+            "path": "C:/projects/test-backup/data.gpkg"
+        }
+
+        assert get_layer_location(mock_layer) == LayerLocation.EXTERNAL
+
+    @patch("modules.layer_location.PluginContext.project_gpkg")
+    @patch("qgis.core.QgsProject.instance")
+    def test_similar_geopackage_name_is_in_project_folder(
+        self,
+        mock_project_instance: MagicMock,
+        mock_project_gpkg: MagicMock,
+        mock_layer: MagicMock,
+        mock_registry: MagicMock,
+    ) -> None:
+        """A different GPKG whose name contains the project GPKG is not its source."""
+        project = MagicMock()
+        project.fileName.return_value = "C:/projects/test/test.qgz"
+        mock_project_instance.return_value = project
+        mock_project_gpkg.return_value = Path("C:/projects/test/test.gpkg")
+        mock_registry.decodeUri.return_value = {
+            "path": "C:/projects/test/test.gpkg-backup.gpkg"
+        }
+
+        assert get_layer_location(mock_layer) == LayerLocation.GPKG_FOLDER
+
     @patch("qgis.core.QgsProject.instance")
     def test_no_project_saved(
         self, mock_project_instance: MagicMock, mock_layer: MagicMock
@@ -158,17 +199,20 @@ class TestCreateMultiIndicatorTooltip:
         mock_registry_instance.return_value = registry
         registry.decodeUri.return_value = {
             "path": "C:/data/test.gpkg",
-            "layerName": "test_table",
+            "layerName": "<script>alert(1)</script>",
         }
 
         project = MagicMock()
         project.fileName.return_value = "C:/data/project.qgz"
 
-        shared_names = ["Layer A", "Layer B"]
+        shared_names = ["Layer A", "<b>Layer B</b>"]
 
         tooltip = _create_multi_indicator_tooltip(project, mock_layer, shared_names)
 
         assert "Shared Data Source" in tooltip
         assert "Layer A" in tooltip
         assert "Layer B" in tooltip
-        assert "test_table" in tooltip
+        assert "&lt;script&gt;" in tooltip
+        assert "<script>" not in tooltip
+        assert "&lt;b&gt;Layer B&lt;/b&gt;" in tooltip
+        assert "<b>Layer B</b>" not in tooltip

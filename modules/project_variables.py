@@ -19,7 +19,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from .context import PluginContext
-from .general import enforce_text_edit_limits
+from .general import enforce_text_edit_limits, exec_dialog
 from .logs_and_errors import log_debug
 
 
@@ -122,7 +122,7 @@ class ProjectVariablesDialog(QDialog):
         )
         self.setMinimumWidth(400)
 
-        self.layout: QFormLayout = QFormLayout(self)
+        self.form_layout: QFormLayout = QFormLayout(self)
         self.edits: dict[str, QLineEdit | QTextEdit] = {}
         self.variables: list[ProjectVariable] = get_project_variables()
 
@@ -150,7 +150,7 @@ class ProjectVariablesDialog(QDialog):
 
             self.edits[variable.id] = edit
             label_text: str = f"{variable.label} ({variable.name})"
-            self.layout.addRow(label_text, edit)
+            self.form_layout.addRow(label_text, edit)
 
         # Buttons
         self.button_box = QDialogButtonBox(
@@ -158,7 +158,7 @@ class ProjectVariablesDialog(QDialog):
         )
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
-        self.layout.addRow(self.button_box)
+        self.form_layout.addRow(self.button_box)
 
     def save_variables(self) -> None:
         """Write the values from the UI back to the project properties."""
@@ -191,7 +191,7 @@ def edit_project_variables() -> None:
         PluginContext.project_path()
 
     dialog = ProjectVariablesDialog(project)
-    if dialog.exec_():
+    if exec_dialog(dialog):
         dialog.save_variables()
         # Mark project as dirty so user is prompted to save changes
         project.setDirty(True)

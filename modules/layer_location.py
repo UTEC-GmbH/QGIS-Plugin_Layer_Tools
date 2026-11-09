@@ -4,6 +4,7 @@ Determine the location of the layer's data source.
 """
 
 import contextlib
+import html
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -118,12 +119,21 @@ def get_layer_location(layer: QgsMapLayer) -> LayerLocation | None:
     # Use helper to get path
     layer_path: str = get_layer_source_path(layer) or ""
 
-    gpkg: str = os.path.normcase(project_gpkg_path)
-    project_folder: str = os.path.normcase(str(Path(project_gpkg_path).parent))
+    gpkg: str = os.path.normcase(os.path.normpath(project_gpkg_path))
+    project_folder: str = os.path.normcase(
+        os.path.normpath(str(Path(project_gpkg_path).parent))
+    )
+    layer_path = os.path.normcase(os.path.normpath(layer_path))
 
-    if gpkg in layer_path:
+    if layer_path == gpkg:
         return LayerLocation.GPKG_PROJECT
-    if project_folder in layer_path:
+
+    project_folder_prefix = project_folder.rstrip(os.sep) + os.sep
+    is_in_project_folder = (
+        layer_path == project_folder or layer_path.startswith(project_folder_prefix)
+    )
+
+    if is_in_project_folder:
         return (
             LayerLocation.GPKG_FOLDER
             if layer_path.endswith((".gpkg", ".sqlite"))
@@ -185,15 +195,19 @@ def _create_multi_indicator_tooltip(
     source_info_parts: list[str] = []
     span_style: str = 'style="white-space: nowrap;"'
     if source_folder and source_folder != ".":
-        safe_folder: str = source_folder.replace(" ", "&nbsp;").replace("-", "&#8209;")
-        source_info_parts.append(f"<span {span_style}>{folder}: '{safe_folder}'</span>")
-    if source_file:
-        safe_file: str = source_file.replace(" ", "&nbsp;").replace("-", "&#8209;")
-        source_info_parts.append(f"<span {span_style}>{file}: '{safe_file}'</span>")
-    if source_layer_name:
-        safe_layer: str = source_layer_name.replace(" ", "&nbsp;").replace(
+        safe_folder: str = html.escape(source_folder).replace(" ", "&nbsp;").replace(
             "-", "&#8209;"
         )
+        source_info_parts.append(f"<span {span_style}>{folder}: '{safe_folder}'</span>")
+    if source_file:
+        safe_file: str = html.escape(source_file).replace(" ", "&nbsp;").replace(
+            "-", "&#8209;"
+        )
+        source_info_parts.append(f"<span {span_style}>{file}: '{safe_file}'</span>")
+    if source_layer_name:
+        safe_layer: str = html.escape(source_layer_name).replace(
+            " ", "&nbsp;"
+        ).replace("-", "&#8209;")
         source_info_parts.append(f"<span {span_style}>{layr}: '{safe_layer}'</span>")
 
     source_info_html: str = ""
@@ -201,7 +215,8 @@ def _create_multi_indicator_tooltip(
         source_info_html = "<p>" + "<br>".join(source_info_parts) + "</p>"
 
     names_list: str = "".join(
-        f"<li><span {span_style}>{name}</span></li>" for name in shared_names
+        f"<li><span {span_style}>{html.escape(name)}</span></li>"
+        for name in shared_names
     )
     tooltip: str = (
         f"<p><b>{heading}</b></p>{source_info_html}<p>{used}<ul>{names_list}</ul></p>"
@@ -570,7 +585,7 @@ class LocationIndicatorManager:
                 cached_state[1] if cached_state else None
             )
             cached_multi: tuple | None = (
-                cached_state[2] if cached_state and len(cached_state) > 2 else None  # noqa: PLR2004
+                cached_state[2] if cached_state and len(cached_state) > 2 else None
             )
 
             # If state matches, skip update

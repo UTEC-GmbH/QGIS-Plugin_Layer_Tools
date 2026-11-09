@@ -5,17 +5,22 @@ They test layer utility functions: ``is_empty_layer`` and
 ``clear_attribute_table``.
 """
 
+from unittest.mock import MagicMock
+
+import pytest
 from qgis.core import (
     QgsFeature,
     QgsField,
     QgsGeometry,
     QgsPointXY,
     QgsRasterLayer,
+    QgsVectorDataProvider,
     QgsVectorLayer,
 )
 from qgis.PyQt.QtCore import QVariant
 
 from modules.general import clear_attribute_table, is_empty_layer
+from modules.logs_and_errors import CustomRuntimeError
 
 # ---------------------------------------------------------------------------
 # is_empty_layer
@@ -85,7 +90,7 @@ class TestClearAttributeTable:
                 ]
             )
         layer.updateFields()
-        assert layer.fields().count() == 2  # noqa: PLR2004
+        assert layer.fields().count() == 2
 
         clear_attribute_table(layer)
         assert layer.fields().count() == 0
@@ -105,3 +110,19 @@ class TestClearAttributeTable:
         raster = QgsRasterLayer("", "fake_raster", "gdal")
         # Should not raise.
         clear_attribute_table(raster)
+
+    def test_reports_provider_attribute_deletion_failure(
+        self, monkeypatch, memory_point_layer: QgsVectorLayer
+    ) -> None:
+        """A provider failure is surfaced instead of silently ignored."""
+        if provider := memory_point_layer.dataProvider():
+            provider.addAttributes([QgsField("name", QVariant.String)])
+        memory_point_layer.updateFields()
+
+        provider = MagicMock()
+        provider.capabilities.return_value = QgsVectorDataProvider.DeleteAttributes
+        provider.deleteAttributes.return_value = False
+        monkeypatch.setattr(QgsVectorLayer, "dataProvider", lambda _self: provider)
+
+        with pytest.raises(CustomRuntimeError, match="Could not delete attributes"):
+            clear_attribute_table(memory_point_layer)

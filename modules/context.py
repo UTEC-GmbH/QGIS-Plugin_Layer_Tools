@@ -233,4 +233,4 @@ class PluginContext:
             True if running on Qt 6 or newer, False otherwise.
         """
         qgis_6: int = 6
-        return int(QT_VERSION_STR.split(".")[0]) >= qgis_6  
+        return int(QT_VERSION_STR.split(".")[0]) >= qgis_6

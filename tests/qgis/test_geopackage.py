@@ -84,7 +84,6 @@ class TestCreateGpkg:
             tmp_gpkg: Fixture providing a non-existing tmp path.
         """
         create_gpkg(tmp_gpkg)
-        mtime_first: float = tmp_gpkg.stat().st_mtime
 
         create_gpkg(tmp_gpkg, delete_existing=True)
 
@@ -437,10 +436,10 @@ class TestCreateAndDeleteGpkgLayer:
             ).fetchone()[0] == "renamed"
         dialog.close()
 
-    def test_manager_lists_usage_on_demand_and_marks_unused_tables(
+    def test_manager_expands_usage_and_marks_unused_tables(
         self, clean_project: QgsProject, tmp_gpkg: Path
     ) -> None:
-        """Layer names are populated only when expanded; unused tables stand out."""
+        """Layer usage and unused-table messages are visible by default."""
         create_gpkg(tmp_gpkg)
         source_layer = QgsVectorLayer("Point?crs=EPSG:4326", "used", "memory")
         add_vector_layer_to_gpkg(clean_project, source_layer, tmp_gpkg)
@@ -449,6 +448,10 @@ class TestCreateAndDeleteGpkgLayer:
         dependent = QgsVectorLayer(f"{tmp_gpkg}|layername=used", "project view", "ogr")
         clean_project.addMapLayer(dependent)
         dialog = _GpkgManagerDialog(tmp_gpkg)
+        dialog.show()
+        QApplication.processEvents()
+        assert dialog.tree.currentItem() is None
+        assert dialog.tree.selectedItems() == []
         rows = {
             dialog.tree.topLevelItem(index).data(
                 0, Qt.ItemDataRole.UserRole
@@ -461,8 +464,25 @@ class TestCreateAndDeleteGpkgLayer:
         assert rows["used"].childCount() == 1
         assert rows["used"].text(0) == "used"
         assert rows["used"].text(1) == "1"
+        assert rows["used"].isExpanded()
+        assert rows["used"].childCount() == 1
+        assert rows["used"].child(0).text(0) == "→ project view"
+        assert rows["used"].child(0).font(0).italic()
         assert rows["unused"].text(0) == "unused"
         assert rows["unused"].text(1) == "0"
+        assert rows["unused"].isExpanded()
+        assert rows["unused"].childCount() == 1
+        assert (
+            rows["unused"].child(0).text(0)
+            == "→ not used by any layer in the project"
+        )
+        assert dialog.tree.topLevelItemCount() == 4
+        for spacer_index in (0, 2):
+            spacer = dialog.tree.topLevelItem(spacer_index)
+            assert spacer is not None
+            assert spacer.text(0) == ""
+            assert spacer.flags() == Qt.ItemFlag.NoItemFlags
+            assert spacer.sizeHint(0).height() == 6
         assert not dialog.tree.isHeaderHidden()
         assert "border: none" in dialog.tree.header().styleSheet()
         assert [
@@ -487,13 +507,6 @@ class TestCreateAndDeleteGpkgLayer:
             assert cell is not None
             assert cell.layout().alignment() == Qt.AlignmentFlag.AlignCenter
             assert len(cell.findChildren(QToolButton)) == 1
-        dialog.tree.expandItem(rows["used"])
-        QApplication.processEvents()
-        assert [
-            rows["used"].child(index).text(0)
-            for index in range(rows["used"].childCount())
-        ] == ["→ project view"]
-        assert rows["used"].child(0).font(0).italic()
         dialog.close()
 
     def test_rename_table_updates_gpkg_metadata_catalogs(

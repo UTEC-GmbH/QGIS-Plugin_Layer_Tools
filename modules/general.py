@@ -17,13 +17,20 @@ from qgis.core import (
     QgsVectorLayer,
 )
 from qgis.PyQt.QtCore import QCoreApplication
-from qgis.PyQt.QtWidgets import QTextEdit
+from qgis.PyQt.QtWidgets import QDialog, QTextEdit
 
 from .context import PluginContext
 from .logs_and_errors import log_debug, raise_runtime_error, raise_user_error
 
 if TYPE_CHECKING:
     from qgis.gui import QgisInterface, QgsLayerTreeView
+
+
+def exec_dialog(dialog: QDialog) -> int:
+    """Execute a modal dialog using the API available in the active Qt version."""
+    if PluginContext.is_qt6():
+        return dialog.exec()
+    return dialog.exec_()
 
 
 def get_selected_layers() -> list[QgsMapLayer]:
@@ -95,6 +102,9 @@ def clear_attribute_table(layer: QgsMapLayer) -> None:
 
     Args:
         layer: The layer whose attribute table should be cleared.
+
+    Raises:
+        CustomRuntimeError: If the provider rejects the attribute deletion.
     """
     if not isinstance(layer, QgsVectorLayer):
         # This function only applies to vector layers.
@@ -109,7 +119,10 @@ def clear_attribute_table(layer: QgsMapLayer) -> None:
         return
 
     if field_indices := list(range(layer.fields().count())):
-        provider.deleteAttributes(field_indices)
+        if not provider.deleteAttributes(field_indices):
+            raise_runtime_error(
+                f"Could not delete attributes from layer '{layer.name()}'."
+            )
         layer.updateFields()
 
 
@@ -160,9 +173,9 @@ def enforce_text_edit_limits(
 
     if modified:
         cursor_position: int = edit.textCursor().position()
-        edit.blockSignals(True)
+        edit.blockSignals(b=True)
         edit.setPlainText("\n".join(lines))
-        edit.blockSignals(False)
+        edit.blockSignals(b=False)
 
         # Restore cursor position
         cursor = edit.textCursor()

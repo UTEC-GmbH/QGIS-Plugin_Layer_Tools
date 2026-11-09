@@ -4,12 +4,12 @@
 <context>
     <name>GeoPackage</name>
     <message>
-        <location filename="../modules/geopackage.py" line="1343"/>
+        <location filename="../modules/geopackage.py" line="1345"/>
         <source>used by</source>
         <translation>Benutzt von</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="1352"/>
+        <location filename="../modules/geopackage.py" line="1354"/>
         <source>Overwrite Warning</source>
         <translation>Warnung</translation>
     </message>
@@ -64,7 +64,7 @@
         <translation>Ungültiger Layername</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="928"/>
+        <location filename="../modules/geopackage.py" line="930"/>
         <source>The project&apos;s GeoPackage does not exist.</source>
         <translation>Das Projekt-GeoPackage existiert nicht.</translation>
     </message>
@@ -134,69 +134,76 @@
         <translation>Projekt-GeoPackage</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="702"/>
+        <location filename="../modules/geopackage.py" line="704"/>
         <source>Table in GeoPackage
    → Layer using this table</source>
-        <translation>Tabelle in GeoPackage\n   → Layer, die diese Tabelle benutzen</translation>
+        <translation>Tabelle in GeoPackage
+   → Layer, die diese Tabelle benutzen</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="702"/>
+        <location filename="../modules/geopackage.py" line="704"/>
         <source>Use by
 X Layers</source>
-        <translation>Benutzt von\nX Layern</translation>
+        <translation>Benutzt von
+x Layern</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="765"/>
+        <location filename="../modules/geopackage.py" line="767"/>
         <source>Rename</source>
         <translation>Umbenennen</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="775"/>
+        <location filename="../modules/geopackage.py" line="768"/>
+        <source>not used by any layer in the project</source>
+        <translation>von keinem Layer im Projekt verwendet</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="777"/>
         <source>Delete</source>
         <translation>Löschen</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="810"/>
+        <location filename="../modules/geopackage.py" line="812"/>
         <source>Rename GeoPackage Table</source>
         <translation>GeoPackage-Tabelle umbenennen</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="810"/>
+        <location filename="../modules/geopackage.py" line="812"/>
         <source>New table name:</source>
         <translation>Neuer Name:</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="822"/>
+        <location filename="../modules/geopackage.py" line="824"/>
         <source>Invalid Table Name</source>
         <translation>Ungültiger Name</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="849"/>
+        <location filename="../modules/geopackage.py" line="851"/>
         <source>Layer Source Update Failed</source>
         <translation>Aktualisierung der Quelle fehlgeschlagen</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="876"/>
+        <location filename="../modules/geopackage.py" line="878"/>
         <source>Delete GeoPackage Table?</source>
         <translation>GeoPackage-Tabelle löschen?</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="876"/>
+        <location filename="../modules/geopackage.py" line="878"/>
         <source>Delete the unused table &apos;%1&apos;?</source>
         <translation>Unbenutzte Tabelle &apos;%1&apos; löschen?</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="903"/>
+        <location filename="../modules/geopackage.py" line="905"/>
         <source>Delete Used GeoPackage Table?</source>
         <translation>GeoPackage-Tabelle wird benutzt - trotzdem löschen?</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="914"/>
+        <location filename="../modules/geopackage.py" line="916"/>
         <source>Also remove these layers from the project</source>
         <translation>Auch diese Layer aus dem Projekt löschen</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="928"/>
+        <location filename="../modules/geopackage.py" line="930"/>
         <source>GeoPackage Not Found</source>
         <translation>GeoPackage nicht gefunden</translation>
     </message>
@@ -242,57 +249,57 @@ X Layers</source>
 <context>
     <name>Menu_Button</name>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="284"/>
+        <location filename="../UTEC_layer_tools.py" line="280"/>
         <source>Copy Selected Layers to Project&apos;s GeoPackage</source>
         <translation>Gewählte Layer ins Projekt-GeoPackage kopieren</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="340"/>
+        <location filename="../UTEC_layer_tools.py" line="333"/>
         <source>Rename Selected Layers by Group Name</source>
         <translation>Gewählte Layer nach Gruppenname umbenennen</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="358"/>
+        <location filename="../UTEC_layer_tools.py" line="350"/>
         <source>Rename and Copy Selected Layers to Project&apos;s GeoPackage</source>
         <translation>Gewählte Layer Umbenennen und ins Projekt-GeoPackage kopieren</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="376"/>
+        <location filename="../UTEC_layer_tools.py" line="367"/>
         <source>Undo Last Rename</source>
         <translation>Letzte Umbenennung Rückgängig machen</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="302"/>
+        <location filename="../UTEC_layer_tools.py" line="297"/>
         <source>Prepare Selected Layers for Sending</source>
         <translation>Gewählte Layer für den Versand vorbereiten</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="214"/>
+        <location filename="../UTEC_layer_tools.py" line="213"/>
         <source>Create Layout</source>
-        <translation>Layout erstellen</translation>
+        <translation>Drucklayout erstellen</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="195"/>
+        <location filename="../UTEC_layer_tools.py" line="194"/>
         <source>Edit Project Variables</source>
         <translation>Projektvariablen Bearbeiten</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="231"/>
+        <location filename="../UTEC_layer_tools.py" line="229"/>
         <source>Export Layouts as PDF</source>
         <translation>Layouts als PDF exportieren</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="251"/>
+        <location filename="../UTEC_layer_tools.py" line="248"/>
         <source>Create New Layer in Project&apos;s GeoPackage</source>
         <translation>Neuen GeoPackage-Layer erzeugen</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="320"/>
+        <location filename="../UTEC_layer_tools.py" line="314"/>
         <source>Delete Selected Layers from the Project and from the Project&apos;s GeoPackage</source>
         <translation>Gewählte Layer und deren Quellen aus dem Projekt und dem Projekt-GeoPackage löschen</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="267"/>
+        <location filename="../UTEC_layer_tools.py" line="264"/>
         <source>Manage Project GeoPackage</source>
         <translation>Projekt-GeoPackage aufräumen</translation>
     </message>
@@ -300,47 +307,47 @@ X Layers</source>
 <context>
     <name>Menu_ToolTip</name>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="285"/>
+        <location filename="../UTEC_layer_tools.py" line="281"/>
         <source>&lt;p&gt;&lt;b&gt;Copy Selected Layers to Project&apos;s GeoPackage&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Selected layers and layers in selected groups are copied to the project&apos;s GeoPackage and added back from the GeoPackage to the top of the layer tree of the current project. The original layers can be removed from the project if desired.&lt;/p&gt;&lt;p&gt;The project&apos;s GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;CAUTION: This will overwrite layers with the same name and geometry type in the project&apos;s GeoPackage!&lt;/b&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer in das Projekt-GeoPackage Kopieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Gewählte Layer und Layer in gewählten Gruppen werden in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.&lt;/p&gt;&lt;p&gt;Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!&lt;/b&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="341"/>
+        <location filename="../UTEC_layer_tools.py" line="334"/>
         <source>&lt;p&gt;&lt;b&gt;Rename Selected Layers by Group Name&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Selected layers and layers in selected groups are renamed according to their parent group names. If a layer is not in a group, it is not renamed.&lt;/p&gt;&lt;p&gt;(Mostly useful for renaming layers imported from AutoCAD)&lt;/span&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer nach Gruppenname Umbenennen&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen. Layer, die sich nicht in einer Gruppe befinden, wird er nicht umbenannt.&lt;/p&gt;&lt;p&gt;(Nützlich für das Umbenennen von Layern, die aus AutoCAD importiert wurden)&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="359"/>
+        <location filename="../UTEC_layer_tools.py" line="351"/>
         <source>&lt;p&gt;&lt;b&gt;Rename and Copy Selected Layers to Project&apos;s GeoPackage&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Selected layers and layers in selected groups are renamed according to their parent group names, then copied to the project&apos;s GeoPackage and then added back from the GeoPackage to the top of the layer tree of the current project. The original layers can be removed from the project if desired.&lt;/p&gt;&lt;p&gt;The project&apos;s GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;b&gt;CAUTION: This will overwrite layers with the same name and geometry type in the project&apos;s GeoPackage!&lt;/b&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer Umbenennen und in das Projekt-GeoPackage Kopieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen, danach in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.&lt;/p&gt;&lt;p&gt;Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).&lt;/span&gt;&lt;/p&gt;&lt;p&gt;&lt;b&gt;Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!&lt;/b&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="377"/>
+        <location filename="../UTEC_layer_tools.py" line="368"/>
         <source>&lt;p&gt;&lt;b&gt;Undo Last Rename&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Undoes the most recent layer renaming operation performed by this plugin.&lt;/span&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;&lt;b&gt;Letzte Umbenennung Rückgängig Machen&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Die letzte Umbenennung, die von diesem Plugin ausgeführt wurde, wird rückgängig gemacht.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="303"/>
+        <location filename="../UTEC_layer_tools.py" line="298"/>
         <source>&lt;p&gt;&lt;b&gt;Prepare Selected Layers for Sending&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Creates a subfolder in the project folder with a GeoPackage (.gpkg) and a project file (.qgz) containing the selected layers. These two files can be sent e.g. via email.&lt;/span&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;&lt;b&gt;Gewälte Layer für Versand Vorbereiten&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Im Projektordner wird ein Unterordner mit einem GeoPackage (.gpkg) und einer Projektdatei (.qgz) erstellt, die die gewählten Layer enthalten. Diese beiden Dateien können z.B. per E-Mail versendet werden.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="196"/>
+        <location filename="../UTEC_layer_tools.py" line="195"/>
         <source>&lt;p&gt;&lt;b&gt;Edit Project Variables&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Define project-specific metadata like project number and name. These are stored as project variables (see Project → Properties...) and can be used in expressions, e.g. [% @project_number %].&lt;/span&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;&lt;b&gt;Projektvariablen bearbeiten&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Metadaten wie Projektnummer und Name definieren. Diese werden als Projektvariablen gespeichert (siehe Projekt → Eigenschaften...) und können in Ausdrücken verwendet werden, z.B. [% @project_number %].&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="232"/>
+        <location filename="../UTEC_layer_tools.py" line="230"/>
         <source>&lt;p&gt;&lt;b&gt;Export Layouts as PDF&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Select layouts to be exported as PDF files. The PDFs will be saved in the specified folder (defaults to &apos;pdf&apos; within the project directory) without overwriting existing files. Existing files with the same name will be moved to a folder called &apos;alt&apos;.&lt;/span&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;&lt;b&gt;Layouts als PDF exportieren&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Layouts wählen, die als PDF-Dateien exportiert werden sollen. Die Dateien werden im angegebenen Ordner (Standardordner: &apos;pdf&apos; im Projektverzeichnis) gespeichert ohne vorhandene Dateien zu überschreiben. Vorhandene Dateien mit demselben Namen werden in einen Unterordner namens &apos;alt&apos; verschoben.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="252"/>
+        <location filename="../UTEC_layer_tools.py" line="249"/>
         <source>&lt;p&gt;&lt;b&gt;Create New Layer in Project&apos;s GeoPackage&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Creates a new layer in the project&apos;s GeoPackage. The new layer is added to the top of the layer tree of the current project.&lt;/span&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;&lt;b&gt;Neuen Layer im Projekt-GeoPackage Erstellen&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;Erstellt einen neuen Layer im Projekt-GeoPackage. Der neue Layer wird von dort in das Projekt (im Layer-Baum ganz oben) eingefügt.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
     <message>
-        <location filename="../UTEC_layer_tools.py" line="321"/>
+        <location filename="../UTEC_layer_tools.py" line="315"/>
         <source>&lt;p&gt;&lt;b&gt;Delete Selected Layers from the Project and from the Project&apos;s GeoPackage&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;!!! CAUTION !!! Selected layers and layers in selected groups are deleted from the project as well as from the project&apos;s GeoPackage.&lt;/span&gt;&lt;/p&gt;</source>
         <translation>&lt;p&gt;&lt;b&gt;Gewählte Layer aus dem Projekt-GeoPackage Löschen&lt;/b&gt;&lt;/p&gt;&lt;p&gt;&lt;span style=&apos;font-weight:normal; font-style:normal;&apos;&gt;!!! VORSICHT !!!Gewählte Layer und Layer in gewählten Gruppen werden sowohl aus dem Projekt, als auch aus dem Projekt-GeoPackage gelöscht.&lt;/span&gt;&lt;/p&gt;</translation>
     </message>
@@ -401,122 +408,122 @@ X Layers</source>
 <context>
     <name>PrintLayout</name>
     <message>
-        <location filename="../modules/print_layout.py" line="102"/>
+        <location filename="../modules/print_layout.py" line="104"/>
         <source>Create Print Layout</source>
         <translation>Neues Drucklayout Erzeugen</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="162"/>
+        <location filename="../modules/print_layout.py" line="171"/>
         <source>Paper Format</source>
         <translation>Papierformat</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="143"/>
+        <location filename="../modules/print_layout.py" line="152"/>
         <source>Landscape</source>
         <translation>Querformat</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="144"/>
+        <location filename="../modules/print_layout.py" line="153"/>
         <source>Portrait</source>
         <translation>Hochformat</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="82"/>
+        <location filename="../modules/print_layout.py" line="84"/>
         <source>Overview</source>
         <translation>Übersichtsplan</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="528"/>
+        <location filename="../modules/print_layout.py" line="537"/>
         <source>Frame</source>
         <translation>Rahmen</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="226"/>
+        <location filename="../modules/print_layout.py" line="235"/>
         <source>Source</source>
         <translation>Quelle</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout_export.py" line="48"/>
+        <location filename="../modules/print_layout_export.py" line="49"/>
         <source>Export Layouts as PDF</source>
         <translation>Layouts als PDF exportieren</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout_export.py" line="101"/>
+        <location filename="../modules/print_layout_export.py" line="102"/>
         <source>Export Settings</source>
         <translation>Export Einstellungen</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout_export.py" line="162"/>
+        <location filename="../modules/print_layout_export.py" line="163"/>
         <source>Export Folder:</source>
         <translation>Zielordner:</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout_export.py" line="260"/>
+        <location filename="../modules/print_layout_export.py" line="261"/>
         <source>Select Export Directory</source>
         <translation>Zielordner wählen</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout_export.py" line="172"/>
+        <location filename="../modules/print_layout_export.py" line="173"/>
         <source>Resolution</source>
         <translation>Auflösung</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout_export.py" line="173"/>
+        <location filename="../modules/print_layout_export.py" line="174"/>
         <source>Append georeference information</source>
         <translation>Georeferenzinformation anhängen</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout_export.py" line="174"/>
+        <location filename="../modules/print_layout_export.py" line="175"/>
         <source>Include georeferencing information in the PDF header. Allows compatible viewers to display coordinates.</source>
         <translation>Georeferenzinformationen in das PDF-Dokument schreiben. Dies erlaubt kompatibler Software Koordinaten anzuzeigen.</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout_export.py" line="175"/>
+        <location filename="../modules/print_layout_export.py" line="176"/>
         <source>Export metadata</source>
         <translation>Metadaten exportieren</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout_export.py" line="176"/>
+        <location filename="../modules/print_layout_export.py" line="177"/>
         <source>Include document metadata (author, title, etc.) in the PDF.</source>
         <translation>Informationen wie z. B. Titel, Autor, Datum, etc. werden mit exportiert.</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout_export.py" line="177"/>
+        <location filename="../modules/print_layout_export.py" line="178"/>
         <source>Simplify geometry</source>
         <translation>Geometrien vereinfachen</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout_export.py" line="178"/>
+        <location filename="../modules/print_layout_export.py" line="179"/>
         <source>Simplify geometry to reduce file size.</source>
         <translation>Dies kann die Größe und Komplexität der Exportdatei reduzieren.</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="122"/>
+        <location filename="../modules/print_layout.py" line="131"/>
         <source>Drawing Type</source>
         <translation>Planart</translation>
     </message>
     <message>
-        <location filename="../tests/qgis/test_print_layout.py" line="106"/>
+        <location filename="../tests/qgis/test_print_layout.py" line="119"/>
         <source>Drafter</source>
         <translation>gezeichnet</translation>
     </message>
     <message>
-        <location filename="../tests/qgis/test_print_layout.py" line="108"/>
+        <location filename="../tests/qgis/test_print_layout.py" line="121"/>
         <source>Checker</source>
         <translation>geprüft</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="213"/>
+        <location filename="../modules/print_layout.py" line="222"/>
         <source>Source of Background Maps: LGLN Niedersachsen</source>
         <translation>Quelle Hintergrundkarte: LGLN Niedersachsen</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout_export.py" line="142"/>
+        <location filename="../modules/print_layout_export.py" line="143"/>
         <source>File Name Prefix:</source>
         <translation>Dateinamenprefix:</translation>
     </message>
     <message>
-        <location filename="../modules/print_layout.py" line="205"/>
+        <location filename="../modules/print_layout.py" line="214"/>
         <source>Legend</source>
         <translation>Legende</translation>
     </message>
@@ -557,22 +564,22 @@ X Layers</source>
 <context>
     <name>RenameDialog</name>
     <message>
-        <location filename="../modules/rename.py" line="71"/>
+        <location filename="../modules/rename.py" line="72"/>
         <source>Remove Words from New Names</source>
         <translation>Aus Neuen Namen Löschen</translation>
     </message>
     <message>
-        <location filename="../modules/rename.py" line="79"/>
+        <location filename="../modules/rename.py" line="80"/>
         <source>Default words to remove</source>
         <translation>Standard</translation>
     </message>
     <message>
-        <location filename="../modules/rename.py" line="102"/>
+        <location filename="../modules/rename.py" line="103"/>
         <source>e.g., test, draft, temp</source>
         <translation>z.B. test, Entwurf, temp</translation>
     </message>
     <message>
-        <location filename="../modules/rename.py" line="105"/>
+        <location filename="../modules/rename.py" line="106"/>
         <source>Additional words (comma-separated):</source>
         <translation>Zusätzlich (mit Komma getrennt):</translation>
     </message>
@@ -585,22 +592,22 @@ X Layers</source>
         <translation>Konnte das Plugin-Menu nicht erstellen.</translation>
     </message>
     <message>
-        <location filename="../modules/general.py" line="42"/>
+        <location filename="../modules/general.py" line="49"/>
         <source>QGIS interface not set.</source>
         <translation>Das OGIS Interface ist nicht gesetzt.</translation>
     </message>
     <message>
-        <location filename="../modules/general.py" line="43"/>
+        <location filename="../modules/general.py" line="50"/>
         <source>Could not get layer tree view.</source>
         <translation>Konnte den Layer-Baum nicht öffnen.</translation>
     </message>
     <message>
-        <location filename="../modules/general.py" line="44"/>
+        <location filename="../modules/general.py" line="51"/>
         <source>No layers or groups selected.</source>
         <translation>Keine Layer oder Layer-Gruppen ausgewählt.</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="1605"/>
+        <location filename="../modules/geopackage.py" line="1607"/>
         <source>Could not get layer tree root.</source>
         <translation>Konnte &quot;layer tree root&quot; nicht finden.</translation>
     </message>
@@ -616,7 +623,7 @@ X Layers</source>
 <context>
     <name>UserError</name>
     <message>
-        <location filename="../modules/context.py" line="182"/>
+        <location filename="../modules/context.py" line="181"/>
         <source>Project is not saved. Please save the project first.</source>
         <translation>Das Projekt ist noch nicht abgespeichert. Bitte erst speichern.</translation>
     </message>
@@ -624,27 +631,27 @@ X Layers</source>
 <context>
     <name>location_multi</name>
     <message>
-        <location filename="../modules/layer_location.py" line="177"/>
+        <location filename="../modules/layer_location.py" line="187"/>
         <source>Shared Data Source</source>
         <translation>Datenquelle wird von mehreren Layern verwendet</translation>
     </message>
     <message>
-        <location filename="../modules/layer_location.py" line="178"/>
+        <location filename="../modules/layer_location.py" line="188"/>
         <source>Folder</source>
         <translation>Ordner</translation>
     </message>
     <message>
-        <location filename="../modules/layer_location.py" line="179"/>
+        <location filename="../modules/layer_location.py" line="189"/>
         <source>File</source>
         <translation>Datei</translation>
     </message>
     <message>
-        <location filename="../modules/layer_location.py" line="180"/>
+        <location filename="../modules/layer_location.py" line="190"/>
         <source>Layer</source>
         <translation>Layer</translation>
     </message>
     <message>
-        <location filename="../modules/layer_location.py" line="181"/>
+        <location filename="../modules/layer_location.py" line="191"/>
         <source>Used by:</source>
         <translation>Benutzt von:</translation>
     </message>
@@ -652,12 +659,12 @@ X Layers</source>
 <context>
     <name>log_summary</name>
     <message>
-        <location filename="../modules/logs_and_errors.py" line="145"/>
+        <location filename="../modules/logs_and_errors.py" line="144"/>
         <source>{amount} layers processed. (skipped actions: {skipped} / errors: {errors})</source>
         <translation>{amount} Layer verarbeitet. (Übersprungene Vorgänge: {skipped} / Fehler: {errors})</translation>
     </message>
     <message>
-        <location filename="../modules/logs_and_errors.py" line="146"/>
+        <location filename="../modules/logs_and_errors.py" line="145"/>
         <source> → For more inforation on skipped actions and errors, see the plugin log.</source>
         <translation> → nähere Informationen zu übersprungenen Vorgängen und Fehlern im Protokoll.</translation>
     </message>

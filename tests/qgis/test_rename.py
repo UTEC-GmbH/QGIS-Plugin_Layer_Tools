@@ -64,7 +64,7 @@ class TestHandleNameCollisions:
 
         new_names: set[str] = {r.new_name for r in plan if r.new_name}
         # Both suffixed names must be unique and different from each other.
-        assert len(new_names) == 2  # noqa: PLR2004 (magic value intentional)
+        assert len(new_names) == 2
         # The base name 'road' should be embedded in each result.
         for name in new_names:
             assert "road" in name
@@ -162,7 +162,7 @@ class TestExecuteRenamePlan:
 
         assert layer_a.name() == "A_renamed"
         assert layer_b.name() == "B_renamed"
-        assert len(result.successes) == 2  # noqa: PLR2004
+        assert len(result.successes) == 2
 
 
 class TestRenameIntegration:
@@ -171,7 +171,9 @@ class TestRenameIntegration:
     def test_prepare_rename_plan_removes_strings(self, qgis_iface) -> None:
         """Test that prepare_rename_plan removes the specified strings and cleans up the name."""
         from unittest.mock import patch
-        from qgis.core import QgsProject, QgsLayerTreeGroup, QgsVectorLayer
+
+        from qgis.core import QgsLayerTreeGroup, QgsProject, QgsVectorLayer
+
         from modules.rename import prepare_rename_plan
 
         # 1. Create a layer and add it to a group
@@ -203,8 +205,9 @@ class TestRenameIntegration:
     def test_rename_layers_cancelled(self) -> None:
         """Test that rename_layers raises CustomUserError if the dialog is cancelled."""
         from unittest.mock import patch
-        from modules.rename import rename_layers
+
         from modules.logs_and_errors import CustomUserError
+        from modules.rename import rename_layers
 
         # Mock prompt_remove_strings to return None (user clicked cancel)
         with patch("modules.rename.get_selected_layers", return_value=[None]), \

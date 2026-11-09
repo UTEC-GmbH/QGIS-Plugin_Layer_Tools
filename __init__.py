@@ -4,7 +4,6 @@ This script initializes the plugin, making it known to QGIS.
 """
 
 # pylint: disable=invalid-name, import-outside-toplevel
-# ruff: noqa: ANN001, ANN201, N802, PLC0415
 
 
 def classFactory(iface):
@@ -17,6 +16,6 @@ def classFactory(iface):
         UTECLayerTools: An instance of the plugin class.
     """
 
-    from .UTEC_layer_tools import UTECLayerTools
+    from .UTEC_layer_tools import UTECLayerTools  # pyrefly: ignore[missing-import]
 
     return UTECLayerTools(iface)

@@ -6,7 +6,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from modules.context import ContextRuntimeError, PluginContext
-from modules.print_layout_export import LayoutSelectionDialog
+from modules.general import exec_dialog
+from modules.print_layout_export import LayoutSelectionDialog, _archive_existing_pdf
 
 
 class TestPluginContext:
@@ -101,6 +102,56 @@ class TestPluginContext:
         assert PluginContext.is_dark_theme() is False
 
 
+class TestExecDialog:
+    """Tests for Qt-version-specific modal dialog execution."""
+
+    @patch("modules.general.PluginContext.is_qt6", return_value=True)
+    def test_uses_qt6_exec(self, _is_qt6: MagicMock) -> None:
+        dialog = MagicMock()
+        dialog.exec.return_value = 1
+
+        assert exec_dialog(dialog) == 1
+        dialog.exec.assert_called_once()
+        dialog.exec_.assert_not_called()
+
+    @patch("modules.general.PluginContext.is_qt6", return_value=False)
+    def test_uses_qt5_exec_underscore(self, _is_qt6: MagicMock) -> None:
+        dialog = MagicMock()
+        dialog.exec_.return_value = 1
+
+        assert exec_dialog(dialog) == 1
+        dialog.exec_.assert_called_once()
+        dialog.exec.assert_not_called()
+
+
+class TestArchiveExistingPdf:
+    """Tests for preserving existing PDFs before export."""
+
+    def test_archives_existing_file(self, tmp_path: Path) -> None:
+        pdf_path = tmp_path / "layout.pdf"
+        pdf_path.write_text("existing", encoding="utf-8")
+
+        assert _archive_existing_pdf(pdf_path)
+        assert not pdf_path.exists()
+        assert (tmp_path / "alt" / "layout.pdf").read_text(encoding="utf-8") == (
+            "existing"
+        )
+
+    def test_reports_archive_failure_without_removing_original(
+        self, tmp_path: Path, monkeypatch
+    ) -> None:
+        pdf_path = tmp_path / "layout.pdf"
+        pdf_path.write_text("existing", encoding="utf-8")
+
+        def fail_rename(_path: Path, _target: Path) -> Path:
+            raise OSError("permission denied")
+
+        monkeypatch.setattr(Path, "rename", fail_rename)
+
+        assert not _archive_existing_pdf(pdf_path)
+        assert pdf_path.read_text(encoding="utf-8") == "existing"
+
+
 class TestLayoutSelectionDialog:
     """Tests for the layout export dialog filename settings."""
 
@@ -113,7 +164,7 @@ class TestLayoutSelectionDialog:
     ) -> None:
         """The prefix should default to the project name with a trailing separator."""
         mock_project_path.return_value = Path("/data/example_project.qgz")
-        mock_iface.return_value.mainWindow.return_value = MagicMock()
+        mock_iface.return_value.mainWindow.return_value = None
 
         layout_a = MagicMock()
         layout_a.name.return_value = "First Layout"
@@ -134,7 +185,7 @@ class TestLayoutSelectionDialog:
     ) -> None:
         """A custom prefix should be applied to the exported file name."""
         mock_project_path.return_value = Path("/data/example_project.qgz")
-        mock_iface.return_value.mainWindow.return_value = MagicMock()
+        mock_iface.return_value.mainWindow.return_value = None
 
         layout_a = MagicMock()
         layout_a.name.return_value = "First Layout"

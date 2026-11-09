@@ -107,7 +107,7 @@ def show_message(
             Defaults to Qgis.Critical.
         duration: The duration of the message in seconds (default: 0 = until closed).
     """
-    # pylint: disable=import-outside-toplevel
+
     from .context import PluginContext  # noqa: PLC0415
 
     if msg_bar := PluginContext.message_bar():

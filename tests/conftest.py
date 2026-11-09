@@ -90,7 +90,7 @@ def init_plugin_context(qgis_iface: QgisInterface) -> None:
     Args:
         qgis_iface: The stubbed QgisInterface provided by pytest-qgis.
     """
-    from modules.context import PluginContext  # noqa: PLC0415
+    from modules.context import PluginContext
 
     plugin_dir: Path = Path(__file__).parent.parent
     PluginContext.init(qgis_iface, plugin_dir)

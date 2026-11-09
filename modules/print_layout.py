@@ -25,6 +25,7 @@ from qgis.core import (
     QgsUnitTypes,
 )
 from qgis.PyQt.QtCore import QCoreApplication, QRectF
+from qgis.PyQt.QtGui import QShowEvent
 from qgis.PyQt.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -38,11 +39,12 @@ from qgis.PyQt.QtWidgets import (
     QTextEdit,
     QWidget,
 )
-from qgis.PyQt.QtXml import QDomDocument
+from qgis.PyQt.QtXml import QDomDocument, QDomElement
+from typing_extensions import override
 
 from .constants import MAP_SCALES, PAPER_SIZES, PaperProps
 from .context import PluginContext
-from .general import enforce_text_edit_limits
+from .general import enforce_text_edit_limits, exec_dialog
 from .logs_and_errors import log_debug, lvl, raise_runtime_error
 from .project_variables import (
     ProjectVariable,
@@ -112,6 +114,13 @@ class NewLayoutDialog(QDialog):
         self._setup_source_inputs()
         self._setup_variable_inputs()
         self._setup_dialog_buttons()
+
+    @override
+    def showEvent(self, a0: QShowEvent) -> None:
+        """Focus and select the suggested layout name when the dialog opens."""
+        super().showEvent(a0)
+        self.name_edit.setFocus()
+        self.name_edit.selectAll()
 
     def _setup_layout_inputs(self, suggested_name: str) -> None:
         """Set up inputs for layout name, paper, and drafter/checker metadata.
@@ -602,27 +611,18 @@ def _handle_static_labels(
     if not isinstance(item, QgsLayoutItemLabel):
         return False
 
-    if item_id == "gezeichnet - Name":
-        item.setText(metadata.drafter)
-        item.refresh()
-        return True
+    label_texts: dict[str, str] = {
+        "gezeichnet - Name": metadata.drafter,
+        "geprüft - Name": metadata.checker,
+        "gezeichnet - Datum": metadata.drafter_date,
+        "geprüft - Datum": metadata.checker_date,
+    }
+    if item_id not in label_texts:
+        return False
 
-    if item_id == "geprüft - Name":
-        item.setText(metadata.checker)
-        item.refresh()
-        return True
-
-    if item_id == "gezeichnet - Datum":
-        item.setText(metadata.drafter_date)
-        item.refresh()
-        return True
-
-    if item_id == "geprüft - Datum":
-        item.setText(metadata.checker_date)
-        item.refresh()
-        return True
-
-    return False
+    item.setText(label_texts[item_id])
+    item.refresh()
+    return True
 
 
 def _handle_map_linked_items(
@@ -719,35 +719,55 @@ def _scale_title_block_template(doc: QDomDocument, scaling: float) -> None:
                 "size",
                 f"{float(width) * scaling},{float(height) * scaling},{unit}",
             )
-        elif (
-            item_element.attribute("groupUuid") == group_uuid
-            or item_element.attribute("id") == "Nordpfeil"
-        ):
-            for attribute in ("position", "positionOnPage"):
-                if not item_element.hasAttribute(attribute):
-                    continue
-                x, y, unit = item_element.attribute(attribute).split(",")
-                item_element.setAttribute(
-                    attribute,
-                    (
-                        f"{origin_x + (float(x) - origin_x) * scaling},"
-                        f"{origin_y + (float(y) - origin_y) * scaling},"
-                        f"{unit}"
-                    ),
-                )
-
-            width, height, unit = item_element.attribute("size").split(",")
-            item_element.setAttribute(
-                "size",
-                f"{float(width) * scaling},{float(height) * scaling},{unit}",
+        else:
+            _scale_title_block_child(
+                item_element,
+                group_uuid,
+                scaling,
+                origin_x,
+                origin_y,
             )
 
-            text_styles = item_element.elementsByTagName("text-style")
-            for style_index in range(text_styles.count()):
-                style_element = text_styles.at(style_index).toElement()
-                if style_element.hasAttribute("fontSize"):
-                    font_size = float(style_element.attribute("fontSize"))
-                    style_element.setAttribute("fontSize", str(font_size * scaling))
+
+def _scale_title_block_child(
+    item_element: QDomElement,
+    group_uuid: str,
+    scaling: float,
+    origin_x: float,
+    origin_y: float,
+) -> None:
+    """Scale a title-block child or north arrow in the template document."""
+    if (
+        item_element.attribute("groupUuid") != group_uuid
+        and item_element.attribute("id") != "Nordpfeil"
+    ):
+        return
+
+    for attribute in ("position", "positionOnPage"):
+        if not item_element.hasAttribute(attribute):
+            continue
+        x, y, unit = item_element.attribute(attribute).split(",")
+        item_element.setAttribute(
+            attribute,
+            (
+                f"{origin_x + (float(x) - origin_x) * scaling},"
+                f"{origin_y + (float(y) - origin_y) * scaling},"
+                f"{unit}"
+            ),
+        )
+
+    width, height, unit = item_element.attribute("size").split(",")
+    item_element.setAttribute(
+        "size",
+        f"{float(width) * scaling},{float(height) * scaling},{unit}",
+    )
+
+    text_styles = item_element.elementsByTagName("text-style")
+    for style_index in range(text_styles.count()):
+        style_element = text_styles.at(style_index).toElement()
+        if style_element.hasAttribute("fontSize"):
+            font_size = float(style_element.attribute("fontSize"))
+            style_element.setAttribute("fontSize", str(font_size * scaling))
 
 
 def _move_title_block_to_corner(
@@ -796,7 +816,7 @@ def _move_title_block_to_corner(
     shift_y: float = target_max_y - current_max_y
 
     # Move all new items
-    reference_offsets = {
+    reference_offsets: dict[object, tuple[float, float]] = {
         QgsLayoutItem.ReferencePoint.UpperLeft: (0.0, 0.0),
         QgsLayoutItem.ReferencePoint.UpperMiddle: (0.5, 0.0),
         QgsLayoutItem.ReferencePoint.UpperRight: (1.0, 0.0),
@@ -816,7 +836,7 @@ def _move_title_block_to_corner(
             current_scene_pos.y() + shift_y + item_size.height() * reference_y,
             QgsUnitTypes.LayoutMillimeters,
         )
-        item.attemptMove(new_pos, True)
+        item.attemptMove(new_pos, useReferencePoint=True)
 
     return bbox.translated(shift_x, shift_y)
 
@@ -889,7 +909,7 @@ def create_print_layout() -> None:
     suggested_name: str = _get_unique_layout_name(layout_manager)
 
     dialog = NewLayoutDialog(project, suggested_name)
-    if not dialog.exec_():
+    if not exec_dialog(dialog):
         log_debug("Layout creation cancelled by user.", lvl.Info)
         return
 

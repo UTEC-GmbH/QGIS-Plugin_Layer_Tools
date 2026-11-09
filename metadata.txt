@@ -1,8 +1,11 @@
 [general]
 name=UTEC Layer Tools (dev)
 
-version=1.8
+version=1.8a
 changelog=
+
+    Version 1.8a:
+    - 🤏 diverse kleine Verbesserungen am Code und in den Menus
 
     Version 1.8:
     - ✨ Neue Funktion: GeoPackage aufräumen

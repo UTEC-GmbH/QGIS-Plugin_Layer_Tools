@@ -85,7 +85,7 @@ class TestGeometryTypeSuffix:
         exercises the ``if not isinstance(layer, QgsVectorLayer): return ''``
         branch without needing a real QGIS raster layer.
         """
-        from modules.rename import geometry_type_suffix  # noqa: PLC0415
+        from modules.rename import geometry_type_suffix
 
         class FakeLayer:
             """Stub for a non-vector layer."""
@@ -98,7 +98,7 @@ class TestCleanLayerName:
 
     def test_case_insensitive_removal(self) -> None:
         """Strings to remove are replaced case-insensitively, and trailing separators are stripped."""
-        from modules.rename import clean_layer_name  # noqa: PLC0415
+        from modules.rename import clean_layer_name
 
         assert clean_layer_name("layer 1 - hatch", ["hatch"]) == "layer 1"
         assert clean_layer_name("layer 1 - HATCH", ["hatch"]) == "layer 1"
@@ -106,26 +106,26 @@ class TestCleanLayerName:
 
     def test_multiple_removal_and_whitespace(self) -> None:
         """Multiple strings are removed and spacing is cleaned up."""
-        from modules.rename import clean_layer_name  # noqa: PLC0415
+        from modules.rename import clean_layer_name
 
         assert clean_layer_name("layer 2 - hatch - copy", ["hatch", "copy"]) == "layer 2"
 
     def test_consecutive_separators_collapsed(self) -> None:
         """Multiple hyphens or underscores are collapsed into single ones."""
-        from modules.rename import clean_layer_name  # noqa: PLC0415
+        from modules.rename import clean_layer_name
 
         assert clean_layer_name("layer--3", []) == "layer-3"
         assert clean_layer_name("layer___3", []) == "layer_3"
 
     def test_trailing_leading_separators_stripped(self) -> None:
         """Leading/trailing spaces, hyphens, and underscores are stripped."""
-        from modules.rename import clean_layer_name  # noqa: PLC0415
+        from modules.rename import clean_layer_name
 
         assert clean_layer_name(" - layer 4_", []) == "layer 4"
         assert clean_layer_name("___layer-5 - - ", []) == "layer-5"
 
     def test_empty_words_ignored(self) -> None:
         """Empty removal strings or spaces do not alter the name."""
-        from modules.rename import clean_layer_name  # noqa: PLC0415
+        from modules.rename import clean_layer_name
 
         assert clean_layer_name("layer 6", ["", "   "]) == "layer 6"
