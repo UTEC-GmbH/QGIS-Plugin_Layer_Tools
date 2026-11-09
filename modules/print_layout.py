@@ -39,7 +39,7 @@ from qgis.PyQt.QtWidgets import (
     QTextEdit,
     QWidget,
 )
-from qgis.PyQt.QtXml import QDomDocument
+from qgis.PyQt.QtXml import QDomDocument, QDomElement
 from typing_extensions import override
 
 from .constants import MAP_SCALES, PAPER_SIZES, PaperProps
@@ -611,27 +611,18 @@ def _handle_static_labels(
     if not isinstance(item, QgsLayoutItemLabel):
         return False
 
-    if item_id == "gezeichnet - Name":
-        item.setText(metadata.drafter)
-        item.refresh()
-        return True
+    label_texts: dict[str, str] = {
+        "gezeichnet - Name": metadata.drafter,
+        "geprüft - Name": metadata.checker,
+        "gezeichnet - Datum": metadata.drafter_date,
+        "geprüft - Datum": metadata.checker_date,
+    }
+    if item_id not in label_texts:
+        return False
 
-    if item_id == "geprüft - Name":
-        item.setText(metadata.checker)
-        item.refresh()
-        return True
-
-    if item_id == "gezeichnet - Datum":
-        item.setText(metadata.drafter_date)
-        item.refresh()
-        return True
-
-    if item_id == "geprüft - Datum":
-        item.setText(metadata.checker_date)
-        item.refresh()
-        return True
-
-    return False
+    item.setText(label_texts[item_id])
+    item.refresh()
+    return True
 
 
 def _handle_map_linked_items(
@@ -728,35 +719,55 @@ def _scale_title_block_template(doc: QDomDocument, scaling: float) -> None:
                 "size",
                 f"{float(width) * scaling},{float(height) * scaling},{unit}",
             )
-        elif (
-            item_element.attribute("groupUuid") == group_uuid
-            or item_element.attribute("id") == "Nordpfeil"
-        ):
-            for attribute in ("position", "positionOnPage"):
-                if not item_element.hasAttribute(attribute):
-                    continue
-                x, y, unit = item_element.attribute(attribute).split(",")
-                item_element.setAttribute(
-                    attribute,
-                    (
-                        f"{origin_x + (float(x) - origin_x) * scaling},"
-                        f"{origin_y + (float(y) - origin_y) * scaling},"
-                        f"{unit}"
-                    ),
-                )
-
-            width, height, unit = item_element.attribute("size").split(",")
-            item_element.setAttribute(
-                "size",
-                f"{float(width) * scaling},{float(height) * scaling},{unit}",
+        else:
+            _scale_title_block_child(
+                item_element,
+                group_uuid,
+                scaling,
+                origin_x,
+                origin_y,
             )
 
-            text_styles = item_element.elementsByTagName("text-style")
-            for style_index in range(text_styles.count()):
-                style_element = text_styles.at(style_index).toElement()
-                if style_element.hasAttribute("fontSize"):
-                    font_size = float(style_element.attribute("fontSize"))
-                    style_element.setAttribute("fontSize", str(font_size * scaling))
+
+def _scale_title_block_child(
+    item_element: QDomElement,
+    group_uuid: str,
+    scaling: float,
+    origin_x: float,
+    origin_y: float,
+) -> None:
+    """Scale a title-block child or north arrow in the template document."""
+    if (
+        item_element.attribute("groupUuid") != group_uuid
+        and item_element.attribute("id") != "Nordpfeil"
+    ):
+        return
+
+    for attribute in ("position", "positionOnPage"):
+        if not item_element.hasAttribute(attribute):
+            continue
+        x, y, unit = item_element.attribute(attribute).split(",")
+        item_element.setAttribute(
+            attribute,
+            (
+                f"{origin_x + (float(x) - origin_x) * scaling},"
+                f"{origin_y + (float(y) - origin_y) * scaling},"
+                f"{unit}"
+            ),
+        )
+
+    width, height, unit = item_element.attribute("size").split(",")
+    item_element.setAttribute(
+        "size",
+        f"{float(width) * scaling},{float(height) * scaling},{unit}",
+    )
+
+    text_styles = item_element.elementsByTagName("text-style")
+    for style_index in range(text_styles.count()):
+        style_element = text_styles.at(style_index).toElement()
+        if style_element.hasAttribute("fontSize"):
+            font_size = float(style_element.attribute("fontSize"))
+            style_element.setAttribute("fontSize", str(font_size * scaling))
 
 
 def _move_title_block_to_corner(
