@@ -33,7 +33,7 @@ from qgis.PyQt.QtWidgets import (
 
 from .constants import GEOMETRY_SUFFIX_MAP, ActionResults, Issue
 from .context import PluginContext
-from .general import get_selected_layers, is_empty_layer
+from .general import exec_dialog, get_selected_layers, is_empty_layer
 from .logs_and_errors import CustomUserError, log_debug, lvl, raise_runtime_error
 
 if TYPE_CHECKING:
@@ -172,7 +172,7 @@ def prompt_remove_strings() -> list[str] | None:
         list[str] | None: A list of words to remove, or None if the user cancelled.
     """
     dialog = RemoveStringsDialog()
-    if dialog.exec_():
+    if exec_dialog(dialog):
         return dialog.get_remove_strings()
     return None
 

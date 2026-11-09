@@ -32,6 +32,7 @@ from qgis.PyQt.QtWidgets import (
 
 from .constants import ActionResults, Issue
 from .context import PluginContext
+from .general import exec_dialog
 from .logs_and_errors import log_debug, lvl, raise_runtime_error
 
 
@@ -302,18 +303,19 @@ class LayoutSelectionDialog(QDialog):
         return settings
 
 
-def _archive_existing_pdf(pdf_path: Path) -> None:
+def _archive_existing_pdf(pdf_path: Path) -> bool:
     """Move an existing PDF to an 'alt' subfolder, versioning it if necessary.
 
     Args:
         pdf_path: The path to the PDF file that should be archived.
+
+    Returns:
+        True when there is no existing PDF or archival succeeds; otherwise False.
     """
     if not pdf_path.exists():
-        return
+        return True
 
     alt_directory: Path = pdf_path.parent / "alt"
-    alt_directory.mkdir(exist_ok=True)
-
     target_file_path: Path = alt_directory / pdf_path.name
 
     # If the file already exists in the archive, find a unique name with a suffix
@@ -327,9 +329,60 @@ def _archive_existing_pdf(pdf_path: Path) -> None:
             iteration += 1
 
     try:
+        alt_directory.mkdir(exist_ok=True)
         pdf_path.rename(target_file_path)
     except OSError as error:
         log_debug(f"Could not archive existing file: {error}", lvl.Warning)
+        return False
+    return True
+
+
+def _export_selected_layouts(
+    selected_layouts: list[QgsPrintLayout],
+    dialog: LayoutSelectionDialog,
+    pdf_dir: Path,
+    export_settings: QgsLayoutExporter.PdfExportSettings,
+    progress_bar: QProgressBar,
+) -> ActionResults[None]:
+    """Export the selected layouts and collect their results."""
+    results: ActionResults[None] = ActionResults(None)
+
+    for index, layout in enumerate(selected_layouts):
+        layout_name: str = layout.name()
+        results.processed.append(layout_name)
+        pdf_path: Path = pdf_dir / dialog.get_export_filename(layout_name)
+
+        if not _archive_existing_pdf(pdf_path):
+            results.errors.append(
+                Issue(
+                    layout_name,
+                    "Could not archive the existing PDF; export was skipped.",
+                )
+            )
+        else:
+            status: QgsLayoutExporter.ExportResult = QgsLayoutExporter(
+                layout
+            ).exportToPdf(str(pdf_path), export_settings)
+
+            if (
+                PluginContext.is_qgis4()
+                and status == QgsLayoutExporter.ExportResult.Success
+            ) or (not PluginContext.is_qgis4() and status == QgsLayoutExporter.Success):
+                results.successes.append(layout_name)
+                log_debug(f"Exported layout '{layout_name}' to {pdf_path}", lvl.Success)
+            else:
+                results.errors.append(
+                    Issue(layout_name, f"Export failed with error code: {status}")
+                )
+                log_debug(
+                    f"Failed to export layout '{layout_name}'. Error code: {status}",
+                    lvl.Warning,
+                )
+
+        progress_bar.setValue(index + 1)
+        QCoreApplication.processEvents()
+
+    return results
 
 
 def export_layouts_to_pdf() -> ActionResults[None] | None:
@@ -350,7 +403,7 @@ def export_layouts_to_pdf() -> ActionResults[None] | None:
         raise_runtime_error("No layouts found in the project.")
 
     dialog: LayoutSelectionDialog = LayoutSelectionDialog(layouts)
-    if not dialog.exec_():
+    if not exec_dialog(dialog):
         return None
 
     if not (selected_layouts := dialog.get_selected_layouts()):
@@ -359,9 +412,13 @@ def export_layouts_to_pdf() -> ActionResults[None] | None:
     # Retrieve settings and directory once for all layouts
     export_settings: QgsLayoutExporter.PdfExportSettings = dialog.get_export_settings()
     pdf_dir: Path = dialog.get_export_directory()
-    pdf_dir.mkdir(exist_ok=True)
+    try:
+        pdf_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as error:
+        raise_runtime_error(
+            f"Could not create PDF export directory '{pdf_dir}': {error}"
+        )
 
-    results: ActionResults[None] = ActionResults(None)
     progress_bar = QProgressBar()
     progress_bar.setMaximum(len(selected_layouts))
     progress_bar.setValue(0)
@@ -370,35 +427,13 @@ def export_layouts_to_pdf() -> ActionResults[None] | None:
         message_bar.pushWidget(progress_bar, lvl.Info)
 
     try:
-        for index, layout in enumerate(selected_layouts):
-            layout_name: str = layout.name()
-            results.processed.append(layout_name)
-            pdf_path: Path = pdf_dir / dialog.get_export_filename(layout_name)
-
-            # Archive existing file if it exists
-            _archive_existing_pdf(pdf_path)
-
-            status: QgsLayoutExporter.ExportResult = QgsLayoutExporter(
-                layout
-            ).exportToPdf(str(pdf_path), export_settings)
-
-            if (
-                PluginContext.is_qgis4()
-                and status == QgsLayoutExporter.ExportResult.Success
-            ) or (not PluginContext.is_qgis4() and status == QgsLayoutExporter.Success):
-                results.successes.append(layout_name)
-                log_debug(f"Exported layout '{layout_name}' to {pdf_path}", lvl.Success)
-            else:
-                results.errors.append(
-                    Issue(layout_name, f"Export failed with error code: {status}")
-                )
-                log_debug(
-                    f"Failed to export layout '{layout_name}'. Error code: {status}",
-                    lvl.Warning,
-                )
-
-            progress_bar.setValue(index + 1)
-            QCoreApplication.processEvents()
+        results = _export_selected_layouts(
+            selected_layouts,
+            dialog,
+            pdf_dir,
+            export_settings,
+            progress_bar,
+        )
     finally:
         if message_bar := PluginContext.message_bar():
             message_bar.clearWidgets()

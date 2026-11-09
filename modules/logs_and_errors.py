@@ -107,8 +107,8 @@ def show_message(
             Defaults to Qgis.Critical.
         duration: The duration of the message in seconds (default: 0 = until closed).
     """
-    # pylint: disable=import-outside-toplevel
-    from .context import PluginContext
+
+    from .context import PluginContext  # noqa: PLC0415
 
     if msg_bar := PluginContext.message_bar():
         msg_bar.clearWidgets()
@@ -141,6 +141,7 @@ def log_summary_message(
     """
 
     # fmt: off
+    # ruff: noqa: E501
     s_message: str = QCoreApplication.translate("log_summary", "{amount} layers processed. (skipped actions: {skipped} / errors: {errors})").format(amount=processed, skipped = len(skipped or []), errors = len(errors or []))
     protocol: str = QCoreApplication.translate("log_summary", " → For more inforation on skipped actions and errors, see the plugin log.")  
     # fmt: on

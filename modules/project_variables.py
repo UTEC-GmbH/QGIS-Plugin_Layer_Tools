@@ -19,7 +19,7 @@ from qgis.PyQt.QtWidgets import (
 )
 
 from .context import PluginContext
-from .general import enforce_text_edit_limits
+from .general import enforce_text_edit_limits, exec_dialog
 from .logs_and_errors import log_debug
 
 
@@ -191,7 +191,7 @@ def edit_project_variables() -> None:
         PluginContext.project_path()
 
     dialog = ProjectVariablesDialog(project)
-    if dialog.exec_():
+    if exec_dialog(dialog):
         dialog.save_variables()
         # Mark project as dirty so user is prompted to save changes
         project.setDirty(True)

@@ -44,7 +44,7 @@ from typing_extensions import override
 
 from .constants import MAP_SCALES, PAPER_SIZES, PaperProps
 from .context import PluginContext
-from .general import enforce_text_edit_limits
+from .general import enforce_text_edit_limits, exec_dialog
 from .logs_and_errors import log_debug, lvl, raise_runtime_error
 from .project_variables import (
     ProjectVariable,
@@ -898,7 +898,7 @@ def create_print_layout() -> None:
     suggested_name: str = _get_unique_layout_name(layout_manager)
 
     dialog = NewLayoutDialog(project, suggested_name)
-    if not dialog.exec_():
+    if not exec_dialog(dialog):
         log_debug("Layout creation cancelled by user.", lvl.Info)
         return
 
