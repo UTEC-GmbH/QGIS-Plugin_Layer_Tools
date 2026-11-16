@@ -16,7 +16,6 @@ from qgis.core import (
     QgsVectorDataProvider,
     QgsVectorLayer,
 )
-from qgis.PyQt.QtCore import QCoreApplication
 from qgis.PyQt.QtWidgets import QDialog, QTextEdit
 
 from .context import PluginContext
@@ -44,26 +43,20 @@ def get_selected_layers() -> list[QgsMapLayer]:
         CustomRuntimeError: If QGIS interface or layer tree is unavailable.
         CustomUserError: If no layers or groups are selected.
     """
-    # fmt: off
-    # ruff: noqa: E501
-    no_interface: str = QCoreApplication.translate("RuntimeError", "QGIS interface not set.")
-    no_layertree: str = QCoreApplication.translate("RuntimeError", "Could not get layer tree view.")
-    no_selection: str = QCoreApplication.translate("RuntimeError", "No layers or groups selected.")
-    # fmt: on
 
     try:
         iface: QgisInterface = PluginContext.iface()
     except RuntimeError:
-        raise_runtime_error(no_interface)
+        raise_runtime_error("QGIS interface not set.")
 
     layer_tree: QgsLayerTreeView | None = iface.layerTreeView()
     if not layer_tree:
-        raise_runtime_error(no_layertree)
+        raise_runtime_error("Could not get layer tree view.")
 
     selected_layers: set[QgsMapLayer] = set()
     selected_nodes: list[QgsLayerTreeNode] = layer_tree.selectedNodes()
     if not selected_nodes:
-        raise_user_error(no_selection)
+        raise_user_error("No layers or groups selected.")
 
     for node in selected_nodes:
         if isinstance(node, QgsLayerTreeGroup):
@@ -88,7 +81,8 @@ def get_selected_layers() -> list[QgsMapLayer]:
         }
 
         # Sort selected layers based on their index in the layer order
-        # Layers not in the layer order (shouldn't happen for valid layers) will be at the end
+        # Layers not in the layer order (shouldn't happen for valid layers)
+        # will be at the end
         return sorted(
             selected_layers,
             key=lambda layer: order_map.get(layer.id(), float("inf")),

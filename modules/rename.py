@@ -103,12 +103,13 @@ class RemoveStringsDialog(QDialog):
         self.custom_input.setPlaceholderText(
             QCoreApplication.translate("RenameDialog", "e.g., test, draft, temp")
         )
+        # fmt: off
+        # ruff: noqa: E501
         custom_layout.addRow(
-            QCoreApplication.translate(
-                "RenameDialog", "Additional words (comma-separated):"
-            ),
+            QCoreApplication.translate("RenameDialog", "Additional words (comma-separated):"),
             self.custom_input,
         )
+        # fmt: on
         layout.addLayout(custom_layout)
 
         # 3. Buttons
