@@ -113,13 +113,15 @@ def _validate_gpkg_layer_name(name: str, existing_layers: set[str]) -> str | Non
     if name != name.strip() or "\x00" in name:
         return QCoreApplication.translate("GeoPackage", "The layer name is invalid.")
     if name.casefold().startswith(("gpkg_", "sqlite_")):
-        return QCoreApplication.translate(
-            "GeoPackage", "Names starting with 'gpkg_' or 'sqlite_' are reserved."
-        )
+        # fmt: off
+        # ruff: noqa: E501
+        return QCoreApplication.translate("GeoPackage", "Names starting with 'gpkg_' or 'sqlite_' are reserved.")
+        # fmt: on
     if name.casefold() in {layer.casefold() for layer in existing_layers}:
-        return QCoreApplication.translate(
-            "GeoPackage", "A layer with this name already exists in the GeoPackage."
-        )
+        # fmt: off
+        # ruff: noqa: E501
+        return QCoreApplication.translate("GeoPackage", "A layer with this name already exists in the GeoPackage.")
+        # fmt: on
     return None
 
 
@@ -212,11 +214,7 @@ def _create_gpkg_vector_layer(
 
     memory_layer = QgsVectorLayer(geometry_type, layer_name, "memory")
     if not memory_layer.isValid():
-        raise_runtime_error(
-            QCoreApplication.translate(
-                "GeoPackage", "Could not create the temporary vector layer."
-            )
-        )
+        raise_runtime_error("Could not create the temporary vector layer.")
     memory_layer.setCrs(project.crs())
 
     create_gpkg(gpkg_path)
@@ -231,10 +229,7 @@ def _create_gpkg_vector_layer(
     )
     if not gpkg_layer.isValid():
         raise_runtime_error(
-            QCoreApplication.translate(
-                "GeoPackage",
-                "The new layer was written but could not be loaded into the project.",
-            )
+            "The new layer was written but could not be loaded into the project."
         )
 
     project.addMapLayer(gpkg_layer, addToLegend=False)
@@ -245,11 +240,7 @@ def _create_gpkg_vector_layer(
     if layer_tree_view := iface.layerTreeView():
         layer_tree_view.setCurrentLayer(gpkg_layer)
     if not gpkg_layer.startEditing():
-        raise_runtime_error(
-            QCoreApplication.translate(
-                "GeoPackage", "Could not start editing the new GeoPackage layer."
-            )
-        )
+        raise_runtime_error("Could not start editing the new GeoPackage layer.")
     log_debug(
         f"GeoPackage → Empty vector layer '{layer_name}' created.",
         lvl.Success,
@@ -285,11 +276,7 @@ def _delete_vector_gpkg_tables(gpkg_path: Path, table_names: set[str]) -> None:
     """Delete vector tables from a GeoPackage through GDAL."""
     dataset = ogr.Open(str(gpkg_path), 1)
     if dataset is None:
-        raise_runtime_error(
-            QCoreApplication.translate(
-                "GeoPackage", "Could not open the GeoPackage for editing."
-            )
-        )
+        raise_runtime_error("Could not open the GeoPackage for editing.")
     for table_name in sorted(table_names):
         layer_index = next(
             (
@@ -302,12 +289,7 @@ def _delete_vector_gpkg_tables(gpkg_path: Path, table_names: set[str]) -> None:
         )
         if layer_index is None or dataset.DeleteLayer(layer_index) != 0:
             dataset = None
-            raise_runtime_error(
-                QCoreApplication.translate(
-                    "GeoPackage", "Could not delete GeoPackage table: "
-                )
-                + table_name
-            )
+            raise_runtime_error(f"Could not delete GeoPackage table: {table_name}")
     dataset = None
 
 
@@ -348,11 +330,7 @@ def _delete_gpkg_tables(gpkg_path: Path, layer_names: set[str]) -> None:
         return
 
     if not gpkg_path.exists():
-        raise_runtime_error(
-            QCoreApplication.translate(
-                "GeoPackage", "The project's GeoPackage does not exist."
-            )
-        )
+        raise_runtime_error("The project's GeoPackage does not exist.")
 
     with sqlite3.connect(str(gpkg_path)) as conn:
         contents = {
@@ -366,10 +344,7 @@ def _delete_gpkg_tables(gpkg_path: Path, layer_names: set[str]) -> None:
     missing = requested - contents.keys()
     if missing:
         raise_runtime_error(
-            QCoreApplication.translate(
-                "GeoPackage", "Could not find these tables in the GeoPackage: "
-            )
-            + ", ".join(sorted(missing))
+            f"Could not find these tables in the GeoPackage: {', '.join(sorted(missing))}"
         )
 
     vector_tables = {
@@ -400,31 +375,27 @@ def delete_gpkg_layers() -> None:
                 else ""
             )
         else:
+            # fmt: off
+            # ruff: noqa: E501
             source_detail = (
-                QCoreApplication.translate(
-                    "GeoPackage",
-                    " (outside the project's GeoPackage; source will be kept: ",
-                )
-                + layer.source()
-                + ")"
+                QCoreApplication.translate("GeoPackage", " (outside the project's GeoPackage; source will be kept: ")
+                + f"{layer.source()})"
             )
+            # fmt: on
         selected_details_lines.append(f"• {layer.name()}{source_detail}")
     selected_details = "\n".join(selected_details_lines)
 
+    # fmt: off
+    # ruff: noqa: E501
     reply = QMessageBox.warning(
         PluginContext.iface().mainWindow(),
         QCoreApplication.translate("GeoPackage", "Delete Layers and Data Sources"),
-        QCoreApplication.translate(
-            "GeoPackage",
-            "The selected layers and layers in selected groups will be deleted "
-            "from the project. Corresponding tables in the project's GeoPackage "
-            "will also be deleted; other data sources will not be changed.\n\n"
-            "Selected layers:\n",
-        )
+        QCoreApplication.translate("GeoPackage", "The selected layers and layers in selected groups will be deleted from the project. Corresponding tables in the project's GeoPackage will also be deleted; other data sources will not be changed.\n\nSelected layers:\n")
         + selected_details,
         _MESSAGE_OK | _MESSAGE_CANCEL,
         _MESSAGE_CANCEL,
     )
+    # fmt: on
     if reply != _MESSAGE_OK:
         return
 
@@ -475,29 +446,23 @@ def _shared_source_warning_dialog(
     affected_details: str, parent: QWidget | None = None
 ) -> QMessageBox:
     """Build the confirmation dialog for deleting shared GeoPackage tables."""
+    # fmt: off
+    # ruff: noqa: E501
     dialog = QMessageBox(
         _MESSAGE_WARNING,
         QCoreApplication.translate("GeoPackage", "Shared Data Source Warning"),
-        QCoreApplication.translate(
-            "GeoPackage",
-            "These unselected project layers use a table that would be deleted:\n\n",
-        )
+        QCoreApplication.translate("GeoPackage", "These unselected project layers use a table that would be deleted:\n\n")
         + affected_details
-        + QCoreApplication.translate(
-            "GeoPackage",
-            "\n\nDelete these layers as well as the selected layers and "
-            "their data sources?",
-        ),
+        + QCoreApplication.translate("GeoPackage", "\n\nDelete these layers as well as the selected layers and their data sources?"),
         _MESSAGE_YES | _MESSAGE_CANCEL,
         parent,
     )
+    # fmt: on
     yes_button = dialog.button(_MESSAGE_YES)
+
     if yes_button is None:
-        raise_runtime_error(
-            QCoreApplication.translate(
-                "GeoPackage", "Could not configure the shared-source warning dialog."
-            )
-        )
+        raise_runtime_error("Could not configure the shared-source warning dialog.")
+
     yes_button.setText(
         QCoreApplication.translate("GeoPackage", "Delete All Affected Layers")
     )
@@ -508,11 +473,7 @@ def _shared_source_warning_dialog(
 def _gpkg_contents(gpkg_path: Path) -> list[tuple[str, str]]:
     """Return user-facing table names and data types from a GeoPackage."""
     if not gpkg_path.exists():
-        raise_runtime_error(
-            QCoreApplication.translate(
-                "GeoPackage", "The project's GeoPackage does not exist."
-            )
-        )
+        raise_runtime_error("The project's GeoPackage does not exist.")
     try:
         with sqlite3.connect(str(gpkg_path)) as conn:
             return list(
@@ -522,12 +483,7 @@ def _gpkg_contents(gpkg_path: Path) -> list[tuple[str, str]]:
                 )
             )
     except sqlite3.Error as error:
-        raise_runtime_error(
-            QCoreApplication.translate(
-                "GeoPackage", "Could not read the project's GeoPackage: "
-            )
-            + str(error)
-        )
+        raise_runtime_error(f"Could not read the project's GeoPackage: {error}")
 
 
 def _rename_gpkg_table(gpkg_path: Path, old_name: str, new_name: str) -> None:
@@ -539,12 +495,7 @@ def _rename_gpkg_table(gpkg_path: Path, old_name: str, new_name: str) -> None:
         None,
     )
     if actual_name is None:
-        raise_runtime_error(
-            QCoreApplication.translate(
-                "GeoPackage", "Could not find this table in the GeoPackage: "
-            )
-            + old_name
-        )
+        raise_runtime_error(f"Could not find this table in the GeoPackage: {old_name}")
     if new_name.casefold() == actual_name.casefold():
         return
     existing_tables = get_gpkg_layer_names(gpkg_path)
@@ -637,12 +588,7 @@ def _rename_gpkg_table(gpkg_path: Path, old_name: str, new_name: str) -> None:
                 if catalog_table in existing_catalogs:
                     cursor.execute(query, (new_name, actual_name))
     except sqlite3.Error as error:
-        raise_runtime_error(
-            QCoreApplication.translate(
-                "GeoPackage", "Could not rename the GeoPackage table: "
-            )
-            + str(error)
-        )
+        raise_runtime_error(f"Could not rename the GeoPackage table: {error}")
 
 
 def _source_with_renamed_table(source: str, old_name: str, new_name: str) -> str:
@@ -664,10 +610,7 @@ def _source_with_renamed_table(source: str, old_name: str, new_name: str) -> str
     table_match = table_pattern.search(source)
     if not (table_match and table_match.group(2).casefold() == old_name.casefold()):
         raise_runtime_error(
-            QCoreApplication.translate(
-                "GeoPackage", "Could not update a project layer's GeoPackage source: "
-            )
-            + source
+            f"Could not update a project layer's GeoPackage source: {source}"
         )
 
     return source[: table_match.start(2)] + new_name + source[table_match.end(2) :]
@@ -770,7 +713,7 @@ class _GpkgManagerDialog(QDialog):
         item.setTextAlignment(1, int(_ALIGN_CENTER))
         self._add_layer_dependencies(item, layers)
         self.tree.addTopLevelItem(item)
-        item.setExpanded(True)
+        item.setExpanded(False)
         self._add_table_actions(item, table_name)
 
     def _add_layer_dependencies(
@@ -790,15 +733,14 @@ class _GpkgManagerDialog(QDialog):
             font.setBold(True)
             item.setFont(column, font)
             item.setForeground(column, QBrush(QColor("red")))
+        # fmt: off
+        # ruff: noqa: E501
         unused_item = QTreeWidgetItem(
             [
-                "→ "
-                + QCoreApplication.translate(
-                    "GeoPackage",
-                    "not used by any layer in the project",
-                )
+                QCoreApplication.translate("GeoPackage", "→ not used by any layer in the project")
             ]
         )
+        # fmt: on
         item.addChild(unused_item)
 
     def _add_table_actions(self, item: QTreeWidgetItem, table_name: str) -> None:
@@ -871,15 +813,14 @@ class _GpkgManagerDialog(QDialog):
             if not layer.isValid():
                 invalid_layers.append(layer.name())
         if invalid_layers:
+            # fmt: off
+            # ruff: noqa: E501
             QMessageBox.warning(
                 self,
                 QCoreApplication.translate("GeoPackage", "Layer Source Update Failed"),
-                QCoreApplication.translate(
-                    "GeoPackage",
-                    "The table was renamed, but these project layers could not be "
-                    "reconnected:\n%1",
-                ).replace("%1", "\n".join(invalid_layers)),
+                QCoreApplication.translate("GeoPackage", "The table was renamed, but these project layers could not be reconnected:\n%1").replace("%1", "\n".join(invalid_layers)),
             )
+            # fmt: on
         self.refresh()
 
     def _delete_table(self, table_name: str) -> None:
@@ -898,15 +839,16 @@ class _GpkgManagerDialog(QDialog):
             reply = warning.exec()
             remove_affected_layers = remove_layers_checkbox.isChecked()
         else:
+            # fmt: off
+            # ruff: noqa: E501
             reply = QMessageBox.question(
                 self,
                 QCoreApplication.translate("GeoPackage", "Delete GeoPackage Table?"),
-                QCoreApplication.translate(
-                    "GeoPackage", "Delete the unused table '%1'?"
-                ).replace("%1", table_name),
+                QCoreApplication.translate("GeoPackage", "Delete the unused table '%1'?").replace("%1", table_name),
                 _MESSAGE_YES | _MESSAGE_CANCEL,
                 _MESSAGE_CANCEL,
             )
+            # fmt: on
             remove_affected_layers = False
         if reply != _MESSAGE_YES:
             return
@@ -925,22 +867,20 @@ class _GpkgManagerDialog(QDialog):
     ) -> tuple[QMessageBox, QCheckBox]:
         """Create a used-table warning with an optional project-layer removal."""
         details = "\n".join(f"• {layer.name()}" for layer in layers)
+
+        # fmt: off
+        # ruff: noqa: E501
         warning = QMessageBox(
             _MESSAGE_WARNING,
             QCoreApplication.translate("GeoPackage", "Delete Used GeoPackage Table?"),
-            QCoreApplication.translate(
-                "GeoPackage",
-                "The following project layers use this table and will lose "
-                "their data source:\n\n%1\n\nDelete the table?",
-            ).replace("%1", details),
+            QCoreApplication.translate("GeoPackage", "The following project layers use this table and will lose their data source:\n\n%1\n\nDelete the table?").replace("%1", details),
             _MESSAGE_YES | _MESSAGE_CANCEL,
             self,
         )
         remove_layers_checkbox = QCheckBox(
-            QCoreApplication.translate(
-                "GeoPackage", "Also remove these layers from the project"
-            )
+            QCoreApplication.translate("GeoPackage", "Also remove these layers from the project")
         )
+        # fmt: on
         warning.setCheckBox(remove_layers_checkbox)
         warning.setDefaultButton(_MESSAGE_CANCEL)
         return warning, remove_layers_checkbox
@@ -950,13 +890,14 @@ def manage_gpkg_tables() -> None:
     """Open the manager for the current project's GeoPackage."""
     gpkg_path = PluginContext.project_gpkg()
     if not gpkg_path.exists():
+        # fmt: off
+        # ruff: noqa: E501
         QMessageBox.warning(
             PluginContext.iface().mainWindow(),
             QCoreApplication.translate("GeoPackage", "GeoPackage Not Found"),
-            QCoreApplication.translate(
-                "GeoPackage", "The project's GeoPackage does not exist."
-            ),
+            QCoreApplication.translate("GeoPackage", "The project's GeoPackage does not exist."),
         )
+        # fmt: on
         return
     dialog = _GpkgManagerDialog(gpkg_path, PluginContext.iface().mainWindow())
     dialog.exec()
@@ -1355,11 +1296,10 @@ def _confirm_overwrites(
     if not used_overwrites:
         return True
 
-    msg: str = QCoreApplication.translate(
-        "GeoPackage",
-        "The following layers in the project's GeoPackage are currently in use "
-        "in the project and will be overwritten:\n",
-    )
+    # fmt: off
+    # ruff: noqa: E501
+    msg: str = QCoreApplication.translate("GeoPackage", "The following layers in the project's GeoPackage are currently in use in the project and will be overwritten:\n")
+    # fmt: on
 
     for table in sorted(used_overwrites):
         msg += f"\n• {table}"
@@ -1368,11 +1308,10 @@ def _confirm_overwrites(
             usage_text = QCoreApplication.translate("GeoPackage", "used by")
             msg += f" ({usage_text}: {dep_str})"
 
-    msg += QCoreApplication.translate(
-        "GeoPackage",
-        "\n\nThis can lead to to unexpected results (especially if used by "
-        "multiple layers). \n\nDo you want to continue?",
-    )
+    # fmt: off
+    # ruff: noqa: E501
+    msg += QCoreApplication.translate("GeoPackage", "\n\nThis can lead to to unexpected results (especially if used by multiple layers). \n\nDo you want to continue?")
+    # fmt: on
 
     reply = QMessageBox.question(
         PluginContext.iface().mainWindow(),
@@ -1627,10 +1566,7 @@ def add_layers_from_gpkg_to_project(
 
     root: QgsLayerTree | None = project.layerTreeRoot()
     if not root:
-        msg: str = QCoreApplication.translate(
-            "RuntimeError", "Could not get layer tree root."
-        )
-        raise_runtime_error(msg)
+        raise_runtime_error("Could not get layer tree root.")
 
     results: ActionResults[None] = ActionResults(None)
     gpkg_path_str = str(gpkg_path)

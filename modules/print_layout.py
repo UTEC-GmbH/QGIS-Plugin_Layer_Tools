@@ -179,7 +179,7 @@ class NewLayoutDialog(QDialog):
             "landscape"
         )
         if default_size_index < 0 or default_orientation_index < 0:
-            raise_runtime_error("A3 Landscape is not available as a paper size")
+            raise_runtime_error("not available as a paper size")
         self.paper_size_combo.setCurrentIndex(default_size_index)
         self.paper_orientation_combo.setCurrentIndex(default_orientation_index)
 
@@ -219,11 +219,12 @@ class NewLayoutDialog(QDialog):
         self.source_checkbox = QCheckBox()
         self.source_checkbox.setChecked(False)
 
+        # fmt: off
+        # ruff: noqa: E501
         self.source_edit = QLineEdit(
-            QCoreApplication.translate(
-                "PrintLayout", "Source of Background Maps: LGLN Niedersachsen"
-            )
+            QCoreApplication.translate("PrintLayout", "Source of Background Maps: LGLN Niedersachsen")
         )
+        # fmt: on
         self.source_edit.setEnabled(False)
         self.source_checkbox.toggled.connect(self.source_edit.setEnabled)
 
