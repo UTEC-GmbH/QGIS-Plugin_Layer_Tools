@@ -12,7 +12,7 @@ from typing import Final, NoReturn
 
 from qgis.core import Qgis, QgsMessageLog, QgsProject
 from qgis.gui import QgisInterface, QgsMessageBar
-from qgis.PyQt.QtCore import QT_VERSION_STR
+from qgis.PyQt.QtCore import QT_VERSION_STR, QCoreApplication
 
 # A value of 128 is used as a threshold for determining if a color is "dark".
 # This is based on the color's luminance, where values closer to 0 are darker
@@ -178,7 +178,9 @@ class PluginContext:
         project: QgsProject = cls.project()
         project_path: str = project.fileName()
         if not project_path:
-            msg: str = "Project is not saved. Please save the project first."
+            msg: str = QCoreApplication.translate(
+                "UserError", "Project is not saved. Please save the project first."
+            )
             raise_context_runtime_error(msg)
 
         return Path(project_path)
@@ -231,4 +233,4 @@ class PluginContext:
             True if running on Qt 6 or newer, False otherwise.
         """
         qgis_6: int = 6
-        return int(QT_VERSION_STR.split(".")[0]) >= qgis_6
+        return int(QT_VERSION_STR.split(".")[0]) >= qgis_6  
