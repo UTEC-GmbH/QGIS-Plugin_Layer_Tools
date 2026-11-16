@@ -1,8 +1,11 @@
 [general]
 name=UTEC Layer Tools (dev)
 
-version=1.9
+version=2.0
 changelog=
+    
+    Version 2.0:
+    - 👍 Verbesserung: In der GeoPackage-Verwaltung können jetzt alle ungenutzten Datenquellen gleichzeitig gelöscht werden
 
     Version 1.9:
     - 🤏 diverse kleine Verbesserungen am Code bei den Übersetzungen und in den Menus

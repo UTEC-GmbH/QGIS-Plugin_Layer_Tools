@@ -147,9 +147,7 @@ class _NewGpkgLayerDialog(QDialog):
             ("Line", "LineString"),
             ("Polygon", "Polygon"),
         ):
-            self.geometry_combo.addItem(
-                QCoreApplication.translate("GeoPackage", label), geometry
-            )
+            self.geometry_combo.addItem(label, geometry)
         self.geometry_combo.setCurrentIndex(self.geometry_combo.findData("Polygon"))
         form.addRow(
             QCoreApplication.translate("GeoPackage", "Geometry type:"),
@@ -390,7 +388,7 @@ def delete_gpkg_layers() -> None:
     reply = QMessageBox.warning(
         PluginContext.iface().mainWindow(),
         QCoreApplication.translate("GeoPackage", "Delete Layers and Data Sources"),
-        QCoreApplication.translate("GeoPackage", "The selected layers and layers in selected groups will be deleted from the project. Corresponding tables in the project's GeoPackage will also be deleted; other data sources will not be changed.\n\nSelected layers:\n")
+        QCoreApplication.translate("GeoPackage", "The selected layers and layers in selected groups will be deleted from the project. Corresponding data sources in the project's GeoPackage will also be deleted; other data sources will not be changed.\n\nSelected layers:\n")
         + selected_details,
         _MESSAGE_OK | _MESSAGE_CANCEL,
         _MESSAGE_CANCEL,
@@ -451,7 +449,7 @@ def _shared_source_warning_dialog(
     dialog = QMessageBox(
         _MESSAGE_WARNING,
         QCoreApplication.translate("GeoPackage", "Shared Data Source Warning"),
-        QCoreApplication.translate("GeoPackage", "These unselected project layers use a table that would be deleted:\n\n")
+        QCoreApplication.translate("GeoPackage", "These unselected project layers use a data source that would be deleted:\n\n")
         + affected_details
         + QCoreApplication.translate("GeoPackage", "\n\nDelete these layers as well as the selected layers and their data sources?"),
         _MESSAGE_YES | _MESSAGE_CANCEL,
@@ -646,7 +644,7 @@ class _GpkgManagerDialog(QDialog):
         # ruff: noqa: E501
         self.tree.setHeaderLabels(
             [
-                QCoreApplication.translate("GeoPackage", "Table in GeoPackage\n   → Layer using this table"),
+                QCoreApplication.translate("GeoPackage", "Source in GeoPackage\n   → Layer using this Source"),
                 QCoreApplication.translate("GeoPackage", "Use by\nX Layers"),
                 QCoreApplication.translate("GeoPackage", "Rename"),
                 QCoreApplication.translate("GeoPackage", "Delete"),
@@ -673,6 +671,11 @@ class _GpkgManagerDialog(QDialog):
         layout.addWidget(self.tree)
 
         buttons = QDialogButtonBox(_DIALOG_CLOSE)
+        self.delete_unused_button = buttons.addButton(
+            QCoreApplication.translate("GeoPackage", "Delete all unused data sources"),
+            cast("QDialogButtonBox.ButtonRole", QDialogButtonBox.ActionRole),
+        )
+        self.delete_unused_button.clicked.connect(self._delete_unused_tables)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
         self.refresh()
@@ -776,8 +779,8 @@ class _GpkgManagerDialog(QDialog):
         """Prompt for a new table name, then keep dependent project layers connected."""
         new_name, accepted = QInputDialog.getText(
             self,
-            QCoreApplication.translate("GeoPackage", "Rename GeoPackage Table"),
-            QCoreApplication.translate("GeoPackage", "New table name:"),
+            QCoreApplication.translate("GeoPackage", "Rename GeoPackage Data Source"),
+            QCoreApplication.translate("GeoPackage", "New data source name:"),
             text=table_name,
         )
         if not accepted or new_name.casefold() == table_name.casefold():
@@ -788,7 +791,7 @@ class _GpkgManagerDialog(QDialog):
         ):
             QMessageBox.warning(
                 self,
-                QCoreApplication.translate("GeoPackage", "Invalid Table Name"),
+                QCoreApplication.translate("GeoPackage", "Invalid Name"),
                 warning,
             )
             return
@@ -818,7 +821,7 @@ class _GpkgManagerDialog(QDialog):
             QMessageBox.warning(
                 self,
                 QCoreApplication.translate("GeoPackage", "Layer Source Update Failed"),
-                QCoreApplication.translate("GeoPackage", "The table was renamed, but these project layers could not be reconnected:\n%1").replace("%1", "\n".join(invalid_layers)),
+                QCoreApplication.translate("GeoPackage", "The data source was renamed, but these project layers could not be reconnected:\n%1").replace("%1", "\n".join(invalid_layers)),
             )
             # fmt: on
         self.refresh()
@@ -843,8 +846,8 @@ class _GpkgManagerDialog(QDialog):
             # ruff: noqa: E501
             reply = QMessageBox.question(
                 self,
-                QCoreApplication.translate("GeoPackage", "Delete GeoPackage Table?"),
-                QCoreApplication.translate("GeoPackage", "Delete the unused table '%1'?").replace("%1", table_name),
+                QCoreApplication.translate("GeoPackage", "Delete GeoPackage Data Source?"),
+                QCoreApplication.translate("GeoPackage", "Delete the unused data source '%1'?").replace("%1", table_name),
                 _MESSAGE_YES | _MESSAGE_CANCEL,
                 _MESSAGE_CANCEL,
             )
@@ -862,6 +865,44 @@ class _GpkgManagerDialog(QDialog):
         _delete_gpkg_tables(self.gpkg_path, {table_name})
         self.refresh()
 
+    def _delete_unused_tables(self) -> None:
+        """Confirm and delete every GeoPackage table unused by project layers."""
+        dependencies = _get_gpkg_layer_dependencies(self.gpkg_path)
+        used_names = {name.casefold() for name in dependencies}
+        unused_tables = [
+            table_name
+            for table_name, _data_type in _gpkg_contents(self.gpkg_path)
+            if table_name.casefold() not in used_names
+        ]
+        if not unused_tables:
+            # fmt: off
+            # ruff: noqa: E501
+            QMessageBox.information(
+                self,
+                QCoreApplication.translate("GeoPackage", "No unused data sources"),
+                QCoreApplication.translate("GeoPackage", "All data sources in the GeoPackage are used by project layers."),
+                _MESSAGE_OK,
+            )
+            # fmt: on
+            return
+
+        details = "\n".join(f"• {table_name}" for table_name in unused_tables)
+        # fmt: off
+        # ruff: noqa: E501
+        reply = QMessageBox.question(
+            self,
+            QCoreApplication.translate("GeoPackage", "Delete all unused data sources?"),
+            QCoreApplication.translate("GeoPackage", "The following data sources are not used by any layer in the project and will be deleted:\n\n%1").replace("%1", details),
+            _MESSAGE_OK | _MESSAGE_CANCEL,
+            _MESSAGE_CANCEL,
+        )
+        # fmt: on
+        if reply != _MESSAGE_OK:
+            return
+
+        _delete_gpkg_tables(self.gpkg_path, set(unused_tables))
+        self.refresh()
+
     def _used_table_warning(
         self, layers: list[QgsMapLayer]
     ) -> tuple[QMessageBox, QCheckBox]:
@@ -872,8 +913,8 @@ class _GpkgManagerDialog(QDialog):
         # ruff: noqa: E501
         warning = QMessageBox(
             _MESSAGE_WARNING,
-            QCoreApplication.translate("GeoPackage", "Delete Used GeoPackage Table?"),
-            QCoreApplication.translate("GeoPackage", "The following project layers use this table and will lose their data source:\n\n%1\n\nDelete the table?").replace("%1", details),
+            QCoreApplication.translate("GeoPackage", "Delete Used GeoPackage Data Source?"),
+            QCoreApplication.translate("GeoPackage", "The following project layers use this data source and will lose their data source:\n\n%1\n\nDelete the data source?").replace("%1", details),
             _MESSAGE_YES | _MESSAGE_CANCEL,
             self,
         )
