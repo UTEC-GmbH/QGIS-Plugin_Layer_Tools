@@ -509,6 +509,79 @@ class TestCreateAndDeleteGpkgLayer:
             assert len(cell.findChildren(QToolButton)) == 1
         dialog.close()
 
+    def test_manager_bulk_deletes_unused_tables_after_confirmation(
+        self, clean_project: QgsProject, tmp_gpkg: Path
+    ) -> None:
+        """The bulk action lists and deletes only tables unused by project layers."""
+        create_gpkg(tmp_gpkg)
+        for name in ("used", "unused one", "unused two"):
+            layer = QgsVectorLayer("Point?crs=EPSG:4326", name, "memory")
+            add_vector_layer_to_gpkg(clean_project, layer, tmp_gpkg)
+        dependent = QgsVectorLayer(f"{tmp_gpkg}|layername=used", "project view", "ogr")
+        clean_project.addMapLayer(dependent)
+        dialog = _GpkgManagerDialog(tmp_gpkg)
+        question_args = []
+
+        def confirm(*args):
+            question_args.append(args)
+            return QMessageBox.Ok
+
+        with patch.object(QMessageBox, "question", side_effect=confirm):
+            dialog.delete_unused_button.click()
+
+        assert len(question_args) == 1
+        assert question_args[0][3] == QMessageBox.Ok | QMessageBox.Cancel
+        assert question_args[0][4] == QMessageBox.Cancel
+        assert "unused one" in question_args[0][2]
+        assert "unused two" in question_args[0][2]
+        assert "\n• used" not in question_args[0][2]
+        with sqlite3.connect(tmp_gpkg) as conn:
+            assert {
+                row[0] for row in conn.execute("SELECT table_name FROM gpkg_contents")
+            } == {"used"}
+        dialog.close()
+
+    def test_manager_bulk_delete_cancel_keeps_unused_tables(
+        self, clean_project: QgsProject, tmp_gpkg: Path
+    ) -> None:
+        """Canceling the bulk deletion prompt leaves every unused table intact."""
+        create_gpkg(tmp_gpkg)
+        layer = QgsVectorLayer("Point?crs=EPSG:4326", "unused", "memory")
+        add_vector_layer_to_gpkg(clean_project, layer, tmp_gpkg)
+        dialog = _GpkgManagerDialog(tmp_gpkg)
+
+        with patch.object(
+            QMessageBox,
+            "question",
+            return_value=QMessageBox.Cancel,
+        ) as question:
+            dialog.delete_unused_button.click()
+
+        question.assert_called_once()
+        assert "unused" in question.call_args.args[2]
+        assert "unused" in get_gpkg_layer_names(tmp_gpkg)
+        dialog.close()
+
+    def test_manager_bulk_delete_reports_when_no_tables_are_unused(
+        self, clean_project: QgsProject, tmp_gpkg: Path
+    ) -> None:
+        """The bulk action reports an empty result without prompting to delete."""
+        create_gpkg(tmp_gpkg)
+        layer = QgsVectorLayer("Point?crs=EPSG:4326", "used", "memory")
+        add_vector_layer_to_gpkg(clean_project, layer, tmp_gpkg)
+        dependent = QgsVectorLayer(f"{tmp_gpkg}|layername=used", "project view", "ogr")
+        clean_project.addMapLayer(dependent)
+        dialog = _GpkgManagerDialog(tmp_gpkg)
+
+        with patch.object(QMessageBox, "information") as information, patch.object(
+            QMessageBox, "question"
+        ) as question:
+            dialog.delete_unused_button.click()
+
+        information.assert_called_once()
+        question.assert_not_called()
+        dialog.close()
+
     def test_rename_table_updates_gpkg_metadata_catalogs(
         self, clean_project: QgsProject, tmp_gpkg: Path
     ) -> None:

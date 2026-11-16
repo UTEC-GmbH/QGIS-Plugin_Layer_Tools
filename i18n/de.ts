@@ -4,12 +4,12 @@
 <context>
     <name>GeoPackage</name>
     <message>
-        <location filename="../modules/geopackage.py" line="1308"/>
+        <location filename="../modules/geopackage.py" line="1349"/>
         <source>used by</source>
         <translation>Benutzt von</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="1316"/>
+        <location filename="../modules/geopackage.py" line="1357"/>
         <source>Overwrite Warning</source>
         <translation>Warnung</translation>
     </message>
@@ -39,146 +39,118 @@
         <translation>Neuen GeoPackage-Layer erstellen</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="154"/>
+        <location filename="../modules/geopackage.py" line="152"/>
         <source>Geometry type:</source>
         <translation>Geometrietyp:</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="160"/>
+        <location filename="../modules/geopackage.py" line="158"/>
         <source>Layer name:</source>
         <translation>Layername:</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="266"/>
+        <location filename="../modules/geopackage.py" line="264"/>
         <source>Invalid Layer Name</source>
         <translation>Ungültiger Layername</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="895"/>
+        <location filename="../modules/geopackage.py" line="936"/>
         <source>The project&apos;s GeoPackage does not exist.</source>
         <translation>Das Projekt-GeoPackage existiert nicht.</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="390"/>
+        <location filename="../modules/geopackage.py" line="388"/>
         <source>Delete Layers and Data Sources</source>
         <translation>Layer und Datenquellen löschen</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="451"/>
+        <location filename="../modules/geopackage.py" line="449"/>
         <source>Shared Data Source Warning</source>
         <translation>Warnung - Datenquelle mit mehreren Layern</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="466"/>
+        <location filename="../modules/geopackage.py" line="464"/>
         <source>Delete All Affected Layers</source>
         <translation>Alle betroffenen Layer löschen</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="624"/>
+        <location filename="../modules/geopackage.py" line="622"/>
         <source>Manage Project GeoPackage</source>
-        <translation>Projekt-GeoPackage aufräumen</translation>
+        <translation>Projekt-GeoPackage verwalten</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="631"/>
+        <location filename="../modules/geopackage.py" line="629"/>
         <source>Project&apos;s GeoPackage</source>
         <translation>Projekt-GeoPackage</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="647"/>
-        <source>Table in GeoPackage
-   → Layer using this table</source>
-        <translation>Tabelle in GeoPackage
-   → Layer, die diese Tabelle benutzen</translation>
+        <location filename="../modules/geopackage.py" line="674"/>
+        <source>Delete all unused data sources</source>
+        <translation>Alle unbenutzten Datenquellen löschen</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="647"/>
+        <location filename="../modules/geopackage.py" line="880"/>
+        <source>No unused data sources</source>
+        <translation>Keine unbenutzten Datenquellen</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="880"/>
+        <source>All data sources in the GeoPackage are used by project layers.</source>
+        <translation>Alle Datenquellen im GeoPackage werden von Projekt-Layern verwendet.</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="892"/>
+        <source>Delete all unused data sources?</source>
+        <translation>Alle unbenutzten Datenquellen löschen?</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="892"/>
+        <source>The following data sources are not used by any layer in the project and will be deleted:
+
+%1</source>
+        <translation>Folgende Datenquellen werden von keinem Layer im Projekt verwendet und werden gelöscht:
+
+%1</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="645"/>
         <source>Use by
 X Layers</source>
         <translation>Benutzt von
 x Layern</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="754"/>
+        <location filename="../modules/geopackage.py" line="757"/>
         <source>Rename</source>
         <translation>Umbenennen</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="764"/>
+        <location filename="../modules/geopackage.py" line="767"/>
         <source>Delete</source>
         <translation>Löschen</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="777"/>
-        <source>Rename GeoPackage Table</source>
-        <translation>GeoPackage-Tabelle umbenennen</translation>
-    </message>
-    <message>
-        <location filename="../modules/geopackage.py" line="777"/>
-        <source>New table name:</source>
-        <translation>Neuer Name:</translation>
-    </message>
-    <message>
-        <location filename="../modules/geopackage.py" line="789"/>
-        <source>Invalid Table Name</source>
-        <translation>Ungültiger Name</translation>
-    </message>
-    <message>
-        <location filename="../modules/geopackage.py" line="818"/>
+        <location filename="../modules/geopackage.py" line="821"/>
         <source>Layer Source Update Failed</source>
         <translation>Aktualisierung der Quelle fehlgeschlagen</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="844"/>
-        <source>Delete GeoPackage Table?</source>
-        <translation>GeoPackage-Tabelle löschen?</translation>
-    </message>
-    <message>
-        <location filename="../modules/geopackage.py" line="844"/>
-        <source>Delete the unused table &apos;%1&apos;?</source>
-        <translation>Unbenutzte Tabelle &apos;%1&apos; löschen?</translation>
-    </message>
-    <message>
-        <location filename="../modules/geopackage.py" line="873"/>
-        <source>Delete Used GeoPackage Table?</source>
-        <translation>GeoPackage-Tabelle wird benutzt - trotzdem löschen?</translation>
-    </message>
-    <message>
-        <location filename="../modules/geopackage.py" line="880"/>
+        <location filename="../modules/geopackage.py" line="921"/>
         <source>Also remove these layers from the project</source>
         <translation>Auch diese Layer aus dem Projekt löschen</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="895"/>
+        <location filename="../modules/geopackage.py" line="936"/>
         <source>GeoPackage Not Found</source>
         <translation>GeoPackage nicht gefunden</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="380"/>
+        <location filename="../modules/geopackage.py" line="378"/>
         <source> (outside the project&apos;s GeoPackage; source will be kept: </source>
         <translation> (außerhalb des Projekt-GeoPackage; Quelle wird behalten: </translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="390"/>
-        <source>The selected layers and layers in selected groups will be deleted from the project. Corresponding tables in the project&apos;s GeoPackage will also be deleted; other data sources will not be changed.
-
-Selected layers:
-</source>
-        <translation>Die gewählten Layer und Layer in den gewählten Gruppen werden aus dem Projekt gelöscht. Die Datenquellen werden aus dem Projekt-Geopackage gelöscht; andere Datenquellen werden nicht geändert.
-
-Gewählte Layer:
-</translation>
-    </message>
-    <message>
-        <location filename="../modules/geopackage.py" line="451"/>
-        <source>These unselected project layers use a table that would be deleted:
-
-</source>
-        <translation>Folgende Layer sind nicht ausgewählt aber benutzen die gleiche Datenquelle und werden gelöscht:
-
-</translation>
-    </message>
-    <message>
-        <location filename="../modules/geopackage.py" line="451"/>
+        <location filename="../modules/geopackage.py" line="449"/>
         <source>
 
 Delete these layers as well as the selected layers and their data sources?</source>
@@ -187,39 +159,19 @@ Delete these layers as well as the selected layers and their data sources?</sour
 Diese Layer zusätzlich zu den gewählten Layern und deren Datenquellen löschen?</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="738"/>
+        <location filename="../modules/geopackage.py" line="741"/>
         <source>→ not used by any layer in the project</source>
         <translation>→ von keinem Layer im Projekt verwendet</translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="818"/>
-        <source>The table was renamed, but these project layers could not be reconnected:
-%1</source>
-        <translation>Die Tabelle wurde umbenannt, aber folgende Layer im Projekt konnten nicht wieder verbunden werden:
-%1</translation>
-    </message>
-    <message>
-        <location filename="../modules/geopackage.py" line="873"/>
-        <source>The following project layers use this table and will lose their data source:
-
-%1
-
-Delete the table?</source>
-        <translation>Folgende Layer im Projekt werden ihre Datenquelle verlieren:
-
-%1
-
-Datenquelle trotzdem löschen?</translation>
-    </message>
-    <message>
-        <location filename="../modules/geopackage.py" line="1301"/>
+        <location filename="../modules/geopackage.py" line="1342"/>
         <source>The following layers in the project&apos;s GeoPackage are currently in use in the project and will be overwritten:
 </source>
         <translation>Folgende Layer im Projekt-GeoPackage werden derzeit im Projekt benutzt und werden überschrieben:
 </translation>
     </message>
     <message>
-        <location filename="../modules/geopackage.py" line="1313"/>
+        <location filename="../modules/geopackage.py" line="1354"/>
         <source>
 
 This can lead to to unexpected results (especially if used by multiple layers). 
@@ -230,6 +182,83 @@ Do you want to continue?</source>
 Dies kann zu unerwarteten Ergebnissen führen (besonders wenn von mehreren Layern zugegriffen wird).
 
 Wollen sie trotzdem fortfahren?</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="388"/>
+        <source>The selected layers and layers in selected groups will be deleted from the project. Corresponding data sources in the project&apos;s GeoPackage will also be deleted; other data sources will not be changed.
+
+Selected layers:
+</source>
+        <translation>Die ausgewählten Layer und Layer in den ausgewähten Gruppen werden gelöscht. Ihre Datenquellen im Projekt-GeoPackage werden ebenfalls gelöscht. Datenquellen außerhalb des Projekt-GeoPackage werden nicht geändert.
+
+Ausgewählte Layer:
+</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="449"/>
+        <source>These unselected project layers use a data source that would be deleted:
+
+</source>
+        <translation>Folgende nicht ausgewählte Layer benutzen eine Datenquelle, die gelöscht werden soll:
+
+</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="645"/>
+        <source>Source in GeoPackage
+   → Layer using this Source</source>
+        <translation>Datenquelle in GeoPackage
+   → Layer, die diese Datenquelle benutzen</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="780"/>
+        <source>Rename GeoPackage Data Source</source>
+        <translation>Datenquelle in GeoPackage umbenennen</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="780"/>
+        <source>New data source name:</source>
+        <translation>Neuer Name:</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="792"/>
+        <source>Invalid Name</source>
+        <translation>Name ungültig</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="821"/>
+        <source>The data source was renamed, but these project layers could not be reconnected:
+%1</source>
+        <translation>Die Datenquelle wurde umbenannt, aber folgende Layer konnten nicht mit der Datenquelle verbunden werden:
+%1</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="847"/>
+        <source>Delete GeoPackage Data Source?</source>
+        <translation>Datenquelle im GeoPackage löschen?</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="847"/>
+        <source>Delete the unused data source &apos;%1&apos;?</source>
+        <translation>Unbenutzte Datenquelle &apos;%1&apos; löschen?</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="914"/>
+        <source>Delete Used GeoPackage Data Source?</source>
+        <translation>Datenquelle, die von Layern benutzt wird, löschen?</translation>
+    </message>
+    <message>
+        <location filename="../modules/geopackage.py" line="914"/>
+        <source>The following project layers use this data source and will lose their data source:
+
+%1
+
+Delete the data source?</source>
+        <translation>Folgende Layer benutzen diese Datenquelle und werden ihre Daten verlieren:
+
+%1
+
+Datenquelle wirklich löschen?</translation>
     </message>
 </context>
 <context>
@@ -325,7 +354,7 @@ Wollen sie trotzdem fortfahren?</translation>
     <message>
         <location filename="../UTEC_layer_tools.py" line="266"/>
         <source>Manage Project GeoPackage</source>
-        <translation>Projekt-GeoPackage aufräumen</translation>
+        <translation>Projekt-GeoPackage verwalten</translation>
     </message>
 </context>
 <context>
