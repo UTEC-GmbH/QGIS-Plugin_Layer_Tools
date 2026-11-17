@@ -255,12 +255,17 @@ class NewLayoutDialog(QDialog):
         self.form_layout.addRow(separator)
 
         project_scope = QgsExpressionContextUtils.projectScope(self.project)
+        project_drafter = (
+            project_scope.variable("UTEC_drafter") if project_scope else None
+        )
         project_author = (
             project_scope.variable("project_author") if project_scope else None
         )
-        drafter_initials = "".join(
-            name[0] for name in str(project_author or "").split()
-        ).upper()
+        drafter_initials = str(project_drafter or "").strip().upper()
+        if not drafter_initials:
+            drafter_initials = "".join(
+                name[0] for name in str(project_author or "").split()
+            ).upper()
         self.drafter_edit, self.drafter_date_edit = self._add_person_inputs(
             drafter_initials,
             datetime.now().astimezone().strftime("%d.%m.%Y"),
@@ -409,6 +414,10 @@ class NewLayoutDialog(QDialog):
             QgsExpressionContextUtils.setProjectVariable(
                 self.project, variable.name, value
             )
+
+        QgsExpressionContextUtils.setProjectVariable(
+            self.project, "UTEC_drafter", self.get_drafter_initials()
+        )
         log_debug("Project variables updated.", prefix="Project Properties → ")
 
 

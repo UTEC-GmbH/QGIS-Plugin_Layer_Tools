@@ -37,6 +37,7 @@ from modules.geopackage import (
     _NewGpkgLayerDialog,
     _rename_gpkg_table,
     _shared_source_warning_dialog,
+    _vacuum_gpkg,
     _validate_gpkg_layer_name,
     add_vector_layer_to_gpkg,
     check_existing_layer,
@@ -266,6 +267,20 @@ class TestAddVectorLayerToGpkg:
             assert loaded.isValid()
             assert loaded.featureCount() == 1
 
+    def test_overwriting_layer_vacuums_geopackage(
+        self, tmp_gpkg: Path, memory_point_layer: QgsVectorLayer
+    ) -> None:
+        """Replacing an existing vector table triggers GeoPackage cleanup."""
+        create_gpkg(tmp_gpkg)
+        project = QgsProject.instance()
+        add_vector_layer_to_gpkg(project, memory_point_layer, tmp_gpkg)
+
+        with patch("modules.geopackage._vacuum_gpkg") as vacuum:
+            result = add_vector_layer_to_gpkg(project, memory_point_layer, tmp_gpkg)
+
+        assert not result.errors
+        vacuum.assert_called_once_with(tmp_gpkg)
+
 
 class TestCreateAndDeleteGpkgLayer:
     """Tests for creating and deleting empty GeoPackage tables."""
@@ -341,6 +356,24 @@ class TestCreateAndDeleteGpkgLayer:
         _delete_gpkg_tables(tmp_gpkg, {table_name})
 
         assert table_name not in get_gpkg_layer_names(tmp_gpkg)
+
+    def test_vacuum_reclaims_freed_pages(self, tmp_gpkg: Path) -> None:
+        """VACUUM compacts pages freed by a prior table deletion."""
+        create_gpkg(tmp_gpkg)
+        with sqlite3.connect(tmp_gpkg) as conn:
+            conn.execute("CREATE TABLE vacuum_test (data BLOB)")
+            conn.executemany(
+                "INSERT INTO vacuum_test VALUES (?)",
+                [(b"x" * 8192,) for _ in range(256)],
+            )
+            conn.execute("DROP TABLE vacuum_test")
+            page_count_before = conn.execute("PRAGMA page_count").fetchone()[0]
+
+        _vacuum_gpkg(tmp_gpkg)
+
+        with sqlite3.connect(tmp_gpkg) as conn:
+            page_count_after = conn.execute("PRAGMA page_count").fetchone()[0]
+        assert page_count_after < page_count_before
 
     def test_dependencies_identify_shared_sources(
         self, clean_project: QgsProject, tmp_gpkg: Path
@@ -459,18 +492,18 @@ class TestCreateAndDeleteGpkgLayer:
             for index in range(dialog.tree.topLevelItemCount())
         }
 
-        assert dialog.gpkg_name_label.text().endswith(tmp_gpkg.name)
+        assert dialog.gpkg_name_label.text().endswith(
+            f"{tmp_gpkg.name} (1 unused data sources)"
+        )
         assert dialog.gpkg_name_label.toolTip() == str(tmp_gpkg)
         assert rows["used"].childCount() == 1
         assert rows["used"].text(0) == "used"
         assert rows["used"].text(1) == "1"
-        assert rows["used"].isExpanded()
         assert rows["used"].childCount() == 1
         assert rows["used"].child(0).text(0) == "→ project view"
         assert rows["used"].child(0).font(0).italic()
         assert rows["unused"].text(0) == "unused"
         assert rows["unused"].text(1) == "0"
-        assert rows["unused"].isExpanded()
         assert rows["unused"].childCount() == 1
         assert (
             rows["unused"].child(0).text(0)
@@ -497,8 +530,8 @@ class TestCreateAndDeleteGpkgLayer:
             dialog.tree.headerItem().text(column).replace("\n", " ")
             for column in range(dialog.tree.columnCount())
         ] == [
-            "Table in GeoPackage    → Layer using this table",
-            "Use by X Layers",
+            "Source in GeoPackage    → Layer using this Source",
+            "Used by X Layers",
             "Rename",
             "Delete",
         ]
@@ -520,6 +553,9 @@ class TestCreateAndDeleteGpkgLayer:
         dependent = QgsVectorLayer(f"{tmp_gpkg}|layername=used", "project view", "ogr")
         clean_project.addMapLayer(dependent)
         dialog = _GpkgManagerDialog(tmp_gpkg)
+        assert dialog.gpkg_name_label.text().endswith(
+            f"{tmp_gpkg.name} (2 unused data sources)"
+        )
         question_args = []
 
         def confirm(*args):
@@ -535,6 +571,9 @@ class TestCreateAndDeleteGpkgLayer:
         assert "unused one" in question_args[0][2]
         assert "unused two" in question_args[0][2]
         assert "\n• used" not in question_args[0][2]
+        assert dialog.gpkg_name_label.text().endswith(
+            f"{tmp_gpkg.name} (0 unused data sources)"
+        )
         with sqlite3.connect(tmp_gpkg) as conn:
             assert {
                 row[0] for row in conn.execute("SELECT table_name FROM gpkg_contents")
@@ -572,6 +611,9 @@ class TestCreateAndDeleteGpkgLayer:
         dependent = QgsVectorLayer(f"{tmp_gpkg}|layername=used", "project view", "ogr")
         clean_project.addMapLayer(dependent)
         dialog = _GpkgManagerDialog(tmp_gpkg)
+        assert dialog.gpkg_name_label.text().endswith(
+            f"{tmp_gpkg.name} (0 unused data sources)"
+        )
 
         with patch.object(QMessageBox, "information") as information, patch.object(
             QMessageBox, "question"

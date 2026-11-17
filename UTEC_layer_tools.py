@@ -59,6 +59,9 @@ class UTECLayerTools(QObject):
         super().__init__()
         self.plugin_dir: Path = Path(__file__).parent
         PluginContext.init(iface, self.plugin_dir)
+        log_debug(
+            f"Detected {'dark' if PluginContext.is_dark_theme() else 'light'} theme."
+        )
 
         self.project: QgsProject = PluginContext.project()
         self.iface: QgisInterface = iface

@@ -51,7 +51,7 @@ from typing_extensions import override
 from .constants import GEOMETRY_SUFFIX_MAP, ICONS, LAYER_TYPES, ActionResults, Issue
 from .context import PluginContext
 from .general import clear_attribute_table, get_selected_layers
-from .logs_and_errors import log_debug, lvl, raise_runtime_error
+from .logs_and_errors import log_debug, lvl, raise_runtime_error, show_message
 from .rename import geometry_type_suffix
 
 if TYPE_CHECKING:
@@ -240,7 +240,7 @@ def _create_gpkg_vector_layer(
     if not gpkg_layer.startEditing():
         raise_runtime_error("Could not start editing the new GeoPackage layer.")
     log_debug(
-        f"GeoPackage → Empty vector layer '{layer_name}' created.",
+        f"GeoPackage → Empty vector layer '{layer_name}' (geometry type '{geometry_type}') created.",
         lvl.Success,
     )
     return gpkg_layer
@@ -288,6 +288,8 @@ def _delete_vector_gpkg_tables(gpkg_path: Path, table_names: set[str]) -> None:
         if layer_index is None or dataset.DeleteLayer(layer_index) != 0:
             dataset = None
             raise_runtime_error(f"Could not delete GeoPackage table: {table_name}")
+        else:
+            log_debug(f"GeoPackage → Deleted vector table '{table_name}'", lvl.Success)
     dataset = None
 
 
@@ -320,6 +322,25 @@ def _delete_raster_gpkg_tables(gpkg_path: Path, table_names: set[str]) -> None:
             cursor.execute(
                 "DELETE FROM gpkg_contents WHERE table_name = ?", (table_name,)
             )
+
+            log_debug(f"GeoPackage → Deleted table '{table_name}'", lvl.Success)
+
+
+def _vacuum_gpkg(gpkg_path: Path) -> None:
+    """Reclaim unused pages after a GeoPackage operation that frees data."""
+    conn = sqlite3.connect(str(gpkg_path))
+    try:
+        conn.execute("VACUUM")
+        log_debug(f"GeoPackage → VACUUM completed for '{gpkg_path}'", lvl.Success)
+    except sqlite3.Error as error:
+        message = (
+            f"GeoPackage data was changed, but cleanup (VACUUM) failed for "
+            f"'{gpkg_path}': {error}"
+        )
+        log_debug(message, lvl.Warning)
+        show_message(message, lvl.Warning)
+    finally:
+        conn.close()
 
 
 def _delete_gpkg_tables(gpkg_path: Path, layer_names: set[str]) -> None:
@@ -355,6 +376,7 @@ def _delete_gpkg_tables(gpkg_path: Path, layer_names: set[str]) -> None:
         _delete_vector_gpkg_tables(gpkg_path, vector_tables)
     if raster_tables:
         _delete_raster_gpkg_tables(gpkg_path, raster_tables)
+    _vacuum_gpkg(gpkg_path)
 
 
 def delete_gpkg_layers() -> None:
@@ -645,7 +667,7 @@ class _GpkgManagerDialog(QDialog):
         self.tree.setHeaderLabels(
             [
                 QCoreApplication.translate("GeoPackage", "Source in GeoPackage\n   → Layer using this Source"),
-                QCoreApplication.translate("GeoPackage", "Use by\nX Layers"),
+                QCoreApplication.translate("GeoPackage", "Used by\nX Layers"),
                 QCoreApplication.translate("GeoPackage", "Rename"),
                 QCoreApplication.translate("GeoPackage", "Delete"),
             ]
@@ -688,6 +710,19 @@ class _GpkgManagerDialog(QDialog):
             name.casefold(): layers for name, layers in dependencies.items()
         }
         tables = _gpkg_contents(self.gpkg_path)
+        unused_count = sum(
+            1
+            for table_name, _data_type in tables
+            if not dependencies_by_name.get(table_name.casefold())
+        )
+        # fmt: off
+        # ruff: noqa: E501
+        unused_count_text = QCoreApplication.translate("GeoPackage", "%1 unused data sources").replace("%1", str(unused_count))
+        gpkg_suffix = QCoreApplication.translate("GeoPackage", "Project's GeoPackage")
+        # fmt: on
+        self.gpkg_name_label.setText(
+            f"{gpkg_suffix}: {self.gpkg_path.name} ({unused_count_text})"
+        )
         if tables:
             self._add_spacer()
 
@@ -1107,11 +1142,19 @@ def add_vector_layer_to_gpkg(
             and success/error information.
     """
     layer_name: str = layer.name()
+    existing_gpkg_layers = (
+        existing_layers
+        if existing_layers is not None
+        else get_gpkg_layer_names(gpkg_path)
+    )
     options = QgsVectorFileWriter.SaveVectorOptions()
     # pyrefly: ignore[bad-assignment]
     options.driverName = "GPKG"
     # pyrefly: ignore[bad-assignment]
-    options.layerName = check_existing_layer(gpkg_path, layer, existing_layers)
+    options.layerName = check_existing_layer(gpkg_path, layer, existing_gpkg_layers)
+    replacing_existing_layer = options.layerName.casefold() in {
+        name.casefold() for name in existing_gpkg_layers
+    }
     if PluginContext.is_qgis4():
         options.actionOnExistingFile = (
             QgsVectorFileWriter.ActionOnExistingFile.CreateOrOverwriteLayer
@@ -1133,6 +1176,8 @@ def add_vector_layer_to_gpkg(
         success = int(result_write[0]) == 0
 
     if success:
+        if replacing_existing_layer:
+            _vacuum_gpkg(gpkg_path)
         log_debug(
             f"GeoPackage → Vector Layer '{layer_name}' "
             "added to GeoPackage successfully.",
@@ -1190,6 +1235,14 @@ def add_raster_layer_to_gpkg(
         raise_runtime_error("Could not get raster data provider.")
 
     layer_name: str = check_existing_layer(gpkg_path, layer, existing_layers)
+    existing_gpkg_layers = (
+        existing_layers
+        if existing_layers is not None
+        else get_gpkg_layer_names(gpkg_path)
+    )
+    replacing_existing_layer = layer_name.casefold() in {
+        name.casefold() for name in existing_gpkg_layers
+    }
 
     # Ensure clean overwrite by dropping existing raster table
     with contextlib.suppress(sqlite3.Error), sqlite3.connect(str(gpkg_path)) as conn:
@@ -1224,6 +1277,8 @@ def add_raster_layer_to_gpkg(
     success = int(error) == 0
 
     if success:
+        if replacing_existing_layer:
+            _vacuum_gpkg(gpkg_path)
         log_debug(
             f"GeoPackage → Raster Layer '{layer_name}' added to GeoPackage.",
             lvl.Success,
