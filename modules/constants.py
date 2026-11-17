@@ -279,8 +279,8 @@ class Icons:
         Args:
             filename: The name of the icon file (including extension).
             dynamic: Whether to load the icon dynamically (default: False).
-            dark: The color to use for the dark theme (default: "#1c274c").
-            light: The color to use for the light theme (default: "#738ad5").
+            dark: Dark color used for the light theme (default: "#1c274c").
+            light: Light color used for the dark theme (default: "#738ad5").
 
         Returns:
             QIcon: The loaded QIcon object.
