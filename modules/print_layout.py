@@ -209,7 +209,7 @@ class NewLayoutDialog(QDialog):
         """Set up inputs for the background map source."""
 
         self.legend_checkbox = QCheckBox()
-        self.legend_checkbox.setChecked(True)
+        self.legend_checkbox.setChecked(False)
         self.form_layout.addRow(
             QCoreApplication.translate("PrintLayout", "Legend"),
             self.legend_checkbox,
@@ -217,13 +217,10 @@ class NewLayoutDialog(QDialog):
 
         self.source_checkbox = QCheckBox()
         self.source_checkbox.setChecked(False)
-
-        # fmt: off
-        # ruff: noqa: E501
         self.source_edit = QLineEdit(
-            QCoreApplication.translate("PrintLayout", "Source of Background Maps: LGLN Niedersachsen")
+            QCoreApplication.translate("PrintLayout", "Sources: LGLN Niedersachsen")
         )
-        # fmt: on
+
         self.source_edit.setEnabled(False)
         self.source_checkbox.toggled.connect(self.source_edit.setEnabled)
 
