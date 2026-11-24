@@ -4,7 +4,6 @@ This module contains functions for creating print layouts from templates.
 """
 
 from dataclasses import dataclass
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 from qgis.core import (
@@ -268,7 +267,7 @@ class NewLayoutDialog(QDialog):
             ).upper()
         self.drafter_edit, self.drafter_date_edit = self._add_person_inputs(
             drafter_initials,
-            datetime.now().astimezone().strftime("%d.%m.%Y"),
+            QCoreApplication.translate("PrintLayout", "Current"),
             QCoreApplication.translate("PrintLayout", "Drafter"),
         )
         self.checker_edit, self.checker_date_edit = self._add_person_inputs(
@@ -624,8 +623,8 @@ def _handle_static_labels(
     label_texts: dict[str, str] = {
         "gezeichnet - Name": metadata.drafter,
         "geprüft - Name": metadata.checker,
-        "gezeichnet - Datum": metadata.drafter_date,
-        "geprüft - Datum": metadata.checker_date,
+        "gezeichnet - Datum": _layout_date_text(metadata.drafter_date),
+        "geprüft - Datum": _layout_date_text(metadata.checker_date),
     }
     if item_id not in label_texts:
         return False
@@ -633,6 +632,14 @@ def _handle_static_labels(
     item.setText(label_texts[item_id])
     item.refresh()
     return True
+
+
+def _layout_date_text(date: str) -> str:
+    """Convert the current-date marker to a dynamic QGIS layout expression."""
+    current_label = QCoreApplication.translate("PrintLayout", "Current")
+    if date.strip().casefold() == current_label.casefold():
+        return "[%format_date(now(), 'dd.MM.yyyy')%]"
+    return date
 
 
 def _handle_map_linked_items(

@@ -1,7 +1,5 @@
 """Tests for print layout creation options."""
 
-from datetime import datetime
-
 import pytest
 from qgis.core import (
     QgsExpressionContextUtils,
@@ -107,7 +105,9 @@ def test_layout_dialog_initializes_drafter_and_checker_dates(clean_project) -> N
     dialog = NewLayoutDialog(clean_project, "Test Layout")
 
     assert dialog.get_drafter_initials() == ""
-    assert dialog.get_drafter_date() == datetime.now().astimezone().strftime("%d.%m.%Y")
+    assert dialog.get_drafter_date() == QCoreApplication.translate(
+        "PrintLayout", "Current"
+    )
     assert dialog.get_checker_initials() == ""
     assert dialog.get_checker_date() == ""
 
@@ -186,6 +186,33 @@ def test_auto_dynamic_elements_applies_both_entered_dates(clean_project) -> None
     }
     assert labels["gezeichnet - Datum"] == "01.02.2025"
     assert labels["geprüft - Datum"] == "03.04.2025"
+
+
+def test_auto_dynamic_elements_uses_current_date_expression(clean_project) -> None:
+    layout = QgsPrintLayout(clean_project)
+    layout.initializeDefaults()
+    doc = _load_template_document()
+    items = layout.addItemsFromXml(
+        doc.documentElement(),
+        doc,
+        QgsReadWriteContext(),
+        pasteInPlace=False,
+    )
+    metadata = LayoutMetadata(
+        source_visible=False,
+        source_text="",
+        drafter="AB",
+        drafter_date=QCoreApplication.translate("PrintLayout", "Current"),
+        checker="",
+        checker_date="",
+    )
+
+    _auto_dynamic_elements(items, None, metadata)
+
+    labels = {
+        item.id(): item.text() for item in items if isinstance(item, QgsLayoutItemLabel)
+    }
+    assert labels["gezeichnet - Datum"] == "[%format_date(now(), 'dd.MM.yyyy')%]"
 
 
 def test_add_legend_uses_map_and_title_block_corner(clean_project) -> None:

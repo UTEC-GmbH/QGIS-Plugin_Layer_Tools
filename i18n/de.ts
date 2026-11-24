@@ -561,6 +561,11 @@ Datenquelle wirklich löschen?</translation>
         <translation>Planart</translation>
     </message>
     <message>
+        <location filename="../modules/print_layout.py" line="272"/>
+        <source>Current</source>
+        <translation>aktuell</translation>
+    </message>
+    <message>
         <location filename="../tests/qgis/test_print_layout.py" line="119"/>
         <source>Drafter</source>
         <translation>gezeichnet</translation>
