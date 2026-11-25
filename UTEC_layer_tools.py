@@ -192,13 +192,13 @@ class UTECLayerTools(QObject):
         """Add the action for editing project variables."""
         # fmt: off
         # ruff: noqa: E501
-        button: str = QCoreApplication.translate("Menu_Button", "Edit Project Variables")
-        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Edit Project Variables</b></p><p><span style='font-weight:normal; font-style:normal;'>Define project-specific metadata like project number and name. These are stored as project variables (see Project → Properties...) and can be used in expressions, e.g. [% @project_number %].</span></p>")
-        #                                                                <p><b>Projektvariablen bearbeiten</b></p><p><span style='font-weight:normal; font-style:normal;'>Metadaten wie Projektnummer und Name definieren. Diese werden als Projektvariablen gespeichert (siehe Projekt → Eigenschaften...) und können in Ausdrücken verwendet werden, z.B. [% @project_number %].</span></p>
+        button_text: str = QCoreApplication.translate("Menu_Button", "Edit Project Variables")
+        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<div style='font-weight:normal;'><p><b>Edit Project Variables</b></p><p>Define project-specific metadata like project number and name. These are stored as project variables (see Project → Properties...) and can be used in expressions, e.g. [% @project_number %]. They are automatically used in new print layouts. If not defined here, they are created from the first print layout.</p></div>")
+        # <div style='font-weight:normal;'><p><b>Projektvariablen bearbeiten</b></p><p>Metadaten wie Projektnummer und Name definieren. Diese werden als Projektvariablen gespeichert (siehe Projekt → Eigenschaften...) und können in Ausdrücken verwendet werden, z.B. [% @project_number %]. Sie werden automatisch in neuen Drucklayouts verwendet. Wenn nicht hier definiert, werden sie aus dem ersten Drucklayout erstellt.</p></div>
         # fmt: on
         project_vars_action = self.add_action(
             icon=ICONS.main_menu_variables,
-            button_text=button,
+            button_text=button_text,
             callback=self.manage_project_variables,
             parent=self.iface.mainWindow(),
             add_to_menu=False,
@@ -211,15 +211,18 @@ class UTECLayerTools(QObject):
     def _add_print_layout_action(self) -> None:
         """Add a direct action for creating a print layout."""
         # fmt: off
-        create_layout_label: str = QCoreApplication.translate("Menu_Button", "Create Layout")
+        button_text: str = QCoreApplication.translate("Menu_Button", "Create Print Layout")
+        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<div style='font-weight:normal;'><p><b>Create New Print Layout</b></p><p>Tip: If the same name is entered under 'Drawing Type' as a named layer theme ('Eye-menu' in the layer manager), the main map of the layout will automatically follow this theme.</p></div>")
+        # <div style='font-weight:normal;'><p><b>Neues Drucklayout Erstellen</b></p><p>Tipp: wenn unter "Planart" der gleiche Name eingetragen wird wie ein benanntes Layer-Thema ("Auge-Menu" im Layermanager), folgt die Hauptkarte des Layouts automatisch diesem Thema.</p></div>
         # fmt: on
         create_layout_action = self.add_action(
             icon=ICONS.main_menu_print,
-            button_text=create_layout_label,
+            button_text=button_text,
             callback=self.create_layout,
             parent=self.iface.mainWindow(),
             add_to_menu=False,
             add_to_toolbar=False,
+            tool_tip=tool_tip_text,
         )
         if self.plugin_menu:
             self.plugin_menu.addAction(create_layout_action)
@@ -228,9 +231,9 @@ class UTECLayerTools(QObject):
         """Add the action for exporting layouts as PDF."""
         # fmt: off
         # ruff: noqa: E501
-        button_text: str = QCoreApplication.translate("Menu_Button", "Export Layouts as PDF")
-        tool_tip_export: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Export Layouts as PDF</b></p><p><span style='font-weight:normal; font-style:normal;'>Select layouts to be exported as PDF files. The PDFs will be saved in the specified folder (defaults to 'pdf' within the project directory) without overwriting existing files. Existing files with the same name will be moved to a folder called 'alt'.</span></p>")
-        #                                                                  <p><b>Layouts als PDF exportieren</b></p><p><span style='font-weight:normal; font-style:normal;'>Layouts wählen, die als PDF-Dateien exportiert werden sollen. Die Dateien werden im angegebenen Ordner (Standardordner: 'pdf' im Projektverzeichnis) gespeichert ohne vorhandene Dateien zu überschreiben. Vorhandene Dateien mit demselben Namen werden in einen Unterordner namens 'alt' verschoben.</span></p>
+        button_text: str = QCoreApplication.translate("Menu_Button", "Export Print Layouts as PDF")
+        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<div style='font-weight:normal;'><p><b>Export Print Layouts as PDF</b></p><p>The PDFs will be saved in the specified folder (defaults to 'pdf' within the project directory) without overwriting existing files. Existing files with the same name will be moved to a folder called 'alt'.</p></div>")
+        # <div style='font-weight:normal;'><p><b>Drucklayouts als PDF exportieren</b></p><p>Die pdf-Dateien werden im angegebenen Ordner (Standardordner: 'pdf' im Projektverzeichnis) gespeichert ohne vorhandene Dateien zu überschreiben. Vorhandene Dateien mit demselben Namen werden in einen Unterordner namens 'alt' verschoben.</p></div>
         # fmt: on
         export_layouts_action = self.add_action(
             icon=ICONS.main_menu_export,
@@ -239,7 +242,7 @@ class UTECLayerTools(QObject):
             parent=self.iface.mainWindow(),
             add_to_menu=False,
             add_to_toolbar=False,
-            tool_tip=tool_tip_export,
+            tool_tip=tool_tip_text,
         )
         if self.plugin_menu:
             self.plugin_menu.addAction(export_layouts_action)
@@ -249,8 +252,8 @@ class UTECLayerTools(QObject):
         # fmt: off
         # ruff: noqa: E501
         button_new_layer: str = QCoreApplication.translate("Menu_Button", "Create New Layer in Project's GeoPackage")
-        tool_tip_new_layer: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Create New Layer in Project's GeoPackage</b></p><p><span style='font-weight:normal; font-style:normal;'>Creates a new layer in the project's GeoPackage. The new layer is added to the top of the layer tree of the current project.</span></p>")
-        #                                                                <p><b>Neuen Layer im Projekt-GeoPackage Erstellen</b></p><p><span style='font-weight:normal; font-style:normal;'>Erstellt einen neuen Layer im Projekt-GeoPackage. Der neue Layer wird von dort in das Projekt (im Layer-Baum ganz oben) eingefügt.</span></p>
+        tool_tip_new_layer: str = QCoreApplication.translate("Menu_ToolTip", "<div style='font-weight:normal;'><p><b>Create New Layer in Project's GeoPackage</b></p><p>Creates a new layer in the project's GeoPackage. The new layer is added to the top of the layer tree of the current project.</p><p><i>The project's GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).</i></p></div>")
+        # <div style='font-weight:normal;'><p><b>Neuen Layer im Projekt-GeoPackage Erstellen</b></p><p>Erstellt einen neuen Layer im Projekt-GeoPackage. Der neue Layer wird von dort in das Projekt (im Layer-Baum ganz oben) eingefügt.</p><p><i>Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).</i></p></div>
         # fmt: on
         new_layer_action = self.add_action(
             icon=ICONS.main_menu_new_layer,
@@ -266,15 +269,19 @@ class UTECLayerTools(QObject):
 
         # fmt: off
         # ruff: noqa: E501
+        button_manage: str = QCoreApplication.translate("Menu_Button", "Manage Project GeoPackage")
+        tool_tip_manage: str = QCoreApplication.translate("Menu_ToolTip", "<div style='font-weight:normal;'><p><b>Manage Project GeoPackage</b></p><p>Rename or delete layers (tables) in the project's GeoPackage. After deleting layers, disk space is automatically freed using the 'VACUUM' command.</p><p><i>The project's GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).</i></p></div>")
+        # <div style='font-weight:normal;'><p><b>Projekt-GeoPackage Verwalten</b></p><p>Layer (Tabellen) im Projekt-GeoPackage umbenennen oder löschen. Nach dem Löschen von Layern wird der Speicherplatz automatisch freigegeben (VACUUM-Befehl).</p><p><i>Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).</i></p></div>
+        # fmt: on
         manage_gpkg_action = self.add_action(
             icon=ICONS.main_menu_manage_geopackage,
-            button_text=QCoreApplication.translate("Menu_Button", "Manage Project GeoPackage"),
+            button_text=button_manage,
             callback=self.manage_gpkg_tables,
             parent=self.iface.mainWindow(),
             add_to_menu=False,
             add_to_toolbar=False,
+            tool_tip=tool_tip_manage,
         )
-        # fmt: on
         if self.plugin_menu:
             self.plugin_menu.addAction(manage_gpkg_action)
 
@@ -282,18 +289,18 @@ class UTECLayerTools(QObject):
 
         # fmt: off
         # ruff: noqa: E501
-        button: str = QCoreApplication.translate("Menu_Button", "Copy Selected Layers to Project's GeoPackage")
-        tool_tip_text: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Copy Selected Layers to Project's GeoPackage</b></p><p><span style='font-weight:normal; font-style:normal;'>Selected layers and layers in selected groups are copied to the project's GeoPackage and added back from the GeoPackage to the top of the layer tree of the current project. The original layers can be removed from the project if desired.</p><p>The project's GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).</span></p><p><b>CAUTION: This will overwrite layers with the same name and geometry type in the project's GeoPackage!</b></p>")
-        #                                                                <p><b>Gewählte Layer in das Projekt-GeoPackage Kopieren</b></p><p><span style='font-weight:normal; font-style:normal;'>Gewählte Layer und Layer in gewählten Gruppen werden in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.</p><p>Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).</span></p><p><b>Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!</b></p>
+        button_copy: str = QCoreApplication.translate("Menu_Button", "Copy Selected Layers to Project's GeoPackage")
+        tool_tip_copy: str = QCoreApplication.translate("Menu_ToolTip", "<div style='font-weight:normal;'><p><b>Copy Selected Layers to Project's GeoPackage</b></p><p>Selected layers and layers in selected groups are copied to the project's GeoPackage and added back from the GeoPackage to the top of the layer tree of the current project. The original layers can be removed from the project if desired.</p><p><b>!!! CAUTION !!!</b><br>This will overwrite layers with the same name and geometry type in the project's GeoPackage!</p><p><i>The project's GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).</i></p></div>")
+        # <div style='font-weight:normal;'><p><b>Gewählte Layer in das Projekt-GeoPackage Kopieren</b></p><p>Gewählte Layer und Layer in gewählten Gruppen werden in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.</p><p><b>!!! Vorsicht !!!</b><br>Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!</b></p><p><i>Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).</i></p></div>
         # fmt: on
         copy_action = self.add_action(
             icon=ICONS.main_menu_copy,
-            button_text=button,
+            button_text=button_copy,
             callback=self.copy_selected_layers,
             parent=self.iface.mainWindow(),
             add_to_menu=False,
             add_to_toolbar=False,
-            tool_tip=tool_tip_text,
+            tool_tip=tool_tip_copy,
         )
         if self.plugin_menu:
             self.plugin_menu.addAction(copy_action)
@@ -301,8 +308,8 @@ class UTECLayerTools(QObject):
         # fmt: off
         #ruff: noqa: E501
         button_ship: str = QCoreApplication.translate("Menu_Button", "Prepare Selected Layers for Sending")
-        tool_tip_ship: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Prepare Selected Layers for Sending</b></p><p><span style='font-weight:normal; font-style:normal;'>Creates a subfolder in the project folder with a GeoPackage (.gpkg) and a project file (.qgz) containing the selected layers. These two files can be sent e.g. via email.</span></p>")
-        #                                                                <p><b>Gewälte Layer für Versand Vorbereiten</b></p><p><span style='font-weight:normal; font-style:normal;'>Im Projektordner wird ein Unterordner mit einem GeoPackage (.gpkg) und einer Projektdatei (.qgz) erstellt, die die gewählten Layer enthalten. Diese beiden Dateien können z.B. per E-Mail versendet werden.</span></p>
+        tool_tip_ship: str = QCoreApplication.translate("Menu_ToolTip", "<div style='font-weight:normal;'><p><b>Prepare Selected Layers for Sending</b></p><p>Creates a subfolder in the project folder with a GeoPackage (.gpkg) and a project file (.qgz) containing the selected layers. These two files can be sent e.g. via email.</p></div>")
+        # <div style='font-weight:normal;'><p><b>Gewählte Layer für Versand Vorbereiten</b></p><p>Im Projektordner wird ein Unterordner mit einem GeoPackage (.gpkg) und einer Projektdatei (.qgz) erstellt, die die gewählten Layer enthalten. Diese beiden Dateien können z.B. per E-Mail versendet werden.</p></div>
         # fmt: on
         shipping_action = self.add_action(
             icon=ICONS.main_menu_send,
@@ -319,8 +326,8 @@ class UTECLayerTools(QObject):
         # fmt: off
         # ruff: noqa: E501
         button_delete: str = QCoreApplication.translate("Menu_Button", "Delete Selected Layers from the Project and from the Project's GeoPackage")
-        tool_tip_delete: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Delete Selected Layers from the Project and from the Project's GeoPackage</b></p><p><span style='font-weight:normal; font-style:normal;'>!!! CAUTION !!! Selected layers and layers in selected groups are deleted from the project as well as from the project's GeoPackage.</span></p>")
-        #                                                                <p><b>Gewählte Layer aus dem Projekt-GeoPackage Löschen</b></p><p><span style='font-weight:normal; font-style:normal;'>!!! VORSICHT !!!Gewählte Layer und Layer in gewählten Gruppen werden sowohl aus dem Projekt, als auch aus dem Projekt-GeoPackage gelöscht.</span></p>
+        tool_tip_delete: str = QCoreApplication.translate("Menu_ToolTip", "<div style='font-weight:normal;'><p><b>Delete Selected Layers from the Project and from the Project's GeoPackage</b></p><p><b>!!! CAUTION !!!</b><br>Selected layers and layers in selected groups are deleted from the project as well as from the project's GeoPackage.</p><p><i>The project's GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).</i></p></div>")
+        # <div style='font-weight:normal;'><p><b>Gewählte Layer aus dem Projekt-GeoPackage Löschen</b></p><p><b>!!! VORSICHT !!!</b><br>Gewählte Layer und Layer in gewählten Gruppen werden sowohl aus dem Projekt, als auch aus dem Projekt-GeoPackage gelöscht.</p><p><i>Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).</i></p></div>
         # fmt: on
         delete_action = self.add_action(
             icon=ICONS.main_menu_delete_layers,
@@ -338,13 +345,13 @@ class UTECLayerTools(QObject):
         """Add actions for renaming layers and undoing operations."""
         # fmt: off
         # ruff: noqa: E501
-        button: str = QCoreApplication.translate("Menu_Button", "Rename Selected Layers by Group Name")
-        tool_tip_rename: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Rename Selected Layers by Group Name</b></p><p><span style='font-weight:normal; font-style:normal;'>Selected layers and layers in selected groups are renamed according to their parent group names. If a layer is not in a group, it is not renamed.</p><p>(Mostly useful for renaming layers imported from AutoCAD)</span></p>")
-        #                                                                <p><b>Gewählte Layer nach Gruppenname Umbenennen</b></p><p><span style='font-weight:normal; font-style:normal;'>Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen. Layer, die sich nicht in einer Gruppe befinden, wird er nicht umbenannt.</p><p>(Nützlich für das Umbenennen von Layern, die aus AutoCAD importiert wurden)</span></p>
+        button_rename: str = QCoreApplication.translate("Menu_Button", "Rename Selected Layers by Group Name")
+        tool_tip_rename: str = QCoreApplication.translate("Menu_ToolTip", "<div style='font-weight:normal;'><p><b>Rename Selected Layers by Group Name</b></p><p>Selected layers and layers in selected groups are renamed according to their parent group names. If a layer is not in a group, it is not renamed.</p><p><i>(Mostly useful for renaming layers imported from AutoCAD)</i></p></div>")
+        # <div style='font-weight:normal;'><p><b>Gewählte Layer nach Gruppenname Umbenennen</b></p><p>Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen. Layer, die sich nicht in einer Gruppe befinden, werden nicht umbenannt.</p><p><i>(Nützlich für das Umbenennen von Layern, die aus AutoCAD importiert wurden)</i></p></div>
         # fmt: on
         rename_action = self.add_action(
             icon=ICONS.main_menu_rename,
-            button_text=button,
+            button_text=button_rename,
             callback=self.rename_selected_layers,
             parent=self.iface.mainWindow(),
             add_to_menu=False,
@@ -357,8 +364,8 @@ class UTECLayerTools(QObject):
         # fmt: off
         # ruff: noqa: E501
         button_ren_copy: str = QCoreApplication.translate("Menu_Button", "Rename and Copy Selected Layers to Project's GeoPackage")
-        tool_tip_ren_copy: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Rename and Copy Selected Layers to Project's GeoPackage</b></p><p><span style='font-weight:normal; font-style:normal;'>Selected layers and layers in selected groups are renamed according to their parent group names, then copied to the project's GeoPackage and then added back from the GeoPackage to the top of the layer tree of the current project. The original layers can be removed from the project if desired.</p><p>The project's GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).</span></p><b>CAUTION: This will overwrite layers with the same name and geometry type in the project's GeoPackage!</b></p>")
-        #                                                                <p><b>Gewählte Layer Umbenennen und in das Projekt-GeoPackage Kopieren</b></p><p><span style='font-weight:normal; font-style:normal;'>Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen, danach in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.</p><p>Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).</span></p><p><b>Vorsicht: Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!</b></p>
+        tool_tip_ren_copy: str = QCoreApplication.translate("Menu_ToolTip", "<div style='font-weight:normal;'><p><b>Rename and Copy Selected Layers to Project's GeoPackage</b></p><p>Selected layers and layers in selected groups are renamed according to their parent group names, then copied to the project's GeoPackage and then added back from the GeoPackage to the top of the layer tree of the current project. The original layers can be removed from the project if desired.</p><p><b>!!! CAUTION !!!</b><br>This will overwrite layers with the same name and geometry type in the project's GeoPackage!</p><p><i>The project's GeoPackage is a GeoPackage (.gpkg) in the project folder with the same name as the project file (.qgz).</i></p></div>")
+        # <div style='font-weight:normal;'><p><b>Gewählte Layer Umbenennen und in das Projekt-GeoPackage Kopieren</b></p><p>Gewählte Layer und Layer in gewählten Gruppen werden umbenannt, so dass ihr Name der Gruppe entspricht, in der sie liegen, danach in das Projekt-GeoPackage kopiert und von dort in das Projekt (im Layer-Baum ganz oben) eingefügt. Die Ausgangslayer können danach, wenn gewünscht, aus dem Projekt gelöscht werden.</p><p><b>!!! Vorsicht !!!</b><br>Layer mit mit gleichem Namen und gleichem Geometrietyp im Projekt-GeoPackage werden überschrieben!</p><p><i>Das Projekt-GeoPackage ist ein GeoPackage (.gpkg) im Projektordner mit dem gleichen Namen wie die Projektdatei (.qgz).</i></p></div>
         # fmt: on
         rename_copy_action = self.add_action(
             icon=ICONS.main_menu_rename_copy,
@@ -375,8 +382,8 @@ class UTECLayerTools(QObject):
         # fmt: off
         # ruff: noqa: E501
         button_undo: str = QCoreApplication.translate("Menu_Button", "Undo Last Rename")
-        tool_tip_undo: str = QCoreApplication.translate("Menu_ToolTip", "<p><b>Undo Last Rename</b></p><p><span style='font-weight:normal; font-style:normal;'>Undoes the most recent layer renaming operation performed by this plugin.</span></p>")
-        #                                                                <p><b>Letzte Umbenennung Rückgängig Machen</b></p><p><span style='font-weight:normal; font-style:normal;'>Die letzte Umbenennung, die von diesem Plugin ausgeführt wurde, wird rückgängig gemacht.</span></p>
+        tool_tip_undo: str = QCoreApplication.translate("Menu_ToolTip", "<div style='font-weight:normal;'><p><b>Undo Last Rename</b></p><p>Undoes the most recent layer renaming operation performed by this plugin.</p></div>")
+        # <div style='font-weight:normal;'><p><b>Letzte Umbenennung Rückgängig machen</b></p><p>Die letzte Umbenennung, die von diesem Plugin ausgeführt wurde, wird rückgängig gemacht.</p></div>
         # fmt: on
         undo_rename_action = self.add_action(
             icon=ICONS.main_menu_undo,
